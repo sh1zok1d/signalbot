@@ -742,7 +742,7 @@ class BetaConn:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.brief_enabled,
-                      u.push_enabled,
+                      u.push_enabled, u.push_hours,
                       NOT EXISTS (SELECT 1 FROM beta_notification_deliveries y
                                   WHERE y.kind='brief' AND y.user_pk=x.user_pk AND y.state='SENT'
                                     AND y.brief_date < x.brief_date) AS first_brief
@@ -770,14 +770,17 @@ class BetaConn:
                VALUES ($1,$2,$3::jsonb,$4) ON CONFLICT (week_end) DO NOTHING RETURNING weekly_pk""",
             week_end, built_at, _j(payload), payload_digest)
 
-    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime) -> int:
-        """One PENDING row per ACTIVE participant with messages on and the weekly type on."""
+    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime,
+                                            tz: Optional[str] = None) -> int:
+        """One PENDING row per ACTIVE participant with messages on and the weekly type on, in zone `tz`
+        (None: Kyiv; review of #379: each zone at its own slot)."""
         status = await self.conn.execute(
             """INSERT INTO beta_notification_deliveries (kind, weekly_pk, user_pk, state, decision_ts)
                SELECT 'weekly', $1, u.user_pk, 'PENDING', $2
                FROM beta_users u WHERE u.status='ACTIVE' AND u.push_enabled AND u.push_weekly
+                 AND u.tz IS NOT DISTINCT FROM $3
                ON CONFLICT (weekly_pk, user_pk) WHERE kind='weekly' DO NOTHING""",
-            weekly_pk, decision_ts)
+            weekly_pk, decision_ts, tz)
         return int(status.split()[-1])
 
     async def fetch_pending_weekly_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
@@ -789,6 +792,8 @@ class BetaConn:
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
+                 -- a row before its recipient's own slot takes no place in the run's limit (review of #379)
+                 AND ($2::timestamptz IS NULL OR x.decision_ts <= $2)
                  AND ($2::timestamptz IS NULL OR NOT EXISTS (
                      SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
                        AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
@@ -956,21 +961,21 @@ class BetaConn:
         return [{"user_pk": r["user_pk"], "tz": r["tz"], "times": list(r["times"] or [])} for r in rows]
 
     async def count_sent_on_own_day(self, *, user_pk: int, ts: datetime, tz: Optional[str], outbox_kind: str,
-                                    alert_kinds: Sequence[str] = ()) -> int:
-        """How many messages of this budget the participant was sent on their own calendar date of `ts`
-        (their clock; review of #373)."""
-        from beta.i18n import tz_of
-        zone = tz_of(tz)
-        start_local = datetime.combine(ts.astimezone(zone).date(), datetime.min.time(), tzinfo=zone)
-        end_local = datetime.combine(ts.astimezone(zone).date() + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+                                    alert_kinds: Sequence[str] = (), before: Optional[datetime] = None) -> int:
+        """How many messages of this budget the participant was sent, or may have been (SENDING, an
+        ambiguous DELIVERY_UNKNOWN; review of #379), on their own calendar date of `ts` (their clock;
+        review of #373), decided before `before` when given."""
+        from beta.detector import own_day_bounds
+        start, end = own_day_bounds(ts, tz)
+        if before is not None:
+            end = min(end, before)
         return int(await self.conn.fetchval(
             """SELECT count(*) FROM beta_notification_deliveries x
-               WHERE x.user_pk = $1 AND x.kind = $2 AND x.state = 'SENT'
+               WHERE x.user_pk = $1 AND x.kind = $2 AND x.state IN ('SENDING', 'SENT', 'DELIVERY_UNKNOWN')
                  AND x.decision_ts >= $3 AND x.decision_ts < $4
                  AND ($2 <> 'alert' OR EXISTS (SELECT 1 FROM beta_market_alerts a
                         WHERE a.alert_pk = x.alert_pk AND a.kind = ANY($5::text[])))""",
-            user_pk, outbox_kind, start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc),
-            list(alert_kinds)))
+            user_pk, outbox_kind, start, end, list(alert_kinds)))
 
     async def set_user_tz(self, telegram_user_id: int, tz: Optional[str]) -> bool:
         """The participant's time zone (backlog C5); None = Kyiv. The caller validated it (i18n.parse_tz)."""

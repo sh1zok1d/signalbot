@@ -705,6 +705,8 @@ def _withheld_note(cfg, reason: Optional[str], lang: str) -> Optional[str]:
         return t(lang, "note_quiet", s=s, e=e)
     if reason == "DAILY_CAP":
         return t(lang, "note_cap", n=int(cfg["max_new_pushes_per_utc_day"]))
+    if reason == "DECISIONS_FUSE":          # the reader's own note (beta.delivery.own_push_reasons)
+        return t(lang, "note_fuse")
     if reason in ("GLOBAL_COOLDOWN", "SAME_EVENT_COOLDOWN"):
         return t(lang, "note_cooldown")
     return None

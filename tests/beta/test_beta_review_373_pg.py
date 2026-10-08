@@ -43,6 +43,11 @@ def test_1_each_participant_counts_their_own_day_and_is_capped_alone():
             loads = {r["user_pk"]: r for r in await conn.recipient_loads(
                 "push_levels", since=T - timedelta(hours=48), outbox_kind="alert", alert_kinds=["level", "move"])}
             assert len(loads[pks[51]]["times"]) == 4 and loads[pks[52]]["tz"] == "America/Los_Angeles"
+            # an ambiguous send counts: it may have reached them (review of #379)
+            await conn.conn.execute(
+                "UPDATE beta_notification_deliveries SET state='DELIVERY_UNKNOWN', telegram_message_id=NULL"
+                " WHERE delivery_id = (SELECT min(delivery_id) FROM beta_notification_deliveries WHERE user_pk=$1)",
+                pks[51])
             # 18:00 UTC: Kyiv's 14th (4 sent: spent), LA's 14th (none of them: free)
             at = datetime(2026, 10, 14, 18, 0, tzinfo=UTC)
             assert await conn.count_sent_on_own_day(user_pk=pks[51], ts=at, tz=None, outbox_kind="alert",
@@ -68,33 +73,41 @@ def test_1_each_participant_counts_their_own_day_and_is_capped_alone():
     run(body())
 
 
-def test_3_the_weekly_report_waits_for_the_end_of_a_recipients_night():
+def test_3_the_weekly_report_comes_on_each_recipients_own_sunday_evening():
+    """Review of #379: Sunday 19:00 on each recipient's clock (Auckland, Tokyo, Kyiv, Los Angeles), built
+    once at the first of them, so never on a Monday-Friday U1a withdrawal day on anyone's clock."""
+    from beta.i18n import tz_of
     from beta.weekly import run_due_weekly
     from test_beta_weekly_pg import SLOT, _forecasts
+    zones = {61: None, 62: "Asia/Tokyo", 63: "Pacific/Auckland", 64: "America/Los_Angeles"}
 
     async def body():
         pool = await fresh_pool()
         async with pool.acquire() as c:
-            await c.execute(
-                "INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at, stopped_at,"
-                " lang, tz) VALUES (61, 61, 'ACTIVE', now(), now(), NULL, 'ru', NULL),"
-                " (62, 62, 'ACTIVE', now(), now(), NULL, 'en', 'Asia/Tokyo')")
+            for uid, tz in zones.items():
+                await c.execute(
+                    "INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
+                    " stopped_at, lang, tz) VALUES ($1, $1, 'ACTIVE', now(), now(), NULL, 'en', $2)", uid, tz)
         await _forecasts(pool)
-        sent = []
+        sent, clock = [], {}
 
         class Sender:
             async def send(self, *, chat_id, html, buttons=None):
-                sent.append(chat_id)
+                sent.append((chat_id, clock["now"]))
                 return len(sent)
+        built = []
         async with BetaStore(pool).connect() as conn:
-            # Sunday 19:05 Kyiv = 01:05 Monday in Tokyo: Kyiv now, Tokyo held (still PENDING)
-            r = await run_due_weekly(conn, CFG, sender=Sender(), clock=Clock(SLOT + timedelta(minutes=5)), push_on=True)
-            assert sent == [61] and r["expired"] == 0
-            # 06:59 Tokyo: still night
-            await run_due_weekly(conn, CFG, sender=Sender(), clock=Clock(SLOT + timedelta(hours=5, minutes=59)), push_on=True)
-            assert sent == [61]
-            # 07:05 Tokyo: sent, its delay counted from the end of the night, not from the Kyiv slot
-            await run_due_weekly(conn, CFG, sender=Sender(), clock=Clock(SLOT + timedelta(hours=6, minutes=5)), push_on=True)
-            assert sent == [61, 62]
+            at = SLOT - timedelta(hours=10)                       # Sunday 06:00 UTC = 18:00 Auckland
+            while at <= SLOT + timedelta(hours=13):              # Monday 05:00 UTC = 22:00 Sunday in LA
+                clock["now"] = at
+                r = await run_due_weekly(conn, CFG, sender=Sender(), clock=Clock(at), push_on=True)
+                if r["built"]:
+                    built.append(at)
+                at += timedelta(minutes=5)
+        assert built == [SLOT - timedelta(hours=9)]               # 19:00 Auckland, the first slot
+        assert sorted(c for c, _ in sent) == sorted(zones)        # each once
+        for chat, when in sent:
+            local = when.astimezone(tz_of(zones[chat]))
+            assert local.weekday() == 6 and local.hour == 19, (chat, local)
         await pool.close()
     run(body())

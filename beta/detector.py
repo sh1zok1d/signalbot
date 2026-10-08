@@ -218,12 +218,29 @@ def own_day_count(times: Sequence[datetime], ts: datetime, tz: Optional[str] = N
     return sum(1 for x in times if x.astimezone(zone).date() == day)
 
 
+def own_day_bounds(ts: datetime, tz: Optional[str] = None) -> tuple:
+    """[start, end) in UTC of the participant's own calendar date of `ts`, the same days as
+    `own_day_count`. A midnight the clock skips (spring forward at 00:00, e.g. Santiago) starts the day at
+    its first real instant; a midnight it repeats is its one occurrence after the repeated hour."""
+    from datetime import time as dtime
+    from .i18n import tz_of
+    zone = tz_of(tz)
+    day = ts.astimezone(zone).date()
+    return tuple(datetime.combine(d, dtime(0), tzinfo=zone).astimezone(timezone.utc)
+                 for d in (day, day + timedelta(days=1)))
+
+
 def recipient_gate(cfg: BetaConfig, ts: datetime, recipients: Sequence[Mapping[str, Any]],
                    cap: Optional[int]) -> Optional[str]:
     """The decision-level reason a message to these recipients is not sent, or None (review of #373).
     Each recipient has their own night and their own daily budget: QUIET_HOURS when it is night for every
     one; DAILY_CAP when every one awake already had `cap` such messages on their own date. One recipient
-    awake and under their budget sends it; the others are suppressed one by one at delivery."""
+    awake and under their budget sends it; the others are suppressed one by one at delivery.
+
+    A new market alert kind (e.g. the #352 zone-entry trigger) gets the same per-recipient rules only when
+    it is wired in all of: `store.recipient_loads` (its `alert_kinds` budget), `market_alerts._KIND_PREF`
+    (its push preference), `QUIET_KINDS` / `CAPPED_KINDS`, `materialize_alert_deliveries`, and
+    `own_budget_spent` at delivery (the same `alert_kinds`)."""
     awake = [r for r in recipients if not in_quiet_hours(cfg, ts, r.get("tz"))]
     if not awake:
         return QUIET_HOURS

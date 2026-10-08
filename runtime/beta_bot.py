@@ -287,7 +287,8 @@ class BetaBotHandler:
             if hours is None:
                 return [_msg(chat_id, t(lang, "catchup_usage"), lang=lang)]
             html_text, buttons = await self._catchup(conn, now, lang, hours,
-                                                    push_enabled=bool(user.get("push_enabled", True)), user=user)
+                                                    push_enabled=bool(user.get("push_enabled", True)
+                                                                      and user.get("push_hours", True)), user=user)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_catchup",
                                      [_msg(chat_id, html_text, buttons, lang=lang)])
         if cmd == "push":
@@ -457,7 +458,7 @@ class BetaBotHandler:
         from beta.formatter import btc_buttons, format_catchup, view_degraded
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
         from beta.delivery import own_push_reasons
-        own = await own_push_reasons(conn, (user or {}).get("user_pk"), view)
+        own = await own_push_reasons(conn, (user or {}).get("user_pk"), view, cfg=self.cfg, tz=(user or {}).get("tz"))
         text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled, own_reasons=own)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
         if not view_degraded(view):                 # a degraded view prints no «после похожих»: nothing to link

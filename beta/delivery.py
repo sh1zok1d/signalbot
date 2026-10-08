@@ -540,14 +540,39 @@ def brief_due(now: datetime, user: Mapping[str, Any], default_time: str, max_del
     return None
 
 
-async def own_push_reasons(conn, user_pk: Optional[int], view: Mapping[str, Any]) -> Optional[dict]:
+FUSE = "DECISIONS_FUSE"         # a reader's own note only: the bot's limit for all participants together
+
+
+async def own_push_reasons(conn, user_pk: Optional[int], view: Mapping[str, Any], *,
+                           cfg: Optional[BetaConfig] = None, tz: Optional[str] = None) -> Optional[dict]:
     """The reader's own outcome for each unusual hour of the view (review of #373), or None when unknown
-    (no participant, or a store without the query): the note then follows the decision."""
+    (no participant, or a store without the query): the note then follows the decision.
+
+    Their delivery row says it when there is one. A suppressed decision has none (review of #379): then
+    the reader's own night at the decision time is QUIET_HOURS whatever the decision said; a DAILY_CAP
+    while they were awake and under their own daily budget was the fuse over all participants (FUSE),
+    never «уже было 2»; anything else is the decision's reason."""
     fn = getattr(conn, "own_push_reasons", None)
     if fn is None or user_pk is None:
         return None
-    ids = [h["decision_id"] for h in ((view.get("market") or {}).get("unusual_hours") or ()) if h.get("decision_id")]
-    return await fn(int(user_pk), ids)
+    hours = [h for h in ((view.get("market") or {}).get("unusual_hours") or ()) if h.get("decision_id")]
+    got = dict(await fn(int(user_pk), [h["decision_id"] for h in hours]))
+    if cfg is None:
+        return got
+    count = getattr(conn, "count_sent_on_own_day", None)
+    for h in hours:
+        reason = h.get("suppression_reason")
+        if h["decision_id"] in got or reason not in (QUIET_HOURS, DAILY_CAP) or not h.get("decision_ts"):
+            continue
+        ts = datetime.fromisoformat(h["decision_ts"]) if isinstance(h["decision_ts"], str) else h["decision_ts"]
+        if in_quiet_hours(cfg, ts, tz):
+            got[h["decision_id"]] = QUIET_HOURS
+        elif reason == DAILY_CAP and count is not None:
+            n = await count(user_pk=int(user_pk), ts=ts, tz=tz, outbox_kind="push", before=ts)
+            got[h["decision_id"]] = DAILY_CAP if n >= int(cfg["max_new_pushes_per_utc_day"]) else FUSE
+        elif reason == QUIET_HOURS:
+            got[h["decision_id"]] = None          # awake then (a zone changed since): nothing to say
+    return got
 
 
 def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
@@ -648,8 +673,11 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
             payload = views[row["view_pk"]] = (await conn.fetch_btc_view(row["view_pk"]))["payload"]
         lang = row.get("user_lang") or "ru"
         with render_tz(row.get("user_tz")):              # the recipient's clock (C5)
-            text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
-                                  own_reasons=await own_push_reasons(conn, row.get("user_pk"), payload),
+            # the notes about unsent hours concern only a reader who receives that type (review of #379)
+            text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)
+                                                                         and row.get("push_hours", True)),
+                                  own_reasons=await own_push_reasons(conn, row.get("user_pk"), payload, cfg=cfg,
+                                                                     tz=row.get("user_tz")),
                                   first_brief=bool(row.get("first_brief", False)))
             from .formatter import vote_row
             buttons = (btc_buttons(payload, lang, row["view_pk"]) or []) + [vote_row("brief", row["view_pk"], lang)]

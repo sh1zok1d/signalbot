@@ -170,3 +170,77 @@ def test_4_and_375_a_mute_right_after_an_alert_is_not_a_reaction_in_the_owner_br
                           start=at - timedelta(hours=1), end=at + timedelta(hours=1))
     level = out["unknown"]["types"]["level"]
     assert level["delivered"] == 1 and level["reacted"] == 0 and level["mutes"] == 1
+
+
+class _Reader:
+    """A store seen by one reader: no delivery row for the hour (the decision was suppressed), and
+    `sent` of their own pushes on their own date before it."""
+    def __init__(self, sent):
+        self.sent = sent
+
+    async def own_push_reasons(self, user_pk, ids):
+        return {}
+
+    async def count_sent_on_own_day(self, *, user_pk, ts, tz, outbox_kind, alert_kinds=(), before=None):
+        return self.sent
+
+
+def _reader_note(decision_reason, ts, tz, sent, lang="ru"):
+    import asyncio
+    from beta.delivery import own_push_reasons
+    from beta.formatter import _hour_block
+    hour = {"decision_id": 9, "decision_ts": ts.isoformat(), "suppression_reason": decision_reason,
+            "gate": {"values": {}}}
+    own = asyncio.run(own_push_reasons(_Reader(sent), 1, {"market": {"unusual_hours": [hour]}}, cfg=CFG, tz=tz))
+    return [x for x in _hour_block(CFG, hour, lang, push_enabled=True, own_reasons=own) if "Сообщения" in x
+            or "Ночью" in x]
+
+
+def test_1_379_a_kyiv_reader_asleep_never_reads_already_two_after_another_zones_cap():
+    """The mini-head's script: LA had its 2 on its 14th; 15.10 01:00 UTC (04:00 Kyiv) is DAILY_CAP. The
+    Kyiv reader received nothing and was asleep: their note is the night, never «уже было 2»."""
+    from beta.i18n import t
+    s, e = CFG.quiet_hours_kyiv
+    assert _reader_note("DAILY_CAP", datetime(2026, 10, 15, 1, 0, tzinfo=UTC), None, sent=0) == [
+        t("ru", "note_quiet", s=s, e=e)]
+
+
+def test_1_379_an_awake_reader_under_their_budget_reads_the_fuse_and_one_at_it_their_cap():
+    ts = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)                   # 12:00 Kyiv
+    from beta.i18n import t
+    assert _reader_note("DAILY_CAP", ts, None, sent=0) == [t("ru", "note_fuse")]
+    assert _reader_note("DAILY_CAP", ts, None, sent=2) == [t("ru", "note_cap", n=2)]
+
+
+def test_3_379_the_weekly_slot_is_sunday_evening_on_every_clock():
+    from beta.weekly import weekly_slots
+    sun = datetime(2026, 5, 17, tzinfo=UTC)
+    zones = [None, "Asia/Tokyo", "Pacific/Auckland", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Pago_Pago"]
+    got = weekly_slots(sun + timedelta(hours=12), "sun", "19:00", zones, timedelta(minutes=120))
+    assert got is not None and got[0] == sun.date()
+    from beta.i18n import tz_of
+    for z, slot in got[1].items():
+        local = slot.astimezone(tz_of(z))
+        assert (local.weekday(), local.hour, local.minute) == (6, 19, 0), (z, local)
+    assert weekly_slots(sun - timedelta(hours=1), "sun", "19:00", zones, timedelta(minutes=120)) is None
+
+
+def test_379_etc_zones_print_their_real_offset():
+    from beta.i18n import render_tz, zone_name
+    at = datetime(2026, 10, 14, tzinfo=UTC)
+    with render_tz("Etc/GMT+5"):
+        assert zone_name("en", at) == "UTC−5"                        # POSIX sign: Etc/GMT+5 is UTC−5
+    with render_tz("Etc/GMT-3"):
+        assert zone_name("ru", at) == "UTC+3"
+
+
+@pytest.mark.parametrize("tz", ["America/Santiago", "America/Havana", "Asia/Beirut", "Asia/Tokyo", None])
+def test_379_own_day_bounds_match_the_own_date_across_midnight_clock_changes(tz):
+    from beta.detector import own_day_bounds, own_day_count
+    at = datetime(2026, 1, 1, tzinfo=UTC)
+    while at < datetime(2027, 1, 1, tzinfo=UTC):
+        start, end = own_day_bounds(at, tz)
+        assert start <= at < end
+        assert own_day_count([start, end - timedelta(minutes=1)], at, tz) == 2
+        assert own_day_count([start - timedelta(minutes=1), end], at, tz) == 0
+        at += timedelta(hours=1)

@@ -98,8 +98,10 @@ def zone_name(lang: str, at: Optional[datetime] = None) -> str:
     if tz is KYIV or getattr(tz, "key", None) in ("Europe/Kyiv", "Europe/Kiev"):
         return "Киев" if normalize_lang(lang) == "ru" else "Kyiv"
     key = getattr(tz, "key", None)
-    if key:
+    if key and not key.startswith(("Etc/", "UTC", "GMT")):
+        # a city in Latin letters on the Russian side too (the zone database's own name)
         return key.rsplit("/", 1)[-1].replace("_", " ")
+    # a fixed offset, or Etc/GMT±N (POSIX: «Etc/GMT+5» is UTC−5; review of #379), printed as the offset
     off = (at or datetime.now(timezone.utc)).astimezone(tz).utcoffset() or timedelta(0)
     total = int(off.total_seconds() // 60)
     sign = "+" if total >= 0 else MINUS
@@ -721,6 +723,8 @@ _CATALOG: dict[str, dict[str, str]] = {
                    "en": "The bot does not write between {s} and {e}, so this is only in the briefing."},
     "note_cap": {"ru": "Сообщения об этом часе не было: за сутки уже было {n}.",
                  "en": "No message about this hour: there were already {n} today."},
+    "note_fuse": {"ru": "Сообщения об этом часе не было: бот за сутки уже отправил предельное число сообщений.",
+                  "en": "No message about this hour: the bot had already sent its daily maximum of messages."},
     "note_cooldown": {"ru": "Отдельного сообщения не было: незадолго до этого бот уже писал.",
                       "en": "No separate message: the bot had written shortly before."},
     "now_head": {"ru": "Сейчас", "en": "Now"},

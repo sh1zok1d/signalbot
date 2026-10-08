@@ -187,7 +187,8 @@ beta:
     signature_index: true                   # owner-only /hypotheses index (PRE_BETA_SCOPE_DECISION_V1 §7);
                                             # signs every closed 5m bucket from stored states, no user surface
     # weekly report (backlog B4): how the bot's own estimates did over 7 days; a push type of its
-    # own (/push weekly off). Sunday evening, outside the U1a withdrawal weekdays (Mon-Fri).
+    # own (/push weekly off). Sunday evening on each participant's own clock, so never on a U1a
+    # withdrawal weekday (Mon-Fri) on their clock (review of #379).
     weekly_report:
       enabled: true
       weekday_kyiv: "sun"
