@@ -8,7 +8,7 @@
 `MAP ON UTC_00 = direction extension-first +7.04 pp Holm p 0.0015 clears, role BARRIER_FAMILY_DECOMPOSITION | outside occupancy −0.86 pp does not clear | outward excursion −0.264 W Holm p 0.0020 clears, role INDEPENDENT_OBSERVABLE`
 `STABILITY = descriptive only | UTC_00 year deltas 2020 −2.0 pp, 2021 −5.6 pp, 2022 +3.1 pp, 2023 +33.5 pp, 2024 +18.0 pp | not a year winner`
 `TOUCH = PUBLISH_AUDIT_NO_CORRECTION | no rematch`
-`NOT OPENED = 2025/2026, E1, product sample, prospective sample | rerun REFUSING_RERUN | successor not started`
+`NOT OPENED = 2025/2026, E1, product sample, prospective sample | rerun REFUSING_RERUN | equal-width successor has a support census only; its outcome is not read`
 
 Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Result: `docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md`.
 
@@ -22,15 +22,16 @@ Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/re
 
 Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
 
-## FROZEN_HOUR_EQUAL_WIDTH_V1 — design only; outcome not read — 2026-10-08
+## FROZEN_HOUR_EQUAL_WIDTH_V1 — support census only; outcome not read — 2026-10-08
 
-`MODE = CONFIRMATION of the width-held relation | outcome_read = false | NOT a confirmation of FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | +9.48 pp is not evidence of a special boundary`
-`ESTIMAND = paired mean of 4h resolution, real minus width-scaled pseudo | primary UTC_00 | UTC_12 reported and not adoptable`
-`SCALE = one k on the partner log offsets around today's P0 so dollar width equals today's W and log asymmetry is unchanged | immediate touches kept`
-`SURFACE = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 events [2017-09-01, 2020-01-01) | files not opened | not the E1 reservation | not the 2025 perpetual held-out | not the #368 prospective panel`
-`NEXT = a separate owner go before any census or outcome | PRODUCT_CHANGE = none`
+`MODE = CONFIRMATION of the width-held relation | outcome_read = false | barrier_path_read = false | NOT a confirmation of FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | +9.48 pp is not evidence of a special boundary`
+`SUPPORT = UTC_00 paired 817 / 123 ISO weeks | UTC_12 paired 833 / 123 ISO weeks | both INFORMATION_ADEQUATE_FOR_LATER_OUTCOME | joint gate INFORMATION_ADEQUATE_FOR_LATER_OUTCOME | the gate does not authorize Y`
+`SOLVER = UTC_00 828 successes, 0 failures, 0 collisions | UTC_12 838 successes, 0 failures, 0 collisions | max relative width error about 1e-13 | log asymmetry unchanged`
+`SURFACE = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 events [2017-09-01, 2020-01-01) | months 2017-09..2019-12 | first access for this estimand | 241 off-grid 2018-02 opens not placed | not the E1 reservation | not the 2025 perpetual held-out | not the #368 prospective panel`
+`HEAD AT RUN = 3b02de8380064aa2ce3fe384e86899e08d2b3778 | design 5c3f6e6b | rerun REFUSING_RERUN | outcome REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`NEXT = a separate owner go before any Y | PRODUCT_CHANGE = none`
 
-Design: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
+Census: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.md`. Design: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
 
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 

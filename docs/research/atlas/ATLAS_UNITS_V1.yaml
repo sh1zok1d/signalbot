@@ -4222,7 +4222,7 @@ units:
     - scripts/research/opening_range_object_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor design FROZEN_HOUR_EQUAL_WIDTH_V1 is written and not run.'
+    note: 'EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 has a support census only; its outcome is not run.'
   - id: FROZEN-HOUR-EQUAL-WIDTH-V1
     title: FROZEN_HOUR_EQUAL_WIDTH_V1
     program: OPENING_RANGE_V1
@@ -4231,17 +4231,19 @@ units:
     state: CANDIDATE_UNTESTED
     datasets:
     - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
-    period: 'design only; intended events 2017-09-01..2019-12-31 Binance spot BTCUSDT 5m; months 2017-09..2019-12 not yet requested; no outcome'
-    units_n: 'none; information floor 614 paired days and 100 ISO weeks, not lowered; calendar length 852 UTC dates'
+    period: 'support census only; Binance spot BTCUSDT 5m months 2017-09..2019-12; events 2017-09-01..2019-12-31; 241 off-grid opens not placed; no outcome'
+    units_n: 'paired days/weeks UTC_00 817/123, UTC_12 833/123; floor 614 and 100 weeks passed on both; Y not read'
     practical_bar: 'A cell clears only if the absolute paired mean is at least 0.03 and the week-block 95% percentile interval excludes 0. Primary cell UTC_00. UTC_12 cannot be adopted.'
     mechanism: 'MODE=CONFIRMATION of the width-held relation suggested by the FROZEN_HOUR_RANGE diagnosis. Not a confirmation of route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE and not a rehabilitation of +9.48 pp. Partner log offsets are scaled by one k around today P0 so dollar width matches today W and log asymmetry is unchanged.'
     function: 'Same 12-bar hour, wick touch, 23h life, and 4h either-barrier resolution as the parent. Weekday half-rotation, then the frozen 60-doubling and 80-step bisection. Immediate touches kept. Pair-weighted mean. Separate week-block bootstraps, B=2000, seeds 20261031 and 20261102. outcome_read false.'
-    verdict: 'NOT_EXECUTED. Design written. No spot file opened. No formation count. No Y. No route.'
-    reopen: 'A separate owner go may open months 2017-09..2019-12 for a support census and, only if both cells meet the floor, one outcome read. Not a read of CORE 2020-2024 under this control. Not 2020 spot months. Not BitMEX. Not the E1 holdout. Not the 2025 held-out perpetual history. Not the #368 prospective panel.'
+    verdict: 'SUPPORT CENSUS ONLY (2026-10-08). Joint gate INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. UTC_00 817 paired days and 123 ISO weeks. UTC_12 833 paired days and 123 ISO weeks. Solver failures 0. Collisions 0. NOT_EXECUTED as an outcome. No Y. No route. The gate does not authorize the outcome.'
+    reopen: 'A separate owner go may read Y once. Not a second census. Not a read of CORE 2020-2024 under this control. Not 2020 spot months. Not BitMEX. Not the E1 holdout. Not the 2025 held-out perpetual history. Not the #368 prospective panel.'
     records:
     - docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md
+    - docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.md
+    - docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.json
     - docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md
     - docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN_ONLY. outcome_read false. Surface DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2017-09-01..2020-01-01 is outcome-unread for this estimand and is not the E1 reservation. DH1 named the era and did not open a replication outcome. No evaluator in this change.'
+    note: 'SUPPORT_CENSUS. outcome_read false. barrier_path_read false. Surface DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2017-09-01..2020-01-01, months 2017-09..2019-12, first access for this estimand. Exposure is EXPOSED, not CONSUMED. 241 off-grid February 2018 opens were not placed. Outcome entry point refuses with REFUSING_OUTCOME_BEFORE_OWNER_GO.'

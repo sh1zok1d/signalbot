@@ -292,6 +292,7 @@ datasets:
     exposure:
       - {period: 2017-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 outcome-blind feasibility counted spot states at level touches and sharp moves (no outcome); B1 sign state degenerate (97.6 % agree)"}
       - {period: 2020-04-01T00:00Z..2024-12-31T23:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: Binance spot BTCUSDT 5m klines including taker-buy quote, months 2020-04..2024-12 only, 355 missing bars left missing; post-touch reaction on structural first touches; 2017-2019 months not read; not a reopen of SPOT_PERP.spot_confirmation, volume_share, or lead_lag"}
+      - {period: 2017-09-01..2019-12-31, rows: [PRICE_STRUCTURE.levels], status: EXPOSED, note: "FROZEN-HOUR-EQUAL-WIDTH-V1 support census only: equal-width geometry around P0, solver and collision counts, first-touch existence, and 4h window availability; months 2017-09..2019-12; 241 off-grid February 2018 opens left unplaced; no barrier outcome and no Y; 2017-08 not requested; 2020+ not requested; not CONSUMED for this estimand"}
     records: [docs/research_data/DH1_BINANCE_SPOT_BTCUSDT_5M_V0, docs/research/DH1_FEASIBILITY.md]
   - id: DH1_BITMEX_XBTUSD_TRADES_5M_V0
     col: PERP_FLOW

@@ -173,3 +173,29 @@ def test_outcome_path_refuses_and_census_refuses_a_second_write(tmp_path, monkey
     with pytest.raises(SystemExit) as exc2:
         census.main()
     assert str(exc2.value) == "REFUSING_RERUN"
+
+
+def test_official_support_census_matches_the_code_and_refuses_a_rerun():
+    path = ROOT / "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["outcome_read"] is False
+    assert payload["barrier_path_read"] is False
+    assert payload["labels_computed"] is False
+    assert payload["code_digest"] == census.code_digest()
+    assert payload["head"] == "3b02de8380064aa2ce3fe384e86899e08d2b3778"
+    assert payload["design_commit"] == K.DESIGN_COMMIT
+    assert payload["information_gate"] == K.ADEQUATE
+    assert payload["cells"]["UTC_00"]["paired_outcome_eligible"] == 817
+    assert payload["cells"]["UTC_00"]["paired_iso_weeks"] == 123
+    assert payload["cells"]["UTC_12"]["paired_outcome_eligible"] == 833
+    assert payload["cells"]["UTC_12"]["paired_iso_weeks"] == 123
+    assert payload["cells"]["UTC_00"]["scale_unbounded"] == 0
+    assert payload["cells"]["UTC_12"]["collisions"] == 0
+    assert payload["panel_provenance"]["months"][0] == "2017-09"
+    assert payload["panel_provenance"]["months"][-1] == "2019-12"
+    assert "2020-01" not in payload["panel_provenance"]["months"]
+    assert payload["panel_provenance"]["off_grid_rows_not_placed"] == 241
+    census.assert_support_only(payload)
+    with pytest.raises(SystemExit) as exc:
+        census.main()
+    assert str(exc.value) == "REFUSING_RERUN"

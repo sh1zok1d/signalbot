@@ -15597,7 +15597,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "a63296156efe994941488645cb519c950c94dc1c2379f4aa77fbebd932a71969",
+ "SOURCES_DIGEST": "9a153d44914d65f7dee6069fb22fa5e5bb1dcc8bb6b4192bca1e040025ddb620",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16490,6 +16490,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FROZEN-HOUR-EQUAL-WIDTH-V1 support census only: equal-width geometry around P0, solver and collision counts, first-touch existence, and 4h window availability; months 2017-09..2019-12; 241 off-grid February 2018 opens left unplaced; no barrier outcome and no Y; 2017-08 not requested; 2020+ not requested; not CONSUMED for this estimand",
+      "period": "2017-09-01..2019-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
@@ -21837,24 +21845,26 @@
    "function": "Same 12-bar hour, wick touch, 23h life, and 4h either-barrier resolution as the parent. Weekday half-rotation, then the frozen 60-doubling and 80-step bisection. Immediate touches kept. Pair-weighted mean. Separate week-block bootstraps, B=2000, seeds 20261031 and 20261102. outcome_read false.",
    "id": "FROZEN-HOUR-EQUAL-WIDTH-V1",
    "mechanism": "MODE=CONFIRMATION of the width-held relation suggested by the FROZEN_HOUR_RANGE diagnosis. Not a confirmation of route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE and not a rehabilitation of +9.48 pp. Partner log offsets are scaled by one k around today P0 so dollar width matches today W and log asymmetry is unchanged.",
-   "note": "DESIGN_ONLY. outcome_read false. Surface DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2017-09-01..2020-01-01 is outcome-unread for this estimand and is not the E1 reservation. DH1 named the era and did not open a replication outcome. No evaluator in this change.",
-   "period": "design only; intended events 2017-09-01..2019-12-31 Binance spot BTCUSDT 5m; months 2017-09..2019-12 not yet requested; no outcome",
+   "note": "SUPPORT_CENSUS. outcome_read false. barrier_path_read false. Surface DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2017-09-01..2020-01-01, months 2017-09..2019-12, first access for this estimand. Exposure is EXPOSED, not CONSUMED. 241 off-grid February 2018 opens were not placed. Outcome entry point refuses with REFUSING_OUTCOME_BEFORE_OWNER_GO.",
+   "period": "support census only; Binance spot BTCUSDT 5m months 2017-09..2019-12; events 2017-09-01..2019-12-31; 241 off-grid opens not placed; no outcome",
    "practical_bar": "A cell clears only if the absolute paired mean is at least 0.03 and the week-block 95% percentile interval excludes 0. Primary cell UTC_00. UTC_12 cannot be adopted.",
    "program": "OPENING_RANGE_V1",
    "records": [
     "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md",
+    "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.md",
+    "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.json",
     "docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md",
     "docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "A separate owner go may open months 2017-09..2019-12 for a support census and, only if both cells meet the floor, one outcome read. Not a read of CORE 2020-2024 under this control. Not 2020 spot months. Not BitMEX. Not the E1 holdout. Not the 2025 held-out perpetual history. Not the #368 prospective panel.",
+   "reopen": "A separate owner go may read Y once. Not a second census. Not a read of CORE 2020-2024 under this control. Not 2020 spot months. Not BitMEX. Not the E1 holdout. Not the 2025 held-out perpetual history. Not the #368 prospective panel.",
    "row": "PRICE_STRUCTURE.levels",
    "source": "ATLAS_UNITS_V1",
    "state": "CANDIDATE_UNTESTED",
    "title": "FROZEN_HOUR_EQUAL_WIDTH_V1",
-   "units_n": "none; information floor 614 paired days and 100 ISO weeks, not lowered; calendar length 852 UTC dates",
-   "verdict": "NOT_EXECUTED. Design written. No spot file opened. No formation count. No Y. No route."
+   "units_n": "paired days/weeks UTC_00 817/123, UTC_12 833/123; floor 614 and 100 weeks passed on both; Y not read",
+   "verdict": "SUPPORT CENSUS ONLY (2026-10-08). Joint gate INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. UTC_00 817 paired days and 123 ISO weeks. UTC_12 833 paired days and 123 ISO weeks. Solver failures 0. Collisions 0. NOT_EXECUTED as an outcome. No Y. No route. The gate does not authorize the outcome."
   },
   {
    "blocker": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
@@ -22394,7 +22404,7 @@
    "function": "12 complete 5m bars; wick first touch; 23h life; direct week-block contrasts of the foundation estimand; map is foundation resolution, extension-first direction, outside occupancy, outward excursion/W. Cell effects and clock contrasts use single-step standardized max-stat intervals; the three non-foundation rows use Holm. One historical read on 2026-10-08.",
    "id": "OPENING-RANGE-OBJECT-V1",
    "mechanism": "MODE=DISCOVERY. Object name FROZEN_HOUR_RANGE. Primary cell UTC_00. OPENING is a hypothesis label, not a finding. UTC_08 and UTC_16 are funding-cadence diagnostics; UTC_12 is off-cadence. Same frozen hour constructor and weekday log-offset rotation. Not a session extreme and not a participation clock.",
-   "note": "EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor design FROZEN_HOUR_EQUAL_WIDTH_V1 is written and not run.",
+   "note": "EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 has a support census only; its outcome is not run.",
    "period": "2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout",
    "practical_bar": "Foundation and rate rows 3 pp. Direct contrast |δ00−δhour| 3 pp. Outward excursion 0.25 W. Information floor 614 paired days and 100 ISO weeks, not lowered. Touch-time material rule: share |Δ|≥240 min at least 0.25, or median |Δ| at least 120 min.",
    "program": "OPENING_RANGE_V1",

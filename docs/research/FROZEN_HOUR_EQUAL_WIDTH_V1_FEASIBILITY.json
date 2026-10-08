@@ -1,0 +1,415 @@
+{
+  "anchors": {
+    "UTC_00": 0,
+    "UTC_12": 144
+  },
+  "barrier_path_read": false,
+  "bisections": 80,
+  "boot_draws_not_run": 2000,
+  "boot_seed_utc_00_not_run": 20261031,
+  "boot_seed_utc_12_not_run": 20261102,
+  "bootstrap_executed": false,
+  "branch": "cursor/frozen-hour-equal-width-design-v1-08d8",
+  "cells": {
+    "UTC_00": {
+      "ambiguous_pseudo": 1,
+      "ambiguous_real": 0,
+      "asymmetry_abs_diff_max": 1.3034018309099338e-13,
+      "calendar_days": 852,
+      "close_not_strictly_inside": 20,
+      "collisions": 0,
+      "first_pseudo_interaction": 827,
+      "first_real_interaction": 827,
+      "formation_complete": 848,
+      "formation_incomplete": 4,
+      "high_side_pseudo": 413,
+      "high_side_real": 409,
+      "immediate_pseudo": 200,
+      "immediate_real": 221,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "invalid_partner_geometry": 0,
+      "lifespan_truncated": 0,
+      "low_side_pseudo": 413,
+      "low_side_real": 418,
+      "no_pseudo_interaction": 1,
+      "no_real_interaction": 1,
+      "nonpositive_width": 0,
+      "one_sided_outcome_eligible_pseudo": 817,
+      "one_sided_outcome_eligible_real": 821,
+      "outcome_window_incomplete_pseudo": 9,
+      "outcome_window_incomplete_real": 6,
+      "paired_by_weekday": {
+        "Fri": 116,
+        "Mon": 117,
+        "Sat": 120,
+        "Sun": 117,
+        "Thu": 117,
+        "Tue": 115,
+        "Wed": 115
+      },
+      "paired_by_year": {
+        "2017": 111,
+        "2018": 353,
+        "2019": 353
+      },
+      "paired_iso_weeks": 123,
+      "paired_neither_immediate": 488,
+      "paired_outcome_eligible": 817,
+      "partner_failures": 0,
+      "partner_not_found": 0,
+      "scale_tolerance_failed": 0,
+      "scale_unbounded": 0,
+      "solver_attempts": 828,
+      "solver_rel_width_error_max": 1.0142121012243703e-13,
+      "solver_success": 828,
+      "usable_by_weekday": {
+        "Fri": 116,
+        "Mon": 120,
+        "Sat": 120,
+        "Sun": 118,
+        "Thu": 119,
+        "Tue": 117,
+        "Wed": 118
+      },
+      "usable_by_year": {
+        "2017": 111,
+        "2018": 356,
+        "2019": 361
+      },
+      "usable_real_geometry": 828,
+      "valid_equal_width_pseudo_geometry": 828,
+      "valid_pseudo_by_year": {
+        "2017": 111,
+        "2018": 356,
+        "2019": 361
+      },
+      "weekday_group_too_small": 0
+    },
+    "UTC_12": {
+      "ambiguous_pseudo": 0,
+      "ambiguous_real": 1,
+      "asymmetry_abs_diff_max": 1.5815126985785355e-13,
+      "calendar_days": 852,
+      "close_not_strictly_inside": 10,
+      "collisions": 0,
+      "first_pseudo_interaction": 838,
+      "first_real_interaction": 835,
+      "formation_complete": 848,
+      "formation_incomplete": 4,
+      "high_side_pseudo": 450,
+      "high_side_real": 445,
+      "immediate_pseudo": 229,
+      "immediate_real": 222,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "invalid_partner_geometry": 0,
+      "lifespan_truncated": 1,
+      "low_side_pseudo": 388,
+      "low_side_real": 389,
+      "no_pseudo_interaction": 0,
+      "no_real_interaction": 3,
+      "nonpositive_width": 0,
+      "one_sided_outcome_eligible_pseudo": 837,
+      "one_sided_outcome_eligible_real": 833,
+      "outcome_window_incomplete_pseudo": 1,
+      "outcome_window_incomplete_real": 1,
+      "paired_by_weekday": {
+        "Fri": 119,
+        "Mon": 119,
+        "Sat": 120,
+        "Sun": 118,
+        "Thu": 119,
+        "Tue": 121,
+        "Wed": 117
+      },
+      "paired_by_year": {
+        "2017": 113,
+        "2018": 361,
+        "2019": 359
+      },
+      "paired_iso_weeks": 123,
+      "paired_neither_immediate": 483,
+      "paired_outcome_eligible": 833,
+      "partner_failures": 0,
+      "partner_not_found": 0,
+      "scale_tolerance_failed": 0,
+      "scale_unbounded": 0,
+      "solver_attempts": 838,
+      "solver_rel_width_error_max": 1.2667057127756146e-13,
+      "solver_success": 838,
+      "usable_by_weekday": {
+        "Fri": 119,
+        "Mon": 120,
+        "Sat": 121,
+        "Sun": 119,
+        "Thu": 119,
+        "Tue": 121,
+        "Wed": 119
+      },
+      "usable_by_year": {
+        "2017": 114,
+        "2018": 362,
+        "2019": 362
+      },
+      "usable_real_geometry": 838,
+      "valid_equal_width_pseudo_geometry": 838,
+      "valid_pseudo_by_year": {
+        "2017": 114,
+        "2018": 362,
+        "2019": 362
+      },
+      "weekday_group_too_small": 0
+    }
+  },
+  "code_digest": "803dd81cb9fe981ff1f1e5825702641105f5ca8a6b60a42497ab2c7aefa93bcb",
+  "design_commit": "5c3f6e6bdc4df8ef3ce7266b318253c42dada4a3",
+  "design_sha256": "abb3283046277201278f2e952196e870e324009d86e39324d4fdca530b4cfef7",
+  "diagnostic_cell": "UTC_12",
+  "e1_opened": false,
+  "event_start": "2017-09-01",
+  "exact_claim_previously_read": false,
+  "first_access_for_this_estimand": true,
+  "first_month": "2017-09",
+  "formation_bars": 12,
+  "head": "3b02de8380064aa2ce3fe384e86899e08d2b3778",
+  "information_gate": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+  "information_utc_00": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+  "information_utc_12": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+  "interval": "5m",
+  "labels_computed": false,
+  "last_month": "2019-12",
+  "max_doubles": 60,
+  "min_iso_weeks": 100,
+  "min_paired_outcome_eligible": 614,
+  "mode": "CONFIRMATION",
+  "objects_2025_2026_opened": false,
+  "outcome_read": false,
+  "owner_go_for_outcome": false,
+  "panel_bars": 245376,
+  "panel_provenance": {
+    "dataset_id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "first_open_ms": 1504224000000,
+    "grid_bars": 245376,
+    "instrument": "Binance spot BTCUSDT",
+    "interval": "5m",
+    "last_open_ms": 1577836500000,
+    "missing_bars": 1482,
+    "months": [
+      "2017-09",
+      "2017-10",
+      "2017-11",
+      "2017-12",
+      "2018-01",
+      "2018-02",
+      "2018-03",
+      "2018-04",
+      "2018-05",
+      "2018-06",
+      "2018-07",
+      "2018-08",
+      "2018-09",
+      "2018-10",
+      "2018-11",
+      "2018-12",
+      "2019-01",
+      "2019-02",
+      "2019-03",
+      "2019-04",
+      "2019-05",
+      "2019-06",
+      "2019-07",
+      "2019-08",
+      "2019-09",
+      "2019-10",
+      "2019-11",
+      "2019-12"
+    ],
+    "months_sha256": [
+      {
+        "month": "2017-09",
+        "off_grid_rows": 0,
+        "rows": 8556,
+        "sha256": "b9b27b4fc6a12746dcf8dec6cd8efd3c4dfe746789c4e1162ebfe33a2989e3e5"
+      },
+      {
+        "month": "2017-10",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "4e1a5d3eb8accc2911f1fd1060ad15b1e3bbb1ff674d494ad01bc40a6bf53f9c"
+      },
+      {
+        "month": "2017-11",
+        "off_grid_rows": 0,
+        "rows": 8640,
+        "sha256": "dbd53002ea79d6bfea2cdf8c00976a9c2f0647a2ad5e2b619ae60e1db2b93a07"
+      },
+      {
+        "month": "2017-12",
+        "off_grid_rows": 0,
+        "rows": 8915,
+        "sha256": "fab87582c0bfd79f200dfbbeebbce39fabf7c137c768daa867d9d688f64c6b19"
+      },
+      {
+        "month": "2018-01",
+        "off_grid_rows": 0,
+        "rows": 8904,
+        "sha256": "c08222ead41339fe656ac2e4389d365a0cadcc0e24c6e538bb76006e4e9ee5e0"
+      },
+      {
+        "month": "2018-02",
+        "off_grid_rows": 241,
+        "rows": 7654,
+        "sha256": "44bc33f321fbc4a4dd5c99bec7bbb4ca86e5cc33ddc6459610a18db7ae872c0b"
+      },
+      {
+        "month": "2018-03",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "9f79a89dad86fbce45f7be8f0487e115a4e8d609b4c415b5a32781e823df0cd4"
+      },
+      {
+        "month": "2018-04",
+        "off_grid_rows": 0,
+        "rows": 8640,
+        "sha256": "7cb8824ccd38c38320f5ec095d8e6d0fec7a6707b9a935873da9898939bca07c"
+      },
+      {
+        "month": "2018-05",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "c2965719efcc49fa3b63d53a37f4b612985836c0064297fb79af798f26e9e955"
+      },
+      {
+        "month": "2018-06",
+        "off_grid_rows": 0,
+        "rows": 8499,
+        "sha256": "5bc6c6bbf69e088fe7b5715052d42eae8fd8681e26cb437881b74c77f457847b"
+      },
+      {
+        "month": "2018-07",
+        "off_grid_rows": 0,
+        "rows": 8837,
+        "sha256": "f2c64ad1821b5f495694d4669895c62f961c585639cce4a0cd06214f406631ae"
+      },
+      {
+        "month": "2018-08",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "f1277c6c1e25a0c6f36a82a7c655094756ebf51b161176ad17410a73f96fddef"
+      },
+      {
+        "month": "2018-09",
+        "off_grid_rows": 0,
+        "rows": 8640,
+        "sha256": "820d494c55b1b0149872f54af63d8245a98c48d83ede5f8b949ee49f42b52704"
+      },
+      {
+        "month": "2018-10",
+        "off_grid_rows": 0,
+        "rows": 8886,
+        "sha256": "1dbf662fb263e9cd25889eac5ebb79f9d5b4af0b264598970fccd03324c9cbb0"
+      },
+      {
+        "month": "2018-11",
+        "off_grid_rows": 0,
+        "rows": 8556,
+        "sha256": "98463143980a2cf664ee9416d7e7d585551cd76b97475ec319b370a2a120e5e9"
+      },
+      {
+        "month": "2018-12",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "75680727b955d3b371fc72e34aef79fa19ff4f3ad777016bcca9ee9cb26ec619"
+      },
+      {
+        "month": "2019-01",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "e5a64b286a194f690779557f87fc84eb35a09aae2f1e284a7da85289fe848f42"
+      },
+      {
+        "month": "2019-02",
+        "off_grid_rows": 0,
+        "rows": 8064,
+        "sha256": "01c1e37145ad1a27f1159c17f5d13ee29e367838033835ea3a8808fe9148aff3"
+      },
+      {
+        "month": "2019-03",
+        "off_grid_rows": 0,
+        "rows": 8856,
+        "sha256": "c91f75887afbfd6bf7da205b35c248e56b394fb12437aa0d7cd90670883122af"
+      },
+      {
+        "month": "2019-04",
+        "off_grid_rows": 0,
+        "rows": 8640,
+        "sha256": "785a918b0dc9d9657578ffa7c356fa10d040c9a0262485cf1f744d2cef8467c3"
+      },
+      {
+        "month": "2019-05",
+        "off_grid_rows": 0,
+        "rows": 8808,
+        "sha256": "1133835a11452420295c07d14a8b51e84c202d59af1ba4c0d89ffc531428b27b"
+      },
+      {
+        "month": "2019-06",
+        "off_grid_rows": 0,
+        "rows": 8628,
+        "sha256": "afb029797231b99b7e5267d819ce77f99f0460320cea1d7f594023a63f46151e"
+      },
+      {
+        "month": "2019-07",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "514253f42219318868610b2402ef01a5509b883b3453b05b8ca04162713a5f04"
+      },
+      {
+        "month": "2019-08",
+        "off_grid_rows": 0,
+        "rows": 8832,
+        "sha256": "a05861391ccc27354bd8b10e9c194f98c9ba59d1fb52711e86ec08484b9e1b78"
+      },
+      {
+        "month": "2019-09",
+        "off_grid_rows": 0,
+        "rows": 8640,
+        "sha256": "359e30bfcfe07292be3eac91d99addf1db1b986eef5023b1d6d19a450903ae49"
+      },
+      {
+        "month": "2019-10",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "24cb68fee29a479e9ddfccb0e09442c1f308820c86e06a94a689bf8021f9d7c9"
+      },
+      {
+        "month": "2019-11",
+        "off_grid_rows": 0,
+        "rows": 8588,
+        "sha256": "9165c6d5e2eaa27733cf5a6cf298baf3ca70b91db12de80cc1dd1eefe6f27b15"
+      },
+      {
+        "month": "2019-12",
+        "off_grid_rows": 0,
+        "rows": 8928,
+        "sha256": "ca816089ea5bcecbad5dfcc4ad84a3d1d15aed16b18664095235db29aa87b110"
+      }
+    ],
+    "object_list_sha256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37",
+    "off_grid_rows_not_placed": 241,
+    "off_grid_rule": "an open time not divisible by 300000 ms is not a bar of this grid and is not moved onto a bucket",
+    "present_bars": 243894
+  },
+  "panel_t0_ms": 1504224000000,
+  "practical_scale": 0.03,
+  "practical_scale_applied": false,
+  "primary_cell": "UTC_00",
+  "product_opened": false,
+  "prospective_opened": false,
+  "rel_collide": 1e-09,
+  "surface": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+  "surface_end_exclusive": "2020-01-01",
+  "surface_evidence_class": "TIME_DISJOINT_OUTCOME_UNREAD",
+  "this_artifact_is_a_support_census": true,
+  "unit": "FROZEN_HOUR_EQUAL_WIDTH_V1",
+  "venue": "Binance spot BTCUSDT",
+  "width_rel_tol": 1e-09
+}
