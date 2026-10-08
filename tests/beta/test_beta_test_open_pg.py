@@ -106,33 +106,49 @@ def test_a_known_first_joiner_moves_day0_to_the_next_unknown_join():
     run(body())
 
 
-def test_deletions_keep_only_the_cohort_fields():
-    """/delete_me, /admin_remove and the retention purge: no fingerprint, no per-person counts (§1.5)."""
+def test_deletions_keep_only_the_minimal_record():
+    """/delete_me, /admin_remove and the retention purge (contract §1.5): the audit row is the action, the kind of
+    actor and the Kyiv date; an unknown participant who joined after the opening adds one to their join date's
+    counter; known participants, joins before the opening and the owner leave nothing."""
     async def body():
         from beta.delivery import run_notify_once
+        from beta.i18n import KYIV
         from runtime.beta_bot import BetaBotHandler
         pool = await fresh_pool()
         store = BetaStore(pool)
-        a, b = 900000000411, 900000000412
+        early, a, b, k = 900000000410, 900000000411, 900000000412, 900000000413
         h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
-        await _join(h, store, a, 1)
-        await _join(h, store, b, 10)
-        await h.handle(_msg(a, "/delete_me", 20))
-        await h.handle(_msg(OWNER, f"/admin_remove {b}", 21))
+        await _join(h, store, early, 1)                                   # before the opening
+        h.clock = Clock(NOW + timedelta(hours=1))
+        await h.handle(_msg(OWNER, "/admin_test_open", 5))
+        h.clock = Clock(NOW + timedelta(hours=2))
+        await _join(h, store, a, 10)
+        await _join(h, store, b, 20)
+        await _join(h, store, k, 30)
+        async with store.connect() as conn:
+            await conn.set_known_contact(k, True)
+        await h.handle(_msg(a, "/delete_me", 40))
+        await h.handle(_msg(OWNER, f"/admin_remove {b}", 41))
+        await h.handle(_msg(k, "/delete_me", 42))
+        await h.handle(_msg(early, "/delete_me", 43))
         async with pool.acquire() as c:
             await c.execute("INSERT INTO beta_allowlist VALUES (77, now())")
             await c.execute("INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
-                            " stopped_at) VALUES (77, 77, 'STOPPED', $1, $1, $1)", NOW - timedelta(days=31))
-        r = await run_notify_once(store, CFG, ON, sender=None, clock=Clock(NOW))
+                            " stopped_at) VALUES (77, 77, 'STOPPED', $1, $1, $1)", NOW + timedelta(hours=3))
+        r = await run_notify_once(store, CFG, ON, sender=None, clock=Clock(NOW + timedelta(days=40)))
         assert r["purged_users"] == 1
-        rows = await pool.fetch("""SELECT action, target_fingerprint, detail FROM beta_admin_audit
+        counts = [dict(r) for r in await pool.fetch("SELECT * FROM beta_deleted_cohort_counts")]
+        assert counts == [{"joined_kyiv_date": (NOW + timedelta(hours=2)).astimezone(KYIV).date(), "n": 3}]  # a, b, 77
+        rows = await pool.fetch("""SELECT action, actor_fingerprint, target_fingerprint, detail::text AS detail,
+                                          recorded_at FROM beta_admin_audit
                                    WHERE action IN ('user_delete_me', 'admin_remove', 'retention_purge')
                                    ORDER BY audit_id""")
-        assert [r["action"] for r in rows] == ["user_delete_me", "admin_remove", "retention_purge"]
-        for r in rows:
-            detail = json.loads(r["detail"])
-            assert r["target_fingerprint"] is None and set(detail) == {"cohort"}, r["action"]
-            assert set(detail["cohort"]) == {"joined_kyiv_date", "known_contact", "joined_after_test_open"}
-            assert str(a) not in r["detail"] and str(b) not in r["detail"] and "77" not in r["detail"]
+        assert [(r["action"], r["actor_fingerprint"], r["target_fingerprint"], r["detail"]) for r in rows] == [
+            ("user_delete_me", "participant", None, "{}"), ("admin_remove", "owner", None, "{}"),
+            ("user_delete_me", "participant", None, "{}"), ("user_delete_me", "participant", None, "{}"),
+            ("retention_purge", "system", None, "{}")]
+        assert all(r["recorded_at"].astimezone(KYIV).time().isoformat() == "00:00:00" for r in rows)
+        async with store.connect() as conn:                             # Day 0 survives through the counter
+            assert await conn.derived_day0_kyiv(OWNER) == (NOW + timedelta(hours=2)).astimezone(KYIV).date()
         await pool.close()
     run(body())

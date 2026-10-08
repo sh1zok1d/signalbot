@@ -41,7 +41,7 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 ### 1.4 Days
 - **Kyiv days.** Cohort days and the active days of U1b are Kyiv days, for every participant.
 - **The participant's own days.** Each participant's briefing comes at their own briefing time on their own clock (`brief_time`, default 08:00; `tz`, default Kyiv). The U1a withdrawal days are matched against the participant's **local briefing date**, not Kyiv's (owner decision 2026-10-08; §6.1).
-- **Test opening and Day 0** (owner, 2026-10-08). The owner opens the test with `/admin_test_open` after the readiness announcement and the contract freeze; it writes one `admin_test_open` audit row with its instant. **Day 0** is the Kyiv date of the first **unknown** participant whose join is at or after that instant (`store.derived_day0_kyiv`, live rows and the cohort records of deleted participants). An earlier, accidental join never starts the test retroactively. **Day 0 is provisional** until the first unknown joiner's 24-hour known-classification window (§1.2) closes: a participant marked known within it moves Day 0 to the next unknown join; `/admin_health` shows «provisional until …». Once an unknown participant has joined, the opening can no longer move (`/admin_test_open force` is refused).
+- **Test opening and Day 0** (owner, 2026-10-08). The owner opens the test with `/admin_test_open` after the readiness announcement and the contract freeze; it writes one `admin_test_open` audit row with its instant. **Day 0** is the Kyiv date of the first **unknown** participant whose join is at or after that instant (`store.derived_day0_kyiv`, live rows and `beta_deleted_cohort_counts`). An earlier, accidental join never starts the test retroactively. **Day 0 is provisional** until the first unknown joiner's 24-hour known-classification window (§1.2) closes: a participant marked known within it moves Day 0 to the next unknown join; `/admin_health` shows «provisional until …». Once an unknown participant has joined, the opening can no longer move (`/admin_test_open force` is refused).
 - **Notation: T(n), zero-based, half-open.** T(n) = 00:00 Europe/Kyiv on the Kyiv date of Day 0 + *n* calendar days. Calendar days: a day may be 23 or 25 hours at a clock change; never "168 hours". Cohort day *n* is [T(n), T(n+1)). `PRODUCT_FIRST_DECISION_V1` §7 counts from 1: its day *n* = cohort day *n*−1.
 - **Calendar windows** (owner, 2026-10-08). Every window is a calendar window on the Kyiv date; [T(0), T(7)) is 169 hours when it crosses the autumn clock change, and that is simply the calendar window. A participant who joins at 14:30 on day 0 has a shorter actual participation; wherever a metric depends on exposure, the per-participant exposure is reported separately beside it.
 
@@ -59,8 +59,9 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 
 ### 1.5 `/delete_me` and retention purges
 - **What is deleted.** The participant's personal telemetry is deleted as the privacy notice promises: the user row, activity and feedback text. Delivery rows keep only an anonymous `NULL` user.
-- **What is kept** (owner, 2026-10-08: only a permitted de-identified aggregate, never a personal record). The deletion's `beta_admin_audit` row (`user_delete_me`, `retention_purge`, `admin_remove`) keeps only `detail.cohort`: `{joined_kyiv_date, known_contact, joined_after_test_open}`. No Telegram id, no fingerprint (`target_fingerprint` is NULL on all three), no per-person row counts (#418).
-- **Denominator.** It is computed from live rows **plus** these cohort records (§4).
+- **What is kept** (owner, 2026-10-08: only a permitted de-identified aggregate, never a personal record; #420). An unknown participant who joined at or after the test opening adds one to `beta_deleted_cohort_counts` for their Kyiv join date, in the same transaction as the deletion. Known participants, the owner and joins before the opening leave nothing. The deletion's `beta_admin_audit` row (`user_delete_me`, `retention_purge`, `admin_remove`) keeps only the action, the result and the kind of actor (`participant` / `system` / `owner`) at the Kyiv date: no fingerprint, `detail` `{}`.
+- **The participant's earlier audit rows** (owner, 2026-10-08, the one exception to append-only, enforced by the trigger function `beta_audit_guard`): in the same transaction, every audit row about them or by them loses the detail and the exact time (the Kyiv date stays); their target becomes NULL and their actor fingerprint the role (owner, 2026-10-09: a row they only acted in takes the same shape; a live target on it stays). No audit row is deleted, no action or result changes, and no row that is neither about nor by them is edited.
+- **Denominator.** It is computed from live rows **plus** this counter (§4).
 - **Effect on the metrics.** A deleted enrolled participant counts as disabled for U2 and as not paying for U3, unless the payment ledger (§7) shows a payment made before the deletion.
 
 ## 2. Activity vocabulary (from `beta_user_activity`)
@@ -157,13 +158,8 @@ WHERE action IN ('set_mute', 'set_unmute') GROUP BY 1, 2;
 SELECT DISTINCT user_pk FROM beta_notification_deliveries
 WHERE state = 'FAILED' AND error_summary LIKE 'Forbidden:%';
 
--- deleted or purged participants' cohort records (denominator, part 2, no identity)
-SELECT detail->'cohort'->>'joined_kyiv_date' AS joined_kyiv_date,
-       (detail->'cohort'->>'known_contact')::boolean AS known_contact, count(*) AS n
-FROM beta_admin_audit
-WHERE action IN ('user_delete_me','retention_purge','admin_remove') AND detail ? 'cohort'
-  AND detail->>'cohort' <> 'null' AND recorded_at >= :day0
-GROUP BY 1, 2;
+-- deleted or purged enrolled participants (denominator, part 2, no identity): unknown, joined at or after the opening
+SELECT joined_kyiv_date, n FROM beta_deleted_cohort_counts ORDER BY 1;
 ```
 
 `tests/beta/test_beta_invite_journey_pg.py` executes every query above against the real schema on each test run.
@@ -177,7 +173,7 @@ GROUP BY 1, 2;
 - **Delivery failures.** Blocked and network failures are distinguishable and never resent.
 - **U1a.** The brief is withheld on a withdrawal day, with outbox state `SUPPRESSED` / `BRIEF_WITHDRAWAL` and a `brief_withheld` activity row.
 - **U5.** The fake door records one `btn_other_assets` row per tap.
-- **`/delete_me`.** It removes personal telemetry and keeps the cohort record.
+- **`/delete_me`.** It removes personal telemetry, adds to the deleted-cohort counter where §1.5 says so, and de-identifies the participant's audit rows.
 
 ## 6. Test instruments
 
@@ -271,7 +267,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 2. **Known-classification deadline:** within 24 h of enrollment.
 3. **Reaction window:** 10 minutes.
 4. **Notification classes:** BRIEF and EVENT_MOVE_LEVEL_PUSH stay separate; a combined response exists only as a derived metric.
-5. **`/delete_me`:** the enrolled participant stays in the denominator through the cohort record only (§1.5).
+5. **`/delete_me`:** the enrolled participant stays in the denominator through the cohort record only (§1.5; since #420 the per-join-date counter).
 6. **U1a:** implement before the freeze. Schedule frozen before Day 0, observable in telemetry, no post-Day-0 adjustment (§6.1).
 7. **U5:** a minimal fake door before Day 0 (§6.2).
 8. **U3:** a ledger outside git with the §7 fields; only a real transfer counts.

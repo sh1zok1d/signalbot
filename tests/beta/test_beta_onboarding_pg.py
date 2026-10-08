@@ -60,6 +60,7 @@ def test_paused_participants_can_be_answered_and_the_u3_offer_reaches_active_par
         a, b, c, d = 900000000311, 900000000312, 900000000313, 900000000314
         h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
         await _join(h, store, a, 1)
+        await h.handle(_msg(OWNER, "/admin_test_open", 5))   # d joins after it: the deleted count is the counter's
         await _join(h, store, b, 10)
         await _join(h, store, c, 30)
         await _join(h, store, d, 40)
