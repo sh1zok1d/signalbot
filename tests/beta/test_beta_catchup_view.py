@@ -46,7 +46,7 @@ def test_view_kinds_and_default_window():
 # ---- 4h horizon block (BETA_HORIZON_TOD_V2, kept in V3) ------------------------------------------
 def test_horizon_v2_adds_a_4h_block_and_keeps_1h_and_24h():
     # V3 = V2 + the C1 same-day-type 1h range/volume baseline (tests/beta/test_beta_c1_day_type.py)
-    assert HORIZON_VERSION == "BETA_HORIZON_TOD_V3" and verify_horizon_digest()
+    assert HORIZON_VERSION == "BETA_HORIZON_TOD_V4" and verify_horizon_digest()
     assert empty_horizons()["4h"] is None
     n = int(timedelta(days=31, hours=24) / BUCKET)
     hist = dict(_taker_hist(n, T0))

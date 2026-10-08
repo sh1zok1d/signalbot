@@ -717,7 +717,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "part_oi": {"ru": "OI {arrow}", "en": "OI {arrow}"},
     "part_vol": {"ru": "Объём {level}", "en": "Volume {level}"},
     "part_taker": {"ru": "Delta {arrow}", "en": "Delta {arrow}"},
-    "h_oi": {"ru": "OI {pct}", "en": "OI {pct}"},
+    "h_oi": {"ru": "OI {pct} (медиана бирж)", "en": "OI {pct} (median across exchanges)"},
     "h_move_usual": {"ru": "{move} (обычно ±{typ})", "en": "{move} (usually ±{typ})"},
     "h24_incomplete": {"ru": "24ч: неполные данные", "en": "24h: incomplete"},
     "h24_prefix": {"ru": "24ч: {body}", "en": "24h: {body}"},
@@ -868,14 +868,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "pos_mid": {"ru": "цена в середине", "en": "price in the middle"},
     "pos_highish": {"ru": "цена ближе к верхней границе", "en": "price closer to the high end"},
     "pos_high": {"ru": "цена у верхней границы", "en": "price at the high end"},
-    "oi_24h": {"ru": "OI {oi} за 24ч", "en": "OI {oi} over 24h"},
+    "oi_24h": {"ru": "OI {oi} за 24ч (медиана бирж{usual})", "en": "OI {oi} over 24h (median across exchanges{usual})"},
+    "oi_24h_na": {"ru": "OI за 24ч н/д", "en": "OI over 24h n/a"},
     "funding_avg": {"ru": "средний Funding {f}", "en": "average Funding {f}"},
     "funding_avg_na": {"ru": "средний Funding н/д", "en": "average Funding n/a"},
     # derivatives beside their «обычно» (backlog G2; beta/derivatives.py)
-    "oi_usual_part": {"ru": " (обычно ±{typ}, N={n})", "en": " (usually ±{typ}, N={n})"},
+    "oi_usual_part": {"ru": "; Binance {bn}, обычно ±{typ}, N={n} дн.", "en": "; Binance {bn}, usually ±{typ}, N={n} days"},
     "funding_usual_part": {"ru": "обычно {typ}, N={n}", "en": "usually {typ}, N={n}"},
-    "der_oi_usual": {"ru": "   обычно OI за сутки меняется на ±{typ} (медиана, Binance, N={n} дн.)",
-                     "en": "   OI usually moves ±{typ} a day (median, Binance, N={n} days)"},
+    "der_oi_usual": {"ru": "   Binance {bn} · обычно OI Binance за сутки меняется на ±{typ} (медиана, N={n} дн.)",
+                     "en": "   Binance {bn} · Binance OI usually moves ±{typ} a day (median, N={n} days)"},
     "der_funding_usual": {"ru": "   обычно среднее за 24 ч {typ} (медиана за {n} дн.)",
                           "en": "   usually a 24h average of {typ} (median of {n} days)"},
     "der_usual_short": {"ru": "   обычно: мало данных (N={n} дн.)", "en": "   usually: too little data (N={n} days)"},
@@ -1072,7 +1073,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Цена {price} · диапазон {range} · объём {vol}{level}",
         "en": "Price {price} · range {range} · volume {vol}{level}",
     },
-    "anchor_oi": {"ru": "OI {med}: {venues}", "en": "OI {med}: {venues}"},
+    "anchor_oi": {"ru": "OI {med} (медиана бирж): {venues}", "en": "OI {med} (median across exchanges): {venues}"},
     "anchor_oi_na": {"ru": "OI: {venues}", "en": "OI: {venues}"},
     "taker_line": {"ru": "Delta: {signed} ({side})", "en": "Delta: {signed} ({side})"},
     "taker_flat": {"ru": "Delta: $0", "en": "Delta: $0"},
@@ -1245,7 +1246,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.\n"
             "\n"
             "Показатели\n"
-            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.\n"
+            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. "
+            "Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.\n"
             "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
             "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
             "Объём — сумма сделок в $ по Binance, Bybit и OKX.\n"
@@ -1280,7 +1282,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.\n"
             "\n"
             "Metrics\n"
-            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.\n"
+            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. "
+            "The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.\n"
             "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
             "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
