@@ -512,6 +512,27 @@ DECISION_CATALOG: dict = {
     "btn_research": _pair("🔬 Исследования", "🔬 Research"),
     "n_cases": _pair("{n} {word}", "{n} {word}"),
     "since_year": _pair("с {year}", "since {year}"),
+    # level race, HIST (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0; ids LR_HIST_V1, LR_PUSH_HIST_V1,
+    # LR_HIST_LOW_N_V1). Prices only, the three outcomes together; the Russian text is the frozen one.
+    "lr_head": _pair("↳ цена вошла в зону {names} в {when}, данные на {clock}",
+                     "↳ the price entered the {names} zone at {when}, data as of {clock}"),
+    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
+    "lr_hist_v1": _pair("Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % "
+                        "(обычно {b_up} %; разница {d_up} п.п., 95 % интервал {lo_up}..{hi_up}), нижняя — {h_dn} % "
+                        "(обычно {b_dn} %; разница {d_dn} п.п., 95 % интервал {lo_dn}..{hi_dn}), ни одна за окно — "
+                        "{h_ne} % (обычно {b_ne} %; разница {d_ne} п.п., 95 % интервал {lo_ne}..{hi_ne}). "
+                        "Сейчас верхняя {P_UP}, нижняя {P_DN}, окно до {END}.",
+                        "Similar touches in 2020–2024 (N = {n}): the upper price was reached first in {h_up}% "
+                        "(usually {b_up}%; difference {d_up} pp, 95% interval {lo_up}..{hi_up}), the lower in {h_dn}% "
+                        "(usually {b_dn}%; difference {d_dn} pp, 95% interval {lo_dn}..{hi_dn}), neither within the "
+                        "window in {h_ne}% (usually {b_ne}%; difference {d_ne} pp, 95% interval {lo_ne}..{hi_ne}). "
+                        "Now: upper {P_UP}, lower {P_DN}, window until {END}."),
+    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой была — верхняя {P_UP} — {h_up} % · нижняя "
+                             "{P_DN} — {h_dn} % · ни одна — {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
+                             "2020–2024, similar touches (N = {n}): reached first — the upper {P_UP} — {h_up}% · the "
+                             "lower {P_DN} — {h_dn}% · neither — {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
+    "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
+                              "Few similar touches in 2020–2024 (N = {n})."),
 }
 
 DECISION_HELP = {
@@ -582,6 +603,9 @@ DECISION_TERMS = {
         "95% интервал — неопределённость этой исторической оценки: насколько она менялась бы на другой выборке "
         "дней. Интервал считается для каждой строки отдельно, без поправки на то, что строк много, и не говорит, "
         "что так будет сейчас.\n"
+        "Строки «похожие касания» показывают, как часто в похожих ситуациях на BTCUSDT в 2020–2024 цена первой "
+        "доходила до верхней или нижней цены — рядом с тем, что даёт простая геометрия цены («обычно»). Это история, "
+        "а не текущая вероятность, и не рекомендация к сделке.\n"
         "Прошлое не гарантирует будущего. Бот не говорит, что делать со сделкой."
     ),
     "en": (
@@ -604,6 +628,9 @@ DECISION_TERMS = {
         "move is ×1). The 95% interval is the uncertainty of this historical estimate: how much it would vary on "
         "another sample of days. Each line's interval is computed on its own, with no correction for there being "
         "many lines, and it does not say that this will happen now.\n"
+        "The «similar touches» lines show how often, in similar situations on BTCUSDT in 2020–2024, the price "
+        "reached the upper or the lower price first — next to what simple price geometry gives («usually»). This is "
+        "history, not a current probability, and it does not say what to do with a trade.\n"
         "The past does not guarantee the future. The bot does not tell you what to do with a trade."
     ),
 }

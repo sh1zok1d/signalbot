@@ -579,7 +579,11 @@ class BetaBotHandler:
             price = block.get("price")
             return t(lang, err, now=fmt_price(price, lang) if price else ""), None
         stats = await latest_stats(conn, now=now)
-        return format_check(block, stats, levels, lang, now=now), check_buttons(levels, lang)
+        text = format_check(block, stats, levels, lang, now=now)
+        if self.cfg.section("decision").get("claim_journal"):
+            from beta.claims import record_displays, shown_keys
+            await record_displays(conn, surface="check", now=now, shown=shown_keys("check", block, check_levels=levels))
+        return text, check_buttons(levels, lang)
 
     async def _alert_cmd(self, conn, user, now: datetime, lang: str, args, block) -> str:
         from beta import decision_format as df
