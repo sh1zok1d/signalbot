@@ -8,7 +8,7 @@
 `MAP ON UTC_00 = direction extension-first +7.04 pp Holm p 0.0015 clears, role BARRIER_FAMILY_DECOMPOSITION | outside occupancy −0.86 pp does not clear | outward excursion −0.264 W Holm p 0.0020 clears, role INDEPENDENT_OBSERVABLE`
 `STABILITY = descriptive only | UTC_00 year deltas 2020 −2.0 pp, 2021 −5.6 pp, 2022 +3.1 pp, 2023 +33.5 pp, 2024 +18.0 pp | not a year winner`
 `TOUCH = PUBLISH_AUDIT_NO_CORRECTION | no rematch`
-`NOT OPENED = 2025/2026, E1, product sample, prospective sample | rerun REFUSING_RERUN | successor not started`
+`NOT OPENED = 2025/2026, E1, product sample, prospective sample | rerun REFUSING_RERUN | equal-width successor read once on spot 2017-09..2019-12, route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE`
 
 Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Result: `docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md`.
 
@@ -21,6 +21,18 @@ Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/re
 `NOT STARTED = width-held successor | fresh surface | new hour | product | forecast | atlas unit not rewritten`
 
 Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
+
+## FROZEN_HOUR_EQUAL_WIDTH_V1 — one historical outcome read — 2026-10-08
+
+`ROUTE = NO_WIDTH_HELD_RESOLUTION_DIFFERENCE | claim ceiling L2 | no L2 difference claim | not a current probability | not a product signal`
+`READ AT = 2026-10-08T22:02:27Z | evaluator commit c51e7da046c785861877de9b5aa0ebea5a9a86a5 | code digest 846c784c9bb09f6c236cc3ef31407301235cf03984e97fed9236e14477037303`
+`UTC_00 = real 92.53% | pseudo 92.29% | delta +0.24 pp | interval [-1.80, +2.24] pp | N 817 | 123 ISO weeks | does not clear`
+`UTC_12 = real 95.56% | pseudo 94.84% | delta +0.72 pp | interval [-0.60, +2.14] pp | N 833 | 123 ISO weeks | diagnostic, not adopted`
+`SURFACE = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 [2017-09-01, 2020-01-01) | months 2017-09..2019-12 | support census 3b02de83 unchanged | 241 off-grid opens not placed`
+`NOT SAID = width completely explains +9.48 pp | special boundary | funding mechanism | opening range confirmed`
+`NEXT = none started | a later unit would need its own design | PRODUCT_CHANGE = none | rerun REFUSING_RERUN`
+
+Result: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.md`. Census: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.md`. Design: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
 
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 

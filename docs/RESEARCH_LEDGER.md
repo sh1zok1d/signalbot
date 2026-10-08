@@ -8667,3 +8667,53 @@ EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_RESULT_UNCHANGED = true
 OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched
 PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_V1 design only; no surface opened
+
+**Unit.** `FROZEN_HOUR_EQUAL_WIDTH_V1`. `MODE = CONFIRMATION` of the width-held relation. `outcome_read = false`. Not a confirmation of `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. The parent's +9.48 pp stays in the result and is not evidence of a special boundary.
+- **Estimand.** Paired mean of 4h either-barrier resolution, printed range minus a pseudo whose log offsets are scaled by one frozen `k` around today's `P0` so dollar width matches and log asymmetry is unchanged. Primary cell UTC_00. UTC_12 is reported and cannot be adopted. Immediate touches are kept. Practical scale 0.03. Week-block percentile interval, B = 2000, seeds `20261031` and `20261102`.
+- **Surface named, not opened.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, events `[2017-09-01, 2020-01-01)`. Exact claim unread. Post-touch barrier path unread on these months. Atlas `reservations:` contains only the E1 holdout, which does not intersect this window. DH1 named the era and did not read a replication outcome. Not the 2025 perpetual held-out. Not the `#368` prospective panel. Not BitMEX.
+- **Not done.** No evaluator, no file open, no formation count, no Y, no product change.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none
+```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_V1 support census; outcome not read
+
+**Unit.** `FROZEN_HOUR_EQUAL_WIDTH_V1`. `MODE = CONFIRMATION` of the width-held relation. `outcome_read = false`. `barrier_path_read = false`. Not a confirmation of `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. The parent's +9.48 pp stays and is not evidence of a special boundary.
+- **Run.** Branch `cursor/frozen-hour-equal-width-design-v1-08d8`, HEAD `3b02de8380064aa2ce3fe384e86899e08d2b3778`. Design commit `5c3f6e6bdc4df8ef3ce7266b318253c42dada4a3`, SHA256 `abb3283046277201278f2e952196e870e324009d86e39324d4fdca530b4cfef7`. Code digest `803dd81cb9fe981ff1f1e5825702641105f5ca8a6b60a42497ab2c7aefa93bcb`.
+- **Surface.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, events `[2017-09-01, 2020-01-01)`, months `2017-09` through `2019-12` only. First access of this spot window for this estimand. Class `TIME_DISJOINT_OUTCOME_UNREAD`. Not the E1 reservation. Not BitMEX. Not 2020 spot months. Not the 2025 perpetual held-out. Not the `#368` prospective panel. Not product tape.
+- **Grid.** 245376 bars, 243894 present, 1482 missing and left missing. 241 February 2018 opens sit 194789 ms off the 5m boundary; they were counted and not moved onto a bucket. Noon life into 2020-01-01 is truncated (1 UTC_12 lifespan).
+- **Support.** UTC_00: 852 calendar days, 848 complete formations, 828 usable, 828 valid equal-width pseudos, 827 real first interactions, 821 one-sided real, 817 one-sided pseudo, 817 paired, 123 ISO weeks, 221 immediate real, 200 immediate pseudo, 488 paired with neither arm immediate. UTC_12: 838 usable, 838 valid pseudos, 833 paired, 123 ISO weeks, 1 lifespan truncated. Solver failures 0 and collisions 0 on both cells. Max relative width error about 1e-13. Log asymmetry unchanged at the same tolerance.
+- **Gate.** Both cells and the joint gate are `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME` (floor 614 and 100 weeks, not lowered). The gate does not authorize Y. A second census returns `REFUSING_RERUN`. The outcome entry point returns `REFUSING_OUTCOME_BEFORE_OWNER_GO`.
+- **Not computed.** Extension, reentry, resolution, first barrier, excursion, occupancy, volatility transition, direction, and any real-minus-pseudo effect.
+- **Product.** No change.
+
+```
+WINDOWS_EXPOSED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, equal-width geometry and first-interaction existence only (support census; resolution estimand not read; not CONSUMED for this estimand)
+OUTCOME_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME; LATER_OUTCOME_RUN = not started
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none
+```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_V1 one historical outcome read
+
+**Unit.** `FROZEN_HOUR_EQUAL_WIDTH_V1`. One owner go. Route `NO_WIDTH_HELD_RESOLUTION_DIFFERENCE`. Not a confirmation of `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. +9.48 pp is not evidence of a special boundary, and this read does not say that width completely explains it.
+- **Identity.** Read `2026-10-08T22:02:27Z`. Evaluator commit `c51e7da046c785861877de9b5aa0ebea5a9a86a5`. Code digest `846c784c9bb09f6c236cc3ef31407301235cf03984e97fed9236e14477037303`. Design `5c3f6e6bdc4df8ef3ce7266b318253c42dada4a3`, SHA256 `abb3283046277201278f2e952196e870e324009d86e39324d4fdca530b4cfef7`. Support census HEAD `3b02de8380064aa2ce3fe384e86899e08d2b3778`. Seeds `20261031` and `20261102`, B = 2000.
+- **Surface.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, events `[2017-09-01, 2020-01-01)`, months 2017-09..2019-12. The support exposure stays. This entry is the outcome consumption of the same window. 241 off-grid opens stayed unplaced. No 2025/2026, E1, BitMEX, prospective, or product tape.
+- **UTC_00.** N 817, 123 ISO weeks. Real resolution 92.53%, pseudo 92.29%, paired delta +0.24 pp, 95% interval [−1.80, +2.24] pp. Does not clear.
+- **UTC_12.** N 833, 123 ISO weeks. Real 95.56%, pseudo 94.84%, paired delta +0.72 pp, interval [−0.60, +2.14] pp. Printed, not adopted.
+- **Descriptive only.** Neither-immediate paired mean: UTC_00 0.00 pp on N 488, UTC_12 +0.83 pp on N 483. Not in the route.
+- **Not started.** No new scale, hour, venue, prospective panel, forecast, or product line.
+- **Rerun.** A second official write returns `REFUSING_RERUN`.
+
+```
+WINDOWS_CONSUMED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, width-held 4h resolution, one read
+OUTCOME_READ = yes; ROUTE = NO_WIDTH_HELD_RESOLUTION_DIFFERENCE
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```

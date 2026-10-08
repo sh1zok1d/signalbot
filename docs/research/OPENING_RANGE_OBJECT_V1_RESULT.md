@@ -50,3 +50,11 @@ Calendar year needs 30 paired days. Real-interaction side needs 100. A slice is 
 
 No resolution clock, realized-volatility transition, traverse endpoint, extra hour, extra horizon, or extra barrier fraction was computed.
 No 2025/2026 object, no E1 window, no product sample, no prospective sample.
+
+## Later caveat (2026-10-08)
+
+This section is not part of the read. It does not change a number, the route, or the JSON record.
+
+The post-outcome diagnosis found that the comparison does not separate a special property of the hour's bounds from a difference of width and of the volatility regime. The UTC_00 foundation difference of +9.48 pp is not evidence of a special boundary. The route stays `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. No product change follows from this result.
+
+Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`. A later equal-width design, not run: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
