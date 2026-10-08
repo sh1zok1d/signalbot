@@ -1,0 +1,90 @@
+{
+  "adjusted_sensitivity": false,
+  "alternative_horizons": [],
+  "blocked_reopening_key_level_range": false,
+  "blocked_reopening_volatility_transition_cell": false,
+  "compression_subgroup": false,
+  "event_end": "2025-01-01T00:00:00Z",
+  "event_start": "2020-02-01T00:00:00Z",
+  "matched_pairs": 1231,
+  "mode": "DISCOVERY",
+  "novelty_ok": true,
+  "outcomes_transition_read": false,
+  "path_complete_pairs": 1231,
+  "pre_outcome_gate": {
+    "eligible_years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "n_pairs": 1231,
+    "n_weeks": 254,
+    "pass": true,
+    "years_eligible": 5
+  },
+  "pre_outcome_gate_pass": true,
+  "pseudo_legitimate": 1962,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1962,
+    "NO_CONTROL": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 28,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "range_4h_endpoint": false,
+  "real_legitimate": 1919,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1919,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 33,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "slices_matched": {
+    "family": {
+      "DAY": 1071,
+      "MONTH": 22,
+      "WEEK": 138
+    },
+    "other_year": 0,
+    "side": {
+      "resistance": 690,
+      "support": 541
+    },
+    "weeks": 254,
+    "year": {
+      "2020": 242,
+      "2021": 334,
+      "2022": 258,
+      "2023": 181,
+      "2024": 216
+    }
+  },
+  "slices_path": {
+    "family": {
+      "DAY": 1071,
+      "MONTH": 22,
+      "WEEK": 138
+    },
+    "other_year": 0,
+    "side": {
+      "resistance": 690,
+      "support": 541
+    },
+    "weeks": 254,
+    "year": {
+      "2020": 242,
+      "2021": 334,
+      "2022": 258,
+      "2023": 181,
+      "2024": 216
+    }
+  },
+  "structural_episodes": 4076,
+  "unit": "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1"
+}
