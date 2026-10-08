@@ -284,6 +284,7 @@ Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and
 - Recalibration slope: head R 0.54 (0.36..0.75), head B 0.77 (0.68..0.88).
 - Level-minus-generic intercept (logit, slope fixed at 1): head R +0.92 (+0.77..+1.11) [T0 +1.07, T15 +0.74], head B +0.33 (+0.20..+0.46) [T0 +0.33, T15 +0.32]. This informs the [F3] prior sd of `a_level − a_GENERIC`; 0.5 would put the development shift about two prior SD out on head R. F3 sets it with this disclosure.
 - On these numbers the fallback model would fail G2 on the level classes by a wide margin; a level class in drift would then show `HIST`.
+- **Case B ⇒ `HIST` (architect, 2026-10-08, consequence of FORECAST_LAYER §6b).** In case B the published model is the fallback model, and the fallback is shown only if it passes G2 on the class. On level events it is expected to fail G2, so a landmark in case B shows `HIST` in practice; the fallback's level record is still journaled.
 
 **R3 — head B over-confidence.** Out-of-fold M1 head B recalibration slope 0.78 (0.68..0.90) excludes 1: the BEYOND-vs-BACK split is over-confident. The calibrator is expected to correct it. G3 (slope interval overlapping [0.8, 1.25]) is near its edge for the raw model; G3 is applied to the published probabilities.
 
