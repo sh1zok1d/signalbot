@@ -1,16 +1,17 @@
 name: CI
 
-# FAST PR GATE = required for ordinary PR iteration against main.
+# FAST PR GATE, run by hand (owner, 2026-10-08: Actions minutes). Nothing
+# starts it automatically. Run it on a PR branch (workflow_dispatch, ref =
+# the branch): it tests the branch merged with main, as a pull_request run
+# would. Who runs it and when: docs/ORCHESTRATION_V1.md §4.
 # FULL REGRESSION = .github/workflows/full-regression.yml
-#   (workflow_dispatch and push to main): python -m pytest -q
+#   (workflow_dispatch only): python -m pytest -q
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
-# Minutes: a new push to a PR cancels that PR's run still in progress; only
-# the latest head is gated.
+# A newer run on the same branch cancels the older one in progress.
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -73,7 +74,7 @@ jobs:
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
       # The beta PostgreSQL tests (tests/beta) skip without this. A separate database, created below (PRE_BETA_BACKLOG_V1 X6).
       BETA_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_beta_test
-      PR_GATE_BASE: ${{ github.event.pull_request.base.sha }}
+      PR_GATE_BASE: origin/main
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,6 +82,9 @@ jobs:
           # 78d5bdf without checking that commit out as HEAD.
           # Freeze tests also locate historical git objects by ancestry.
           fetch-depth: 0
+
+      - name: Merge main into the checkout (what a pull_request run tests)
+        run: git -c user.name=ci -c user.email=ci@localhost merge --no-edit origin/main
 
       - name: Set up Python
         uses: actions/setup-python@v5

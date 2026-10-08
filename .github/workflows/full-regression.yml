@@ -1,20 +1,13 @@
 name: Full regression
 
-# FULL REGRESSION = available for integration/checkpoint validation.
-# Not required for ordinary PR iteration. PRs to main use the fast gate
-# in ci.yml (`python scripts/ci/pr_gate.py`).
-#
-# Minutes: a run takes 30-150 min. A merge that changes only Markdown does
-# not start one (its PR runs the fast gate). A burst of merges
-# runs at most twice: the run in progress finishes, and only the newest
-# waiting push replaces the older waiting ones.
+# FULL REGRESSION = available for integration/checkpoint validation, run by
+# hand only, when the owner asks (owner, 2026-10-08: no full pytest run as a
+# routine; Actions minutes). A run takes 30-150 min. The fast gate is
+# ci.yml (`python scripts/ci/pr_gate.py`), also run by hand.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
 
+# One run per branch at a time; a second request waits instead of running in parallel.
 concurrency:
   group: full-regression-${{ github.ref }}
   cancel-in-progress: false

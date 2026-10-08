@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Fast PR gate for pull_request → main.
+"""Fast PR gate for a PR branch → main.
 
-FAST PR GATE (this file) is required for ordinary PR iteration.
-FULL REGRESSION is `python -m pytest -q` via
-`.github/workflows/full-regression.yml` (workflow_dispatch and push to main).
+FAST PR GATE (this file) runs in `.github/workflows/ci.yml`, started by hand
+on a PR branch (docs/ORCHESTRATION_V1.md §4). FULL REGRESSION is
+`python -m pytest -q` via `.github/workflows/full-regression.yml`
+(workflow_dispatch only).
 
 Does not mint RESULT, consume reservations, or rerun MARKET-01.
 """
