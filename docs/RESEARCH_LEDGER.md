@@ -8419,3 +8419,25 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 executed once; discovery; resolution clock faster than pseudo; not integrated
+
+**Unit.** `LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1` (atlas `LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #364 `7c297997da263e286524fd939e4a536dfa42002c`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `56b162f07e69f3e8a4b6784e18dc497ea5a7d042` before any barrier time. The horizon, the time origin, the ambiguity rule, the RMUT restriction, the checkpoint grid, and the 15-minute scale were not changed after the times were read.
+- **Novelty.** The object is the time from a structural first touch until the frozen BREAK or REJECT barrier, compared with the matched pseudo-price touch. It is not the #352 touch-ordinal rate, not the #357 4h resolution probability, and not `GV0R01-C024` (round numbers, order-book depth, ±0.2% exit, 6h cap). Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`.
+- **Data.** Price only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No spot, other venue, book, taker, or open interest.
+- **Clock.** T is the open of touch bar j. Bar j is not a resolution. A hit on bar j+k has time `5 * k` minutes. AMBIGUOUS counts for any-resolution. No hit by j+48 is right-censored at 240 minutes and is not stored as an observed event time.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched pairs 1231. Unusable clocks 0. Real censored 107. Pseudo censored 207. 254 weeks.
+- **Primary.** Real RMUT_240 64.24 minutes. Pseudo 89.39 minutes. Delta −25.15 minutes (95% −31.42..−19.07, 2000 valid draws). The interval excludes 0 and the absolute difference clears 15 minutes.
+- **Stability.** Years −40.39 / −29.84 / −7.75 / −22.65 / −23.70. Five of five share the negative sign. The 2022 point is under 15 minutes; the frozen rule is a sign rule and was not rewritten. Leave-one-year-out stays negative. DAY −24.91 and WEEK −28.91. Resistance −22.88 and support −28.05. MONTH N=22 is descriptive.
+- **Descriptive curve.** Real resolved-by rates at 15/30/60/120/240 minutes: 0.401 / 0.529 / 0.673 / 0.807 / 0.913. Pseudo: 0.299 / 0.410 / 0.548 / 0.696 / 0.832. The conditional hazard is higher for real in every predeclared interval. No cutoff was selected. BREAK and REJECT quartiles are conditional on kind and are not a directional candidate.
+- **Routing.** `LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT`. Class `LEVEL_RESOLUTION_CLOCK_CANDIDATE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. First touches of these structural levels historically spent less time unresolved, inside the same 4h horizon, than the deterministic pseudo-price touches. Not a current expected number of minutes. Not a statement that the level expires after N minutes.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No ACTIVE, STALE, countdown, or push change. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. False-break semantics, acceptance, a 30-minute threshold, current hazard calibration, and a product timer were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, price OHLC only, structural first-touch resolution clock versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; spot / other venue / book / taker / OI / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

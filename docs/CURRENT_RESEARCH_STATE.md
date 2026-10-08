@@ -1,3 +1,20 @@
+## LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 — executed once; discovery; resolution clock faster than pseudo; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 (atlas LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 56b162f0 before any barrier time) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_RESOLUTION_CLOCK_CANDIDATE`
+`DEPENDENCIES = #352 dfc9e0f0 -> #357 c1cd4e01 -> #361 44726ded -> #363 f2210017 -> #364 7c297997 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = time until the frozen BREAK or REJECT barrier after a structural first touch | not #352 touch-ordinal rate | not #357 4h resolution probability | not GV0R01-C024 round-number depth traversal | price only`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | no spot, no other venue, no book`
+`CLOCK = T = open of touch bar j | scan j+1..j+48 | time = 5*k minutes | AMBIGUOUS resolves the any-resolution clock | no hit is censored at 240 and is not an observed event time`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched N=1231 | censored real 107, pseudo 207 | 254 weeks | unusable clocks 0`
+`PRIMARY = RMUT_240 real 64.24 min, pseudo 89.39 min | delta -25.15 min (95% -31.42..-19.07, 2000/2000) | absolute difference above 15 min`
+`STABILITY = years -40.39 / -29.84 / -7.75 / -22.65 / -23.70 | 5/5 negative | 2022 under 15 min, sign rule still passes | LOYO all negative | DAY -24.91, WEEK -28.91 | resistance -22.88, support -28.05`
+`ROUTING = LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical restricted mean unresolved time | not a current expected number of minutes | not a level-expiry cutoff | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no ACTIVE/STALE/timer | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = false-break semantics; acceptance; 30m threshold; current hazard calibration; product timer; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 — executed once; discovery; no incremental spot reaction; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 (atlas LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 98c750a4 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
