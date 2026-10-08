@@ -35,7 +35,7 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 ### 1.3 Enrolled (the denominator)
 - **Who.** An unknown participant whose Kyiv join date is cohort day **0–12 inclusive** (U4: 12 days).
 - **Joining later.** An unknown participant who joins after day 12 is reported but not enrolled.
-- **Fixed size.** The denominator never shrinks. Stopping, blocking the bot, the 30-day retention purge and `/delete_me` all leave an enrolled participant in it (§1.5). U3's "≥ 25 % of all enrolled unknown users" uses this count.
+- **Fixed size.** The denominator never shrinks. Stopping, blocking the bot, the 30-day retention purge and `/delete_me` all leave an enrolled participant in it (§1.5). U3's "≥ 25 % of all enrolled unknown users" uses this count, pending the owner's choice (OUT-3).
 
 ### 1.4 Days
 - **Kyiv days.** Cohort days and the active days of U1b are Kyiv days, for every participant.
@@ -199,7 +199,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 |---|---|
 | `participant_fingerprint` | the salted fingerprint the owner tools print (never a Telegram id) |
 | `known_contact` | the §1.2 classification |
-| `offered_at` | when the price was offered (days 21–25, to every enrolled participant, churned included) |
+| `offered_at` | when the price was offered (days 21–25, once to each ACTIVE participant, inactive ones included; never after `/stop`, `/delete_me` or a bot block — a `Forbidden:` failure with no later SENT delivery; owner decision 2026-10-08, #416) |
 | `paid_at` | when a real transfer arrived; empty if none |
 | `amount`, `currency` | of that transfer |
 | `refunded_at` | a refund within 30 days cancels the payment |
@@ -258,6 +258,7 @@ Written before any number of the test exists, from the owner's decisions of 2026
 | Push trigger | `level_race.push_trigger` `legacy → structural` only at 00:00 UTC in the step-3 deploy, before the 7-day start; after the start it restarts the week; the legacy fallback is a limitation (§12.1). | ОПГ-1, 2026-10-08; #393 |
 | Claim cohorts | A `template_digest` change starts a new claim cohort (#403, `L3_LEVEL_TOUCH_24H`); journal = display (a chance is journaled as shown only where printed, mode B); #402's corridor record and #410's OI definition reset nothing (§12.3). | ОПГ-1, 2026-10-08 |
 | Feedback actions | `cmd_idea`, `idea_sent`, `reason_set`, `cmd_interview`, `interview_booked`, `plain_text` are feedback, never reactions; `reason_set` with topic `stop` and `plain_text` may come from a paused participant (§2). | #404, #405 |
+| U3 offer recipients | The offer goes once to each ACTIVE participant, inactive ones included; never after `/stop`, `/delete_me` or a bot block (a `Forbidden:` failure with no later SENT delivery) (§7). U3's PASS denominator is unchanged, pending the owner's choice (OUT-3). | Owner decision 2026-10-08; #416 |
 
 Unchanged: every threshold of `PRODUCT_FIRST_DECISION_V1.md` §7, the 10-minute window, the enrolled denominator, Kyiv cohort days and Kyiv active days for U1b, the U3 ledger outside git, the U5 fake door.
 
