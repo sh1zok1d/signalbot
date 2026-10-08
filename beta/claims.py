@@ -383,6 +383,7 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
     """L2 at the landmarks of a structural first touch: the HIST shares of the event's cell as the
     surfaces print them, with the event's own B0, its barrier prices and window, the table digest
     and the mode (FORECAST_LAYER §6a: metrics before and after the switch are kept apart)."""
+    from .build import build_sha
     from .level_race import LEVEL_RACE_VERSION
     from .level_race_live import LIVE_VERSION, subject_key
     from .levels import STRUCTURAL_VERSION
@@ -399,7 +400,8 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
                    "cell": v["cell"], "ladder_level": v["ladder_level"], "source_cell": v["source_cell"],
                    "template": v["template"], "push_template": v.get("push_template"),
                    "out_of_corridor": bool(v["out_of_corridor"]), "table_version": v["table_version"],
-                   "table_sha256": v["table_sha256"], "mode": mode}
+                   "table_sha256": v["table_sha256"], "mode": mode, "build_sha": build_sha(),
+                   "versions": {"level_race": LEVEL_RACE_VERSION, "live": LIVE_VERSION, "event": STRUCTURAL_VERSION}}
         numbers = {"n": int(v["n"]), "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()}}
         if v.get("h"):
             numbers.update(h={k: round(float(x), 6) for k, x in v["h"].items()},
