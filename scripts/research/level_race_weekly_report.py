@@ -33,6 +33,8 @@ import numpy as np
 from beta import level_race_calibration as L
 
 REL_BINS = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0000001)
+DRIFT_SENTENCE = ("a level-specific drift of about ±10 pp is detected in about a year, not weeks; "
+                  "inside the beta the accuracy line next to the number is the guard")       # architect, verbatim
 SHARP_BAND = (0.4, 0.6)
 
 
@@ -134,7 +136,7 @@ def report(rows: Sequence[Mapping[str, Any]], cuts_ms: Sequence[int] = ()) -> di
     for r in rows:
         if r.get("outcome") in L.OUTCOMES:
             by[r["claim_class"]].append(r)
-    out = {"version": "LEVEL_RACE_WEEKLY_REPORT_V1", "calibration_version": L.LR_CAL_VERSION,
+    out = {"version": "LEVEL_RACE_WEEKLY_REPORT_V1", "calibration_version": L.LR_CAL_VERSION, "note": DRIFT_SENTENCE,
            "skipped_unresolved": sum(1 for r in rows if r.get("outcome") not in L.OUTCOMES),
            "cuts_ms": sorted(int(x) for x in cuts_ms), "classes": {}}
     for c, v in sorted(by.items()):
@@ -147,7 +149,7 @@ def report(rows: Sequence[Mapping[str, Any]], cuts_ms: Sequence[int] = ()) -> di
 
 
 def markdown(rep: Mapping[str, Any]) -> str:
-    lines = ["# Level race — weekly report", ""]
+    lines = ["# Level race — weekly report", "", f"> Note: {DRIFT_SENTENCE}.", ""]
     items = []
     for c, cr in rep["classes"].items():
         if "segments" in cr:

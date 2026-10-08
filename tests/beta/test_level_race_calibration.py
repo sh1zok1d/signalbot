@@ -5,6 +5,7 @@ import pytest
 from beta import level_race_calibration as L
 
 WEEK = 7 * 86_400_000
+ACC = {src: {"predicted": 0.4, "realized": 0.38, "n": 420} for src in ("holdout", "live", "generic")}
 H4 = 4 * 3_600_000
 
 
@@ -180,7 +181,7 @@ def test_case_b_never_enters_l3():
     assert h.state == "HIST" and h.drift_exits == 1
     back = L.next_state(h, s, health=L.Health(), mon=_mon(960, n_epoch=60, d1=0.4), now_ms=10)
     assert back.state == "FALLBACK"
-    assert L.display_contract(back, s, calibrator_version="v")["probabilities"] == "FALLBACK"
+    assert L.display_contract(back, s, calibrator_version="v", accuracy=ACC)["probabilities"] == "FALLBACK"
     assert L.initial_state(L.Setup(mode="MODEL", case="B", holdout_passed=True, fallback_g2_holdout=False),
                            now_ms=0).state == "HIST"
 
@@ -251,7 +252,7 @@ def test_input_drift():
 
 def test_display_contract():
     s = L.Setup(mode="MODEL", case="A", holdout_passed=True)
-    d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v")
+    d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v", accuracy=ACC)
     assert d["state"] == "L3_HISTORY_BACKED" and d["probabilities"] == "CHAMPION" and d["template"] == "LR_L3H_V1"
     off = L.next_state(L.initial_state(s, now_ms=0), s, health=L.Health(parity_ok=False), now_ms=1)
     d = L.display_contract(off, s, calibrator_version="v")
@@ -293,9 +294,87 @@ def test_fallback_prints_no_separate_usual_and_claims_no_level_offset():
         s = L.Setup(mode="MODEL", case=case, holdout_passed=False, fallback_g2_holdout=True)
         st = L.initial_state(s, now_ms=0)
         assert st.state == "FALLBACK"
-        d = L.display_contract(st, s, calibrator_version="v")
+        d = L.display_contract(st, s, calibrator_version="v", accuracy=ACC)
         assert d["probabilities"] == "FALLBACK" and d["usual"] is None and d["level_effect_claimed"] is False
-        assert d["template"] == "LR_FB_V1" and d["accuracy_line"] == "generic"
+        assert d["template"] == "LR_FB_V1" and d["accuracy_line"]["source"] == "generic"
     s = L.Setup(mode="MODEL", case="A", holdout_passed=True)
-    d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v")
+    d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v", accuracy=ACC)
     assert d["usual"] == "G1_AT_EVENT_RAW"
+
+
+def test_no_model_number_without_its_accuracy_line():
+    cases = [(L.Setup(mode="MODEL", case="A", holdout_passed=True), "holdout"),
+             (L.Setup(mode="MODEL", case="B", fallback_g2_holdout=True), "generic")]
+    for s, src in cases:
+        st = L.initial_state(s, now_ms=0)
+        with pytest.raises(ValueError):
+            L.display_contract(st, s, calibrator_version="v")
+        with pytest.raises(ValueError):
+            L.display_contract(st, s, calibrator_version="v", accuracy={src: {"predicted": 0.4, "n": 10}})
+        d = L.display_contract(st, s, calibrator_version="v", accuracy=ACC)
+        assert d["accuracy_line"]["source"] == src and d["accuracy_line"]["n"] == 420
+    live = L.next_state(L.initial_state(cases[0][0], now_ms=0), cases[0][0], health=L.Health(), mon=_mon(160), now_ms=1)
+    assert live.state == "L3_LIVE"
+    with pytest.raises(ValueError):
+        L.display_contract(live, cases[0][0], calibrator_version="v", accuracy={"holdout": ACC["holdout"]})
+    # states without a number need no line
+    h = L.initial_state(L.Setup(mode="HIST_ONLY"), now_ms=0)
+    assert L.display_contract(h, L.Setup(mode="HIST_ONLY"), calibrator_version=None)["accuracy_line"] is None
+
+
+def test_generic_alarm_sends_l3_and_fallback_to_hist_and_counts_as_a_drift_exit():
+    a = L.Setup(mode="MODEL", case="A", holdout_passed=True, fallback_g2_holdout=True)
+    st = L.next_state(L.initial_state(a, now_ms=0), a, health=L.Health(), mon=_mon(160), now_ms=1)
+    assert st.state == "L3_LIVE"
+    h = L.next_state(st, a, health=L.Health(), mon=_mon(200), generic_alarm=True, now_ms=2)
+    assert h.state == "HIST" and h.reason == "generic_drift" and h.drift_exits == 1
+    b = L.Setup(mode="MODEL", case="B", fallback_g2_holdout=True)
+    fb = L.initial_state(b, now_ms=0)
+    assert L.next_state(fb, b, health=L.Health(), mon=_mon(100), generic_alarm=True, now_ms=1).state == "HIST"
+    # HIST from the held-out stays HIST under an alarm
+    hh = L.initial_state(L.Setup(mode="MODEL", case="A"), now_ms=0)
+    assert L.next_state(hh, L.Setup(mode="MODEL", case="A"), health=L.Health(), generic_alarm=True, now_ms=1) == hh
+
+
+def test_generic_return_needs_the_alarm_cleared_and_the_class_recovered():
+    a = L.Setup(mode="MODEL", case="A", holdout_passed=True, fallback_g2_holdout=True)
+    st = L.next_state(L.initial_state(a, now_ms=0), a, health=L.Health(), mon=_mon(160), now_ms=1)
+    h = L.next_state(st, a, health=L.Health(), mon=_mon(200), generic_alarm=True, now_ms=2)
+    # class recovered but alarm still on → stays
+    assert L.next_state(h, a, health=L.Health(), mon=_mon(260, n_epoch=60, d1=0.3), generic_alarm=True,
+                        now_ms=3).state == "HIST"
+    # alarm cleared but the class not recovered (too few events / e ≥ 1) → stays
+    assert L.next_state(h, a, health=L.Health(), mon=_mon(230, n_epoch=30, d1=0.3), now_ms=3).state == "HIST"
+    assert L.next_state(h, a, health=L.Health(), mon=_mon(260, n_epoch=60, d1=2.0), now_ms=3).state == "HIST"
+    back = L.next_state(h, a, health=L.Health(), mon=_mon(260, n_epoch=60, d1=0.3), now_ms=4)
+    assert back.state == "L3_LIVE"
+    # the second exit (any kind) is final
+    h2 = L.next_state(back, a, health=L.Health(), mon=_mon(300), generic_alarm=True, now_ms=5)
+    assert h2.drift_exits == 2
+    assert L.next_state(h2, a, health=L.Health(), mon=_mon(500, n_epoch=200, d1=0.1), now_ms=6).state == "HIST"
+
+
+def test_generic_monitor_alarm_and_clear():
+    rng = np.random.default_rng(15)
+    calm = _recs(1500, rng, cls="GENERIC", per_week=40)
+    for r in calm:
+        r["p_ref"] = r["p_pub"]
+    g = L.next_generic_state(L.GenericState(), calm, now_ms=1)
+    assert not g.alarm
+    drift = calm + [dict(r, p_ref=r["p_pub"]) for r in _recs(400, rng, cls="GENERIC", per_week=40, shift_r=-0.9, t0=40 * WEEK)]
+    g = L.next_generic_state(L.GenericState(), drift, now_ms=2)
+    assert g.alarm and g.epoch_start == len(drift)
+    assert L.next_generic_state(g, drift + calm[:30], now_ms=3).alarm          # < 50 since the alarm
+    cleared = L.next_generic_state(g, drift + calm[:300], now_ms=4)
+    assert not cleared.alarm
+    assert L.generic_monitor_rows([{"t_ms": 0, "pair": (1, 1)}, {"t_ms": 3_600_000, "pair": (1, 1)},
+                                   {"t_ms": 0, "pair": (1, 2)}]) == [{"t_ms": 0, "pair": (1, 1)}]
+
+
+def test_changepoint_mixture_null_false_alarm():
+    rng = np.random.default_rng(16)
+    hits = 0
+    for _ in range(60):
+        rows = _recs(1200, rng, cls="GENERIC", per_week=40)
+        hits += float(L.changepoint_paths(rows, "p_pub").max()) > L.GEN_THRESHOLD
+    assert hits / 60 <= 0.15                      # Ville: ≤ 3 × 1/30 = 0.1; 60 reps carry ±0.04 noise

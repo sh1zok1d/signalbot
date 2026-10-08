@@ -168,6 +168,9 @@ The second drift exit of a model version is final for it. "Final" means the clas
 
 ### 5.5 Limitation: drift power at 5–7.5 events a week
 
+**In short:** a level-specific drift of about ±10 pp is detected in about a year, not weeks; inside the beta the accuracy line next to the number is the guard.
+
+
 No monitor catches a 7 pp drift within a year at these event rates. An 11–15 pp drift takes months (§10.3). The batched calibrator meanwhile partly absorbs a drift, so the published probabilities stay closer to the truth than the raw model. The mitigation is the generic stream, about 40 independent windows a week (FORECAST_LAYER §5 pooling):
 - the generic intercept and slope track a market-wide drift within weeks;
 - the level classes only have to show that their offset has not moved.
@@ -228,6 +231,8 @@ At about 5 T15 events a week, the 450 look comes at about week 90, and the 600 l
 | `L3_*` | `FALLBACK` | D1 / D2 / D3, case A, the fallback passes G2 (held-out, and the last 150 live once there are 150) |
 | `L3_*` | `HIST` | D1 / D2 / D3 otherwise (always in case B) |
 | `FALLBACK` | `HIST` | D1 / D2 on the fallback model, or it stops passing G2 |
+| `L3_*` / `FALLBACK` | `HIST` | generic-stream alarm (§5.6), at once; a drift exit |
+| generic-drift `HIST` | as below | only after the generic alarm has cleared (≥ 50 generic windows since the alarm, every e < 1), then the class's own return rule |
 | `FALLBACK` / drift-`HIST` | `L3_*` | case A: the return rule of §5.3 (not after the second exit) |
 | drift-`HIST` | `FALLBACK` | case B: the return rule of §5.3 on the fallback model, which must still pass G2 |
 

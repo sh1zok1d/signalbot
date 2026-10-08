@@ -67,6 +67,16 @@ RETURN_MIN_EVENTS = 50
 RETURN_E_MAX = 1.0                      # epoch e-value below 1 to return (F1 draft: ≤ 10; design §5.4)
 MAX_DRIFT_EXITS = 2                     # the second drift exit of a version is final for it
 
+# ---- generic-stream drift monitor [F3] (design §5.6) -------------------------------------------
+GEN_THRESHOLD = 30.0                    # per outcome, change-point mixture e-process on p_ref with the margin
+GEN_BLOCK = 40                          # change points every 40 independent windows (≈ 1 week)
+GEN_RETURN_MIN = 50                     # the frozen return rule, applied to the generic stream first
+GEN_ROLL_WEEKS = 6                      # rolling rule: the last 6 weeks of independent generic windows …
+GEN_ROLL_PP = 5.0                       # … per outcome |CITL vs p_ref| beyond margin + 5 pp …
+GEN_ROLL_Z = 3.0                        # … with its week-clustered 99.7 % interval (iid floor) beyond the margin
+GEN_ALARM_TARGET = "HIST"               # architect 2026-10-08: never FALLBACK (FALLBACK is the generic model)
+LEVEL_DRIFT_TARGET = "FALLBACK"         # level-stream drift: FALLBACK while it passes G2, else HIST
+
 # ---- challengers [F3] ---------------------------------------------------------------------------
 CHALLENGER_MIN_PAIRED = 150
 CHALLENGER_LOOK_EVERY = 150
@@ -475,6 +485,96 @@ def d1_triggered(d1: Mapping[str, Any]) -> bool:
     return any(v > D1_OUTCOME_THRESHOLD for v in d1["e"].values())
 
 
+# ---- generic-stream monitor (design §5.6) -------------------------------------------------------------
+def generic_monitor_rows(records: Sequence[Mapping[str, Any]]) -> list:
+    """The independent rows of the generic stream: the (1, 1) price pair at anchors on the 4h UTC grid
+    (one per independent window). Records carry `pair` and `t_ms`; synthetic rows without `pair` are
+    taken as already independent."""
+    out = []
+    for r in records:
+        if r.get("pair", (1, 1)) not in ((1, 1), [1, 1]):
+            continue
+        if "pair" in r and int(r["t_ms"]) % (4 * 3_600_000):
+            continue
+        out.append(r)
+    return out
+
+
+def changepoint_paths(records: Sequence[Mapping[str, Any]], key: str, margin: Optional[Mapping[str, float]] = None,
+                      block: int = GEN_BLOCK) -> np.ndarray:
+    """Per outcome the change-point mixture of D1 betting e-processes: Σ_j π_j M_j(t), M_j started at
+    record j·block, π_j = 1/((j+1)(j+2)); starts not yet reached count as 1. A test martingale under
+    the null of d1_paths, so P(sup ≥ c) ≤ 1/c per outcome, while a late drift is not buried under the
+    evidence of a long calm period."""
+    T = len(records)
+    if not T:
+        return np.ones((0, 3))
+    p3 = _clip(np.array([r[key] for r in records], dtype=float))
+    y3 = np.array([[1.0 if r["outcome"] == o else 0.0 for o in OUTCOMES] for r in records])
+    lam = np.array(D1_LAMBDAS)[None, None, :]
+    z = (y3 - p3)[:, :, None]
+    if margin:
+        z = z - np.sign(lam) * np.array([float(margin.get(o, 0.0)) for o in OUTCOMES])[None, :, None]
+    inc = np.log1p(lam * z)                                         # T × 3 × λ
+    S = np.concatenate([np.zeros((1, 3, inc.shape[2])), np.cumsum(inc, axis=0)])
+    out = np.zeros((T, 3))
+    for j in range((T - 1) // block + 1):
+        s0 = j * block
+        out[s0:] += np.mean(np.exp(S[s0 + 1:] - S[s0]), axis=2) / ((j + 1) * (j + 2))
+    started = np.arange(T) // block + 1
+    return out + (1.0 / (started + 1))[:, None]
+
+
+def generic_rolling_alarm(rows: Sequence[Mapping[str, Any]], key: str, margin: Optional[Mapping[str, float]], *,
+                          now_ms: int) -> bool:
+    """Rolling rule over the rows issued in the last GEN_ROLL_WEEKS weeks before now: some outcome's
+    CITL exceeds its margin + GEN_ROLL_PP and its GEN_ROLL_Z week-clustered interval lies wholly beyond
+    the margin. Off when GEN_ROLL_WEEKS = 0."""
+    if GEN_ROLL_WEEKS <= 0:
+        return False
+    lo_t = int(now_ms) - GEN_ROLL_WEEKS * 7 * 86_400_000
+    win = [r for r in rows if int(r["t_ms"]) >= lo_t]
+    if len({int(r["week"]) for r in win}) < 5:
+        return False
+    oa = outcome_arrays(win, key)
+    for o in OUTCOMES:
+        m = 100 * float((margin or {}).get(o, 0.0))
+        c = citl(*oa[o], zq=GEN_ROLL_Z)
+        if c["lo"] is None:
+            continue
+        if (c["est"] > m + GEN_ROLL_PP and c["lo"] > m) or (c["est"] < -m - GEN_ROLL_PP and c["hi"] < -m):
+            return True
+    return False
+
+
+@dataclass(frozen=True)
+class GenericState:
+    alarm: bool = False
+    since_ms: int = 0
+    epoch_start: int = 0                  # index into the generic monitor rows where the alarm began
+    reason: str = "start"
+
+
+def next_generic_state(prev: GenericState, rows: Sequence[Mapping[str, Any]], *, key: str = "p_ref",
+                       margin: Optional[Mapping[str, float]] = None, now_ms: int) -> GenericState:
+    """Alarm when any outcome's change-point e-process exceeds GEN_THRESHOLD; clear when, since the
+    alarm, ≥ GEN_RETURN_MIN rows have resolved and every outcome's plain e-process (from the alarm) is
+    below RETURN_E_MAX — the frozen return rule, applied to the generic stream."""
+    if not prev.alarm:
+        path = changepoint_paths(rows, key, margin)
+        if path.size and float(path[-1].max()) > GEN_THRESHOLD:
+            return GenericState(True, int(now_ms), len(rows), "generic_drift:e")
+        if generic_rolling_alarm(rows, key, margin, now_ms=now_ms):
+            return GenericState(True, int(now_ms), len(rows), "generic_drift:rolling")
+        return prev
+    ep = list(rows[prev.epoch_start:])
+    if len(ep) >= GEN_RETURN_MIN:
+        e = d1_paths(ep, key, margin=margin)[-1]
+        if float(e.max()) < RETURN_E_MAX:
+            return GenericState(False, int(now_ms), len(rows), "generic_recovered")
+    return prev
+
+
 # ---- monitors ------------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Monitors:
@@ -597,11 +697,13 @@ def fallback_available(setup: Setup, mon_fb: Optional[Monitors]) -> bool:
 
 
 def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional[Monitors] = None,
-               mon_fb: Optional[Monitors] = None, now_ms: int) -> StateRecord:
+               mon_fb: Optional[Monitors] = None, generic_alarm: bool = False, now_ms: int) -> StateRecord:
     """One deterministic step. D0 health at every call (OFF at once); the model rules when `mon` is
     given (at batch cutoffs). `mon` monitors the published model of the case (champion in A, fallback
     model in B), with its epoch from `prev.epoch_start`; `mon_fb` monitors the fallback model on the
-    class (case A) from the same epoch."""
+    class (case A) from the same epoch. `generic_alarm` is the current GenericState.alarm: it sends an
+    L3 state or FALLBACK to GEN_ALARM_TARGET (a drift exit), and a class left that way returns only
+    after the alarm has cleared and then by the class's own return rule."""
     if not health.ok():
         if prev.state == "OFF":
             return prev
@@ -615,12 +717,18 @@ def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional
         return replace(prev, state=prev.before_off or "HIST", since_ms=now_ms, before_off=None, off_reason=None)
     if prev.reason == "mode_hist_only":
         return initial_state(setup, now_ms=now_ms)
+    if generic_alarm:
+        if prev.state in ("L3_HISTORY_BACKED", "L3_LIVE", "FALLBACK"):
+            return replace(prev, state=GEN_ALARM_TARGET, since_ms=now_ms,
+                           epoch_start=mon.n_live if mon is not None else prev.epoch_start,
+                           drift_exits=prev.drift_exits + 1, reason="generic_drift")
+        return prev
     if mon is None:
         return prev
     if prev.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
         why = drift_reasons(mon)
         if why:
-            to = "FALLBACK" if fallback_available(setup, mon_fb) else "HIST"
+            to = LEVEL_DRIFT_TARGET if LEVEL_DRIFT_TARGET == "FALLBACK" and fallback_available(setup, mon_fb) else "HIST"
             return replace(prev, state=to, since_ms=now_ms, epoch_start=mon.n_live, drift_exits=prev.drift_exits + 1,
                            reason="drift:" + ",".join(why))
         if prev.state == "L3_HISTORY_BACKED" and mon.n_live >= LIVE_FLOOR and mon.live_gates["G2"] and mon.live_gates["G3"]:
@@ -634,7 +742,7 @@ def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional
             return replace(prev, state="HIST", since_ms=now_ms, epoch_start=mon_fb.n_live,
                            drift_exits=prev.drift_exits + (setup.case == "B"),
                            reason="fallback_drift:" + ",".join(fb_why or ["G2"]))
-    returnable = prev.state in ("FALLBACK", "HIST") and prev.reason.startswith(("drift", "fallback_drift"))
+    returnable = prev.state in ("FALLBACK", "HIST") and prev.reason.startswith(("drift", "fallback_drift", "generic_drift"))
     if returnable and setup.case == "B":
         if prev.state == "HIST" and prev.drift_exits < MAX_DRIFT_EXITS and mon_fb is not None \
                 and recovered(mon_fb) and fallback_available(setup, mon_fb):
@@ -710,15 +818,29 @@ TEMPLATES = {"L3_HISTORY_BACKED": ("LR_L3H_V1", "LR_PUSH_L3H_V1"), "L3_LIVE": ("
              "FALLBACK": ("LR_FB_V1", "LR_PUSH_FB_V1"), "OFF": ("LR_OFF_V1", "LR_PUSH_OFF_V1"), "HIST": ("HIST", "HIST")}
 
 
-def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optional[str]) -> dict:
+ACCURACY_SOURCE = {"L3_HISTORY_BACKED": "holdout", "L3_LIVE": "live", "FALLBACK": "generic"}
+
+
+def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optional[str],
+                     accuracy: Optional[Mapping[str, Any]] = None) -> dict:
     """What F2 reads per class: state, template ids (full, push), which probabilities to print
-    ("CHAMPION" with its class intercept, "FALLBACK" = G1@event with the GENERIC intercept, None) and
-    which accuracy line. HIST keeps F1 §0 templates and table."""
+    ("CHAMPION" with its class intercept, "FALLBACK" = G1@event with the GENERIC intercept, None),
+    «обычно» and the accuracy line. A model state with a number always carries its accuracy line:
+    `accuracy[source]` must be a {"predicted", "realized", "n"} block for the state's source (held-out
+    for L3_HISTORY_BACKED, live for L3_LIVE, the generic class for FALLBACK), else ValueError — no
+    number without its tracked accuracy (PRODUCT_DECISION_V2 §3). HIST keeps F1 §0 templates and table."""
     probs = None
     if st.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
         probs = "CHAMPION"                                  # L3 states exist only in case A
     elif st.state == "FALLBACK":
         probs = "FALLBACK"
+    line = None
+    if probs is not None:
+        src = ACCURACY_SOURCE[st.state]
+        line = (accuracy or {}).get(src)
+        if not line or any(line.get(k) is None for k in ("predicted", "realized", "n")):
+            raise ValueError(f"{st.state}: a number needs its {src} accuracy line")
+        line = {"source": src, **{k: line[k] for k in ("predicted", "realized", "n")}}
     full, push = TEMPLATES[st.state]
     return {"version": LR_STATE_VERSION, "mode": setup.mode, "case": setup.case, "state": st.state,
             "since_ms": st.since_ms, "reason": st.reason, "template": full, "push_template": push,
@@ -727,4 +849,6 @@ def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optio
             # model itself, shown with its calibration line, §6 / §11b); HIST keeps its F1 §0 cell mean
             "usual": {"CHAMPION": "G1_AT_EVENT_RAW", "FALLBACK": None}.get(probs, "HIST_CELL" if st.state == "HIST" else None),
             "level_effect_claimed": False,                       # never in user text (F1 §11b)
-            "accuracy_line": {"L3_HISTORY_BACKED": "holdout", "L3_LIVE": "live", "FALLBACK": "generic"}.get(st.state)}
+            "accuracy_line": line,
+            # in L3_HISTORY_BACKED the live segment reads «live: копится (N = …)» until L3_LIVE
+            "live_accruing_n": (accuracy or {}).get("live_n") if st.state == "L3_HISTORY_BACKED" else None}

@@ -46,6 +46,7 @@ class World:
     drift_r: float = 0.0
     drift_week: int = 26
     drift_slope_b: float = 0.0        # > 0: the level head-B truth slope becomes this from drift_week
+    drift_market: bool = False        # drifts also apply to the generic stream (a market-wide shift)
     level_effect: float = 1.0         # 0: no level effect in truth (M1's offset wrong)
     chal_beta: float = 0.0            # C1 covariate effect on head B, T15 only
     s_level: float = 1.0
@@ -78,7 +79,7 @@ def gen(w: World, c: str, weeks: int, week0: int, rng, *, live: bool, u):
     tr_r = g1_r + p["off_r"]
     tr_b_mean = g1_b + p["off_b"]
     centre = p["mu_b"] + p["off_b"]
-    on = (week >= w.drift_week) if (live and lvl) else np.zeros(n, bool)
+    on = (week >= w.drift_week) if (live and (lvl or w.drift_market)) else np.zeros(n, bool)
     slope_arr = np.where(on, w.drift_slope_b, slope) if w.drift_slope_b > 0 else slope
     tr_b = centre + slope_arr * (tr_b_mean - centre)
     tr_r = tr_r + u[week + week0] + w.drift_r * on
@@ -119,8 +120,42 @@ def stamp(recs, case):
         r["p_pub"] = r["p_champ"] if case[r["cal_class"]] == "A" else r["p_fb"]
 
 
+def rep_generic(w, seed):
+    """The generic-stream monitor alone: held-out walk-forward and final fit, p_ref under the frozen
+    held-out map with the held-out margin, the alarm state at every live cutoff."""
+    rng = np.random.default_rng(seed)
+    u = rng.normal(0, w.tau, HOLDOUT_WEEKS + LIVE_WEEKS)
+    prior0 = {h: L.identity_prior() for h in L.HEADS}
+    ho = gen(w, "GENERIC", HOLDOUT_WEEKS, 0, rng, live=False, u=u)
+    ho_end = HOLDOUT_WEEKS * WEEK_MS
+    ho_final = L.fit_calibrator(ho, prior0, cutoff_ms=ho_end + 1)
+    for r in ho:
+        r["p_ref"] = L.apply_calibrator(ho_final, r["p_raw"], "GENERIC").tolist()
+    oa = L.outcome_arrays(ho, "p_ref")
+    margin = {}
+    for o in L.OUTCOMES:
+        c = L.citl(*oa[o])
+        margin[o] = (c["hi"] - c["lo"]) / 200 if c["lo"] is not None else 0.0
+    live = gen(w, "GENERIC", LIVE_WEEKS, HOLDOUT_WEEKS, rng, live=True, u=u)
+    for r in live:
+        r["p_ref"] = L.apply_calibrator(ho_final, r["p_raw"], "GENERIC").tolist()
+    gs, alarms, clears = L.GenericState(), [], []
+    for wk in range(1, LIVE_WEEKS + 1):
+        cut = ho_end + wk * WEEK_MS
+        done = [r for r in live if r["resolved_ms"] < cut]
+        new = L.next_generic_state(gs, done, margin=margin, now_ms=cut)
+        if new.alarm and not gs.alarm:
+            alarms.append((wk, sum(1 for r in done if r["week"] - HOLDOUT_WEEKS >= w.drift_week)))
+        if gs.alarm and not new.alarm:
+            clears.append(wk)
+        gs = new
+    return {"alarms": alarms, "clears": clears, "margin": margin}
+
+
 def rep(args):
     w, seed, mode = args
+    if mode == "generic":
+        return rep_generic(w, seed)
     rng = np.random.default_rng(seed)
     u = rng.normal(0, w.tau, HOLDOUT_WEEKS + LIVE_WEEKS)
     prior0 = {h: L.identity_prior(w.s_level, None if w.s_slope_level < 0 else w.s_slope_level) for h in L.HEADS}
@@ -217,6 +252,11 @@ def scenarios():
         out.append((f"drift_b+{d}", replace(base, drift_b=d), "live"))
         out.append((f"drift_b-{d}", replace(base, drift_b=-d), "live"))
     out += [("drift_r-0.6", replace(base, drift_r=-0.6), "live"), ("drift_r+0.6", replace(base, drift_r=0.6), "live")]
+    out += [("gen_null", base, "generic"), ("gen_null_tau0", replace(base, tau=0.0), "generic"),
+            ("gen_b+0.4", replace(base, drift_b=0.4, drift_market=True), "generic"),
+            ("gen_b-0.4", replace(base, drift_b=-0.4, drift_market=True), "generic"),
+            ("gen_r-0.4", replace(base, drift_r=-0.4, drift_market=True), "generic"),
+            ("gen_r+0.4", replace(base, drift_r=0.4, drift_market=True), "generic")]
     out += [("delay_b+0.4", replace(base, drift_b=0.4), "live"), ("delay_b-0.4", replace(base, drift_b=-0.4), "live"),
             ("delay_slope0.7", replace(base, drift_slope_b=0.7), "live")]
     out += [(f"ho_shift_b{sh}", replace(base, shift_b=sh), "holdout") for sh in (0.2, 0.4, 0.6)]
@@ -233,7 +273,28 @@ def _mean(xs):
     return float(np.mean(xs)) if xs else None
 
 
+def summarize_generic(w, rs):
+    dw = w.drift_week
+    first = [r["alarms"][0] if r["alarms"] else None for r in rs]
+    pre = [f is not None and f[0] < dw for f in first]
+    post = [(f[0] - dw, f[1]) if f is not None and f[0] >= dw else (float("inf"), float("inf")) for f in first]
+    post = [p for p, b in zip(post, pre) if not b]
+    wk = [p[0] for p in post]
+    ev = [p[1] for p in post]
+    med = (lambda xs: float(np.median(xs)) if xs and np.isfinite(np.median(xs)) else None)
+    return {"world": dict(w.__dict__), "mode": "generic", "reps": len(rs),
+            "alarm_by_52w": _mean([f is not None and f[0] <= 52 for f in first]),
+            "alarm_by_104w": _mean([f is not None for f in first]),
+            "alarm_before_onset": _mean(pre),
+            "delay_median_weeks": med(wk), "delay_median_events": med(ev),
+            "detected_within_8w": _mean([x <= 8 for x in wk]), "detected_within_26w": _mean([x <= 26 for x in wk]),
+            "cleared_after_alarm": _mean([bool(r["clears"]) for r in rs if r["alarms"]]) if any(r["alarms"] for r in rs) else None,
+            "margin_mean_pp": {o: _mean([r["margin"][o] * 100 for r in rs]) for o in L.OUTCOMES}}
+
+
 def summarize(w, mode, rs):
+    if mode == "generic":
+        return summarize_generic(w, rs)
     s = {"world": dict(w.__dict__), "mode": mode, "reps": len(rs),
          "ho_b": [_mean([r["ho_b"][k] for r in rs]) for k in range(len(rs[0]["ho_b"]))],
          "ho_r": [_mean([r["ho_r"][k] for r in rs]) for k in range(len(rs[0]["ho_r"]))], "classes": {}}

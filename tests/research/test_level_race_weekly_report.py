@@ -54,3 +54,10 @@ def test_report_structure_and_skill(tmp_path):
     path = tmp_path / "j.jsonl"
     path.write_text("\n".join(json.dumps(r) for r in rows))
     assert "L3_LEVEL_RACE_T15_4H" in R.markdown(rep)
+
+
+def test_header_carries_the_drift_sentence_verbatim():
+    s = ("a level-specific drift of about ±10 pp is detected in about a year, not weeks; "
+         "inside the beta the accuracy line next to the number is the guard")
+    rep = R.report(_rows(50))
+    assert rep["note"] == s and s in R.markdown(rep).splitlines()[2]
