@@ -22,6 +22,16 @@ Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/re
 
 Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
 
+## FROZEN_HOUR_EQUAL_WIDTH_V1 — design only; outcome not read — 2026-10-08
+
+`MODE = CONFIRMATION of the width-held relation | outcome_read = false | NOT a confirmation of FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | +9.48 pp is not evidence of a special boundary`
+`ESTIMAND = paired mean of 4h resolution, real minus width-scaled pseudo | primary UTC_00 | UTC_12 reported and not adoptable`
+`SCALE = one k on the partner log offsets around today's P0 so dollar width equals today's W and log asymmetry is unchanged | immediate touches kept`
+`SURFACE = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 events [2017-09-01, 2020-01-01) | files not opened | not the E1 reservation | not the 2025 perpetual held-out | not the #368 prospective panel`
+`NEXT = a separate owner go before any census or outcome | PRODUCT_CHANGE = none`
+
+Design: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
+
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 
 `UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`

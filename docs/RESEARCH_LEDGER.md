@@ -8667,3 +8667,17 @@ EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_RESULT_UNCHANGED = true
 OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched
 PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_V1 design only; no surface opened
+
+**Unit.** `FROZEN_HOUR_EQUAL_WIDTH_V1`. `MODE = CONFIRMATION` of the width-held relation. `outcome_read = false`. Not a confirmation of `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. The parent's +9.48 pp stays in the result and is not evidence of a special boundary.
+- **Estimand.** Paired mean of 4h either-barrier resolution, printed range minus a pseudo whose log offsets are scaled by one frozen `k` around today's `P0` so dollar width matches and log asymmetry is unchanged. Primary cell UTC_00. UTC_12 is reported and cannot be adopted. Immediate touches are kept. Practical scale 0.03. Week-block percentile interval, B = 2000, seeds `20261031` and `20261102`.
+- **Surface named, not opened.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, events `[2017-09-01, 2020-01-01)`. Exact claim unread. Post-touch barrier path unread on these months. Atlas `reservations:` contains only the E1 holdout, which does not intersect this window. DH1 named the era and did not read a replication outcome. Not the 2025 perpetual held-out. Not the `#368` prospective panel. Not BitMEX.
+- **Not done.** No evaluator, no file open, no formation count, no Y, no product change.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none
+```
