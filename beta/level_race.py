@@ -27,7 +27,10 @@ HIST_CLASSES = {"T0": "L2_LEVEL_RACE_HIST_T0_4H", "T15": "L2_LEVEL_RACE_HIST_T15
 TEMPLATES = {"full": "LR_HIST_V1", "push": "LR_PUSH_HIST_V1", "low_n": "LR_HIST_LOW_N_V1"}
 MODEL_STATES_SETTING = "level_race.model_states_enabled"
 HIST_TABLE_PATH = Path(__file__).resolve().parents[1] / "docs/research/LEVEL_RACE_HIST_TABLE_V1.json"
-HIST_TABLE_SHA256 = "4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b"
+HIST_TABLE_SHA256 = "4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b"   # body (cells, ladder, …)
+# sha256 of the whole file bytes, provenance included (red team 2026-10-08: the body digest alone
+# let provenance, e.g. the years shown as «2020–2024», be rewritten unnoticed).
+HIST_FILE_SHA256 = "e8a3224be08c40fc10c57280aca2b2dedc64b9f9adbbf591fb34f5dd030e20a4"
 
 BAR_MS = 300_000
 ZONE_HALF = 0.0015             # #352 primary half-width (= beta.levels.ZONE_TOL_PCT / 100)
@@ -113,7 +116,10 @@ def b0_race(price: float, p_up: float, p_dn: float, sigma: float, tau_bars: floa
 
 # ---- HIST table ------------------------------------------------------------------------------
 def load_hist_table(path: Path = HIST_TABLE_PATH) -> dict:
-    table = json.loads(Path(path).read_text())
+    raw = Path(path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != HIST_FILE_SHA256:
+        raise RuntimeError("level race HIST table file digest mismatch")
+    table = json.loads(raw.decode("utf-8"))
     body = {k: table[k] for k in table if k not in ("table_sha256", "provenance")}
     digest = hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if digest != table["table_sha256"] or digest != HIST_TABLE_SHA256:
