@@ -797,7 +797,7 @@ def test_24h_tab_renders_changes_and_terms_footer():
     assert "OI вырос, пока цена падала" in ru
     assert "крупных изменений нет" not in ru
     assert "Delta: +$210 млн (покупатели)" in ru
-    assert "Funding сейчас 0,006% · среднее за 24 ч 0,009%" in ru
+    assert "Funding сейчас 0,006% за 8 ч (медиана бирж) · среднее за 24 ч 0,009% за 8 ч" in ru
     assert "Высокий импакт" not in ru and "High impact" not in en
     assert "BTC, last 24h" in en and "Terms: /terms" in en.split("\n")[-1]
     assert "range wider: 2.8% vs 1.9%" in en

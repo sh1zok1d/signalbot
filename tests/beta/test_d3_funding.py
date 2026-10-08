@@ -65,9 +65,9 @@ def test_the_sign_change_needs_rates_of_a_printable_size():
 
 
 @pytest.mark.parametrize("lang,now24,now1", [
-    ("ru", "Funding сейчас 0,020% · среднее за 24 ч 0,010% (ставки за 8 ч, медиана 2 из 3 бирж; нет свежей ставки: OKX)",
+    ("ru", "Funding сейчас 0,020% за 8 ч (медиана 2 из 3 бирж; нет свежей ставки: OKX) · среднее за 24 ч 0,010% за 8 ч",
      "Funding сейчас 0,020% за 8 ч (медиана 2 из 3 бирж; нет свежей ставки: OKX)"),
-    ("en", "Funding now 0.020% · 24h average 0.010% (rates per 8h, median of 2 of 3 exchanges; no fresh rate: OKX)",
+    ("en", "Funding now 0.020% per 8h (median of 2 of 3 exchanges; no fresh rate: OKX) · 24h average 0.010% per 8h",
      "Funding now 0.020% per 8h (median of 2 of 3 exchanges; no fresh rate: OKX)"),
 ])
 def test_rates_say_per_8h_and_how_many_venues(lang, now24, now1):
@@ -114,3 +114,12 @@ def test_store_reads_each_venues_newest_live_row_before_the_boundary():
         assert f["venues"] == 1 and f["rate"] is None                  # bybit is 30 minutes old
         await pool.close()
     run(body())
+
+
+@pytest.mark.parametrize("lang,want", [("ru", "Funding сейчас н/д (нет свежей ставки: Bybit, OKX) · среднее за 24 ч 0,010% за 8 ч"),
+                                       ("en", "Funding now n/a (no fresh rate: Bybit, OKX) · 24h average 0.010% per 8h")])
+def test_with_one_fresh_venue_now_is_na_and_the_stale_ones_are_named(lang, want):
+    hzs = build_horizons(CFG, as_of_bucket=AS_OF, metrics_by_bucket=rows(288),
+                         funding_latest=latest(binance=(1, 0.0001), bybit=(30, 0.0003), okx=(40, 0.0002)))
+    view = {"horizons": hzs, "now": {"reference_price": 100.0}}
+    assert want in plain(format_24h_tab(CFG, view, lang))         # the venue note never sits beside the 24h mean

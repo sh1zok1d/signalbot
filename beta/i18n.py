@@ -1037,17 +1037,16 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "h1_incomplete_body": {"ru": "1ч: неполные данные", "en": "1h: incomplete"},
     # rates per 8h settlement (all three venues settle every 8h; D3, R3)
-    "funding_now": {
-        "ru": "Funding сейчас {rate} за 8 ч ({med})",
-        "en": "Funding now {rate} per 8h ({med})",
-    },
+    "funding_now": {"ru": "Funding сейчас {now}", "en": "Funding now {now}"},
+    "funding_now_val": {"ru": "{rate} за 8 ч ({med})", "en": "{rate} per 8h ({med})"},
     "funding_24h": {
-        "ru": "Funding сейчас {now} · среднее за 24 ч {avg} (ставки за 8 ч, {med})",
-        "en": "Funding now {now} · 24h average {avg} (rates per 8h, {med})",
+        "ru": "Funding сейчас {now} · среднее за 24 ч {avg} за 8 ч",
+        "en": "Funding now {now} · 24h average {avg} per 8h",
     },
     "funding_med_all": {"ru": "медиана бирж", "en": "median across exchanges"},
     "funding_med_k": {"ru": "медиана {k} из {n} бирж", "en": "median of {k} of {n} exchanges"},
     "funding_stale": {"ru": "; нет свежей ставки: {venues}", "en": "; no fresh rate: {venues}"},
+    "funding_stale_na": {"ru": " (нет свежей ставки: {venues})", "en": " (no fresh rate: {venues})"},
     "h24_head": {"ru": "<b>BTC за 24 ч</b> · до {hm} {zone}", "en": "<b>BTC, last 24h</b> · through {hm} {zone}"},
     "h24_price": {"ru": "Цена {price} · макс {high} · мин {low}", "en": "Price {price} · high {high} · low {low}"},
     "h24_range": {"ru": "Диапазон {range}{ratio}", "en": "Range {range}{ratio}"},
