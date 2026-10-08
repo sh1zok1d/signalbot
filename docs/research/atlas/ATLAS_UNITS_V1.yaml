@@ -4124,6 +4124,32 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'MODE=CONFIRMATION. Design note 6d97157b before any post-touch RV. Parent discovery #368 design 54338b7f and result fb6598aa. Event constructor from #357. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim L2. Parent results are not rewritten. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Exact RV claim unread before this run. Neighboring 4h path already read. Prospective not started.'
+  - id: LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1
+    title: LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_LIVE_FORWARD
+    period: 'forward Binance USD-M BTCUSDT 5m closes from 2026-10-09T00:00:00Z; pre-start history is warm-up only; no 2020-2024 discovery reread; no outcome read in the setup'
+    units_n: 'none yet; stop is 600 matched path-complete pairs and 104 completed weeks'
+    practical_bar: 'Inherited log(1.10). Not lowered. Positive sign preselected.'
+    mechanism: 'MODE=CONFIRMATION. ACCRUAL=PROSPECTIVE_ONLY. Whether the exact frozen #368 60m pre/post RV transition appears on structural first touches whose episodes open only after the design freeze. Not a new feature.'
+    function: 'exact #352 constructor and half-rotation after cohort close; touch_number = 1; T is the open of bar j; bar j excluded; 12 pre and 12 post log-close returns; DELTA_TRANSITION is the paired mean; week-block bootstrap B=2000 seed 20261026'
+    verdict: 'NOT_EXECUTED. Protocol PROSPECTIVE_CONFIRMATION_STARTED. Accrual AWAITING_START. Design d30622de. Start 2026-10-09T00:00:00Z. exact_outcome_read = false. Evaluator refuses. No route and no effect.'
+    why_closed: 'Not closed. Registered so the frozen start and the stop are visible before any future bar is an eligible event.'
+    reopen: 'At the first checkpoint that meets 600 matched path-complete pairs and 104 completed weeks, freeze the pair map and run the one-shot evaluator once. A shortfall at 156 weeks closes information-limited without a transition read. Not a new window and not a lower N.'
+    forbidden: 'reading the transition before the stop; choosing a start before the design commit; admitting pre-start rows as events; lowering the 10% bar; a product badge or deploy from this setup; calling a future pass L3'
+    revisit: 'Checkpoints at 104, 130 and 156 completed weeks after 2026-10-09T00:00:00Z (2028-10-06, 2029-04-06, 2029-10-05). Nothing earlier.'
+    records:
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESIGN.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_SURFACE_V1.json
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_ACCRUAL_V1.md
+    - scripts/research/level_volatility_transition_prospective_confirmation_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN and AWAITING_START. Not COHORT_CLOSED. Not EXECUTED. Surface class PRISTINE_CONFIRMATION applies only to the exact claim generated after 2026-10-09T00:00:00Z. Parent discovery 54338b7f. Parent replication 6d97157b. No prospective effect is recorded.'
   - id: DH3-X9
     title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
     program: DIRECTIONAL_AND_RANGE_DH3

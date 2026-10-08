@@ -1,4 +1,17 @@
-## LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 — executed once; exposed-surface replication supports the frozen claim; not pristine; prospective not started — 2026-10-08
+## LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 — design frozen; accruing; no outcome — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; ACCRUAL = PROSPECTIVE_ONLY; SURFACE_EVIDENCE_CLASS = PRISTINE_CONFIRMATION for the exact claim after the frozen start)`
+`DESIGN = d30622de19f90efe3ee12b56fc5e2d017ef38c57 | commit 2026-10-08T11:30:26Z | PROSPECTIVE_START_UTC = 2026-10-09T00:00:00Z | manifest digest 0f1b26921ff73bf68403af34bef2467b4ea77cac509420ac434a543b2dc47e2c`
+`CLAIM = exact #368 paired mean of log(RV_POST60/RV_PRE60) | discovery design 54338b7f | BitMEX replication design 6d97157b | practical bar log(1.10) | seed 20261026 | B = 2000 | formula not retuned`
+`STOP = 600 matched path-complete pairs AND 104 completed weeks | checkpoints 104 / 130 / 156 weeks | ends 2028-10-06, 2029-04-06, 2029-10-05 | shortfall at 156 weeks closes information-limited without a transition read`
+`STATUS = PROSPECTIVE_CONFIRMATION_STARTED | accrual AWAITING_START | completed weeks 0 | exact_outcome_read = false | pair map not frozen | evaluator REFUSING_PREMATURE_PROSPECTIVE_EVALUATION`
+`DATA = Binance USD-M BTCUSDT 5m closes aggregated from complete 1m bins after the start | pre-start bars are WARMUP_ONLY | CORE 2020-2024 is not the sample | no new database table | claim journal not reused`
+`CLAIM_CEILING = L2 even on a future pass | PRODUCT_INTEGRATION_CANDIDATE would be a later owner decision | PRODUCT_CHANGE = none | #363 not started | clock independence UNRESOLVED`
+`NEXT_UNIT = none | do not evaluate before the frozen stop`
+
+Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESIGN.md`. Manifest: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_SURFACE_V1.json`. Accrual: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_ACCRUAL_V1.md`.
+
+## LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 — executed once; exposed-surface replication supports the frozen claim; not pristine; prospective protocol frozen afterward — 2026-10-08
 
 `UNIT = LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; SURFACE_EVIDENCE_CLASS = TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION; design 6d97157b before any post-touch RV)`
 `GOVERNANCE = EXPOSURE_WEIGHTING_DECISION_V1 | exposure is evidentiary weight, not a ban | subordinate to EVIDENCE_AND_CLAIMS, DISCOVERY_FIRST, protected data, and the frozen #368 design | L0–L4 unchanged | no L5`

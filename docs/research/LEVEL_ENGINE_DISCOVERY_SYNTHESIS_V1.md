@@ -10,7 +10,7 @@ Machine-readable rows: `docs/research/LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1.json`.
 
 ## Later amendment (2026-10-08)
 
-`LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1` was executed after this synthesis, under `docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md`. This synthesis document did not compute that outcome. The discovery-time class of #368 stays `DISCOVERY_CANDIDATE_STRONG`. The frozen route stays `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT`. The post-synthesis status of that object is `TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE`. The replication route is `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Not pristine. Claim ceiling L2. Clock independence stays `UNRESOLVED`. Prospective collection was not started. #363 was not started. Product files were not changed.
+`LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1` was executed after this synthesis, under `docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md`. This synthesis document did not compute that outcome. The discovery-time class of #368 stays `DISCOVERY_CANDIDATE_STRONG`. The frozen route stays `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT`. The post-synthesis status of that object is `TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE`. The replication route is `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Not pristine. Claim ceiling L2. Clock independence stays `UNRESOLVED`. Prospective collection was not started by the replication. A later design, `LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1` (`d30622de`), froze the next layer with start `2026-10-09T00:00:00Z`. That layer has no outcome yet. #363 was not started. Product files were not changed.
 
 ## Authority
 
@@ -241,4 +241,4 @@ The overlap judgments use recorded definitions and recorded tables. They are not
 
 ## Stop
 
-`LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE` remains YES. Synthesis selection is recorded. The BitMEX replication of #368 has been executed once and supports the frozen claim on an exposed surface. Prospective collection is not started. #363 is not started. The next action is an owner decision on prospective collection, or no go.
+`LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE` remains YES. Synthesis selection is recorded. The BitMEX replication of #368 has been executed once and supports the frozen claim on an exposed surface. Prospective collection is not started. #363 is not started. The prospective protocol for #368 is frozen and has not produced an outcome. #363 is not started. The next scientific read waits for the frozen stop.

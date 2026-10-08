@@ -31,7 +31,7 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 - **Would confirm.** The paired multiplier difference replicates under the frozen definition and the inherited bar `log(1.10)`.
 - **Would not confirm.** Independence from RMUT or from the 4h resolution rate. A current expected volatility. A breakout. L3.
 - **Later execution (2026-10-08).** `LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1`, design `6d97157be44f02ad09344a00df58b715e5c8aa13`. Surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Not pristine. Route `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Paired delta +0.096545 log, about +10.14% (95% +0.02178..+0.16817, about +2.20%..+18.31%, N=554, 120 weeks). The inherited bar `log(1.10)` is cleared by the point estimate. The interval excludes 0 and also contains values below that bar. Epoch signs agree; 2018 is +0.28%. Leave-one-epoch-out stays positive. Ceiling L2. Clock independence `UNRESOLVED`. The two samples were not pooled.
-- **Next action.** Prospective collection is the next stronger layer. It is not redundant with the BitMEX pass, and it was not started. Owner go for a prospective design, or stop. Do not launch it as a rescue, and do not start #363 from this result.
+- **Prospective protocol (2026-10-08).** `LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1` is `PROSPECTIVE_CONFIRMATION_STARTED`. Design `d30622de19f90efe3ee12b56fc5e2d017ef38c57`. Start `2026-10-09T00:00:00Z`, the first UTC midnight after that commit. Accrual clock `AWAITING_START`. No prospective effect has been computed. The evaluator refuses. `#363` is not started.
 
 ### Sketch (not a preregistration)
 
@@ -84,7 +84,7 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 ## Order
 
 1. Leave #357 as the confirmed foundation. Do not rerun it.
-2. The exact #368 claim has one exposed-surface historical replication, and it supports. If the owner wants the next stronger layer, write the prospective #368 design. Do not treat the BitMEX pass as a substitute for that layer, and do not start the prospective run from the replication task.
+2. The exact #368 claim has one exposed-surface historical replication, and it supports. The prospective protocol is now frozen and accruing toward its first checkpoint. It is not a result. Do not treat the BitMEX pass as that result.
 3. The prospective #363 primary-coefficient design is second. It may be written in the same owner go. It is not blocked by the volatility result, and it is not promoted ahead of it.
 4. Do not schedule #365, #361, or the #363 specificity class.
 

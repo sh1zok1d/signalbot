@@ -8549,3 +8549,22 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 CONFIRMATION of this exact claim EXECUTED ONCE; PROSPECTIVE_STARTED = no; CROSS_VENUE_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 design frozen; accrual started; no outcome
+
+**Unit.** `LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1` (atlas `LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = CONFIRMATION`, `ACCRUAL = PROSPECTIVE_ONLY`. Surface class for the exact claim after the frozen start: `PRISTINE_CONFIRMATION`. Claim ceiling L2. It does not rescore #368 or the BitMEX replication.
+- **Design.** `d30622de19f90efe3ee12b56fc5e2d017ef38c57`, committer time `2026-10-08T11:30:26Z`, before any prospective transition. The formula, the touch-bar exclusion, the 12-return windows, the bar `log(1.10)`, the positive sign, and the week-block bootstrap (`B=2000`, seed `20261026`) are the #368 objects.
+- **Start.** `PROSPECTIVE_START_UTC = 2026-10-09T00:00:00Z`, the first UTC midnight strictly after the design commit. Resolved from git metadata. Manifest digest `0f1b26921ff73bf68403af34bef2467b4ea77cac509420ac434a543b2dc47e2c`. No market bar was used to choose it.
+- **Eligibility.** An episode is prospective only when its active period opens at or after the start. Pre-start bars are warm-up for prior levels and the 24h sigma. They are not events. The pseudo map is written only after the cohort closes.
+- **Stop.** Both 600 matched path-complete pairs and 104 completed weeks, checked only at 104, 130, and 156 weeks (`2028-10-06`, `2029-04-06`, `2029-10-05`). A shortfall at 156 weeks closes as information-limited and does not read the transition.
+- **Status.** `PROSPECTIVE_CONFIRMATION_STARTED`. Accrual clock `AWAITING_START`. Completed weeks 0. `exact_outcome_read = false`. Evaluator: `REFUSING_PREMATURE_PROSPECTIVE_EVALUATION`. Cohort close: `REFUSING_PREMATURE_COHORT_CLOSE`.
+- **Data.** Forward Binance USD-M BTCUSDT 5m closes from complete 1m bins after the start. `CORE_BTC_BINANCE_V0` is not the sample. No new database table. The product claim journal is not reused. No recovery interval has been logged.
+- **Product.** No `/btc`, `/levels`, `/check`, `/risk`, Telegram, scoring, findings-registry, or deploy change. `#363`, `#365`, a joint model, and a meta-analysis were not started. There is no prospective effect to report.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PROSPECTIVE_CONFIRMATION_STARTED = yes; ACCRUAL = AWAITING_START; EXACT_OUTCOME_READ = no
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+CROSS_VENUE_STARTED = no; COHORT_CLOSED = no; PAIR_MAP_FROZEN = no
+```

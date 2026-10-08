@@ -754,6 +754,7 @@
     "BLOCKED_METHOD": 2,
     "CLOSED_ON_SURFACE": 13,
     "EXPOSED_ONLY": 1,
+    "FUTURE_NATURAL_ACCUMULATION": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
     "NO_STRUCTURE": 4
@@ -762,7 +763,9 @@
    "mixed": true,
    "native": true,
    "region": "PRICE_STRUCTURE",
-   "revisit": [],
+   "revisit": [
+    "Checkpoints at 104, 130 and 156 completed weeks after 2026-10-09T00:00:00Z (2028-10-06, 2029-04-06, 2029-10-05). Nothing earlier."
+   ],
    "row": "PRICE_STRUCTURE.levels",
    "row_name": "Reaction at levels (prior highs/lows, round numbers)",
    "state": "LIVE_SIGNAL",
@@ -789,6 +792,7 @@
     "LEVEL-TOUCH-DEGRADATION-V1",
     "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
     "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
+    "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
     "PRODUCT-V2-LEVELS"
    ],
    "value": {
@@ -10183,7 +10187,7 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 205,
+  "units": 206,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
@@ -10193,7 +10197,7 @@
    "CLOSED_ON_SURFACE": 29,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
-   "FUTURE_NATURAL_ACCUMULATION": 3,
+   "FUTURE_NATURAL_ACCUMULATION": 4,
    "INFORMATIONALLY_WEAK": 25,
    "LIVE_SIGNAL": 7,
    "NO_STRUCTURE": 32
@@ -15543,6 +15547,39 @@
    ]
   },
   {
+   "col": "CANDLES",
+   "revisit": [
+    "Checkpoints at 104, 130 and 156 completed weeks after 2026-10-09T00:00:00Z (2028-10-06, 2029-04-06, 2029-10-05). Nothing earlier."
+   ],
+   "row": "PRICE_STRUCTURE.levels",
+   "units": [
+    "DH1-L2",
+    "DH1-L3",
+    "DH1-X1",
+    "DH2-L3",
+    "DH3-V1",
+    "DH3-V2",
+    "DH3-V3",
+    "GV0R01-C017",
+    "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1",
+    "LEVEL-APPROACH-STATE-DISCOVERY-V1",
+    "LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1",
+    "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
+    "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1",
+    "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1",
+    "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
+    "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1",
+    "LEVEL-REJECTION-MEMORY-V1",
+    "LEVEL-STRUCTURE-DISCOVERY-V1",
+    "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
+    "LEVEL-TOUCH-DEGRADATION-V1",
+    "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
+    "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
+    "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
+    "PRODUCT-V2-LEVELS"
+   ]
+  },
+  {
    "col": "PERP_FLOW",
    "revisit": [
     "Prospective surface 2027-01-01..2029-12-31 declared in the G01 planning record: one analysis at the earliest of 104 episodes or the end date, minimum 52 eligible post-launch weeks; a new search object with its own freeze. Binance 2025/2026 is not eligible."
@@ -15553,7 +15590,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "63b8cee7ffe2d8d71880ad6e7e0e82f14047fd7d7abffd6810ae05f902da3d28",
+ "SOURCES_DIGEST": "56f0260ee9a679f761fe2a5a305d96d008a0c8b90d7a590f13f70b035d980be2",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -22221,6 +22258,37 @@
    "units_n": "4076 structural episodes; 1919 real and 1962 pseudo legitimate first touches; 1231 usable matched pairs; 254 weeks; zero non-positive RV drops",
    "verdict": "EXECUTED ONCE (2026-10-08). LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES. SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT. Class LEVEL_VOLATILITY_TRANSITION_CANDIDATE. DELTA_TRANSITION +0.1068 log units, about +11.3% on the post/pre RV multiplier (95% +0.0665..+0.1467 log, about +6.9%..+15.8%, p=1.05e-7, N=1231, 2000/2000). Five of five years positive; 2022 is +0.10% and the sign rule was not rewritten. Leave-one-year-out stays positive. DAY and WEEK are positive. MONTH N=22 is diagnostic and opposite. Support is positive and under 10%. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run. The level row was already consumed. This is the paired pre-to-post RV transition around the #352 first touch versus its half-rotation pseudo, with the touch bar excluded. It is not a reopen of H01 compression, B2-01 forecast transition, or DH3-V2 key-level 4h range. No product change. No other horizon, compression subgroup, 4h range, BitMEX replication, or confirmation was started. Direction 8 of 8 stops here."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "BINANCE_UM_LIVE_FORWARD"
+   ],
+   "forbidden": "reading the transition before the stop; choosing a start before the design commit; admitting pre-start rows as events; lowering the 10% bar; a product badge or deploy from this setup; calling a future pass L3",
+   "function": "exact #352 constructor and half-rotation after cohort close; touch_number = 1; T is the open of bar j; bar j excluded; 12 pre and 12 post log-close returns; DELTA_TRANSITION is the paired mean; week-block bootstrap B=2000 seed 20261026",
+   "id": "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
+   "mechanism": "MODE=CONFIRMATION. ACCRUAL=PROSPECTIVE_ONLY. Whether the exact frozen #368 60m pre/post RV transition appears on structural first touches whose episodes open only after the design freeze. Not a new feature.",
+   "note": "DESIGN_FROZEN and AWAITING_START. Not COHORT_CLOSED. Not EXECUTED. Surface class PRISTINE_CONFIRMATION applies only to the exact claim generated after 2026-10-09T00:00:00Z. Parent discovery 54338b7f. Parent replication 6d97157b. No prospective effect is recorded.",
+   "period": "forward Binance USD-M BTCUSDT 5m closes from 2026-10-09T00:00:00Z; pre-start history is warm-up only; no 2020-2024 discovery reread; no outcome read in the setup",
+   "practical_bar": "Inherited log(1.10). Not lowered. Positive sign preselected.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESIGN.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_SURFACE_V1.json",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_ACCRUAL_V1.md",
+    "scripts/research/level_volatility_transition_prospective_confirmation_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "At the first checkpoint that meets 600 matched path-complete pairs and 104 completed weeks, freeze the pair map and run the one-shot evaluator once. A shortfall at 156 weeks closes information-limited without a transition read. Not a new window and not a lower N.",
+   "revisit": "Checkpoints at 104, 130 and 156 completed weeks after 2026-10-09T00:00:00Z (2028-10-06, 2029-04-06, 2029-10-05). Nothing earlier.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "FUTURE_NATURAL_ACCUMULATION",
+   "title": "LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1",
+   "units_n": "none yet; stop is 600 matched path-complete pairs and 104 completed weeks",
+   "verdict": "NOT_EXECUTED. Protocol PROSPECTIVE_CONFIRMATION_STARTED. Accrual AWAITING_START. Design d30622de. Start 2026-10-09T00:00:00Z. exact_outcome_read = false. Evaluator refuses. No route and no effect.",
+   "why_closed": "Not closed. Registered so the frozen start and the stop are visible before any future bar is an eligible event."
   },
   {
    "col": "CANDLES",
