@@ -35,6 +35,8 @@
 10. **FALLBACK is never shown for a class whose fallback model fails G2:** on the held-out read, and on the last 150 live records once there are that many.
 11. **Case B never enters an L3 state** (rule, not only a simulation result). Its only model state is FALLBACK, entered while the fallback passes G2, otherwise HIST. The L3 templates would otherwise print a number next to itself as «обычно» (§6b). Tested in `test_case_b_never_enters_l3`.
 12. **One rule for "which calibrator applies at t":** `calibrator_at(t_ms, versions)` returns the version with the latest cutoff ≤ t. The held-out pass (F1) and the live loop (F2) both call it. A test checks that t at a cutoff and t one ms before select different versions.
+13. **Generic-stream alarm:** it sends every L3_* and FALLBACK level class to HIST, never to FALLBACK, and counts as a drift exit. Return needs the generic alarm cleared first (≥ 50 windows, every e < 1), then the class's own return rule. Tests: `test_generic_alarm_sends_l3_and_fallback_to_hist_and_counts_as_a_drift_exit`, `test_generic_return_needs_the_alarm_cleared_and_the_class_recovered`.
+14. **No model number without its accuracy line:** `display_contract` raises if L3_HISTORY_BACKED, L3_LIVE or FALLBACK lacks its held-out, live or generic line. Test: `test_no_model_number_without_its_accuracy_line`.
 
 All numbers: 200 replications per scenario, §10.
 
@@ -168,7 +170,7 @@ The second drift exit of a model version is final for it. "Final" means the clas
 
 ### 5.5 Limitation: drift power at 5–7.5 events a week
 
-**In short:** a level-specific drift of about ±10 pp is detected in about a year, not weeks; inside the beta the accuracy line next to the number is the guard.
+**In short:** a level-specific drift of about ±10 pp is detected in about a year, not weeks; inside the beta the accuracy line next to the number is the guard. A fall of the calibration slope to about 0.7 is practically not detected by the monitors; the weekly report's slope line is its only check.
 
 
 No monitor catches a 7 pp drift within a year at these event rates. An 11–15 pp drift takes months (§10.3). The batched calibrator meanwhile partly absorbs a drift, so the published probabilities stay closer to the truth than the raw model. The mitigation is the generic stream, about 40 independent windows a week (FORECAST_LAYER §5 pooling):
@@ -194,6 +196,43 @@ The weekly report puts the drift statistics in front of the mini-head long befor
 - The planning values detect ±10 pp in a median of 14–34 weeks. But they leave L3 falsely before any drift in 29–32 % of runs within 26 weeks, and in 42–56 % within 52 weeks (§10.1).
 - Neither set reaches about 8 weeks, which is 40–60 level events, where a calibration intercept has a standard error of about 7 pp.
 - Faster detection needs more events per class (pooling T0 and T15, or the generic stream), not another threshold.
+
+### 5.6 Generic-stream drift monitor (architect, 2026-10-08)
+
+**Rows.** One independent row per 4h window: the (1, 1) price pair at anchors on the 4h UTC grid, about 42 a week (`generic_monitor_rows`).
+
+**Statistic.**
+- Per outcome, a change-point mixture of the D1 betting e-process (`changepoint_paths`): starts every 40 windows, weight 1/((j+1)(j+2)), starts not yet reached counted as 1. It is a test martingale, and a late drift is not buried under a long calm period.
+- It runs on **p_ref**, the raw generic model under the frozen end-of-held-out generic calibrator, with the **held-out margin**: half the 95 % interval of the held-out CITL per outcome, about 1.5–2 pp.
+- p_ref is right here, unlike on the level classes (§5.1). The generic held-out has about 3 500 independent windows, so its own estimation error is small and is covered by the margin.
+- On published probabilities, the batched calibrator would absorb a market-wide shift within weeks.
+
+**Frozen numbers.**
+- Threshold: **E > 30** per outcome (`GEN_THRESHOLD`).
+- False alarm over 52 calm weeks: **7 %** at τ = 0.25, **0.5 %** at τ = 0.
+- Median delay for a ±10 pp market-wide shift on head B: **38 / 37 weeks**, about 1557 windows. On head R (±0.4 logit): 23 / 29 weeks.
+
+**Effect.**
+- An alarm sends every level class in `L3_*` or `FALLBACK` to `HIST` (`GEN_ALARM_TARGET`), never FALLBACK, because FALLBACK is the generic model itself.
+- It counts as a drift exit, and the second exit is final.
+- Return, first on the generic stream: ≥ 50 windows since the alarm and every outcome's e-process from the alarm below 1. Then on the class, by its own §5.3 rule.
+- A level-stream drift keeps its own target (`LEVEL_DRIFT_TARGET = FALLBACK` while the fallback passes G2, else HIST). The interim constant is kept for that path only.
+
+**Why the generic stream is not fast either.**
+- A ±10 pp shift in the head-B conditional is about ±7.5 pp per outcome, one against the rest.
+- After the 2 pp margin, that is about 0.007 nats of evidence per window.
+- Weekly regime noise (τ = 0.25 ≈ ±6 pp per week) has to be told apart from a sustained shift.
+
+**Tested and rejected: a rolling rule.** Over the last 6 weeks: per outcome |CITL| > margin + 5 pp with a 99.7 % interval beyond the margin. It shortens the delay but more than doubles the calm-world alarms:
+
+| | e-process only (frozen) | + rolling 6-week rule (tested, rejected) |
+|---|---|---|
+| calm, alarm within 52 w, τ = 0.25 | 7.0 % | 16.5 % |
+| calm, alarm within 52 w, τ = 0 | 0.5 % | 6.0 % |
+| market-wide head B +0.4 logit (≈ +10 pp): median delay | 38 w / 1557 windows (6 % within 8 w) | 21 w / 823 windows (22 % within 8 w) |
+| head B −0.4: median delay | 37 w / 1474 windows (4 % within 8 w) | 18 w / 714 windows (22 % within 8 w) |
+| head R −0.4 (more NEITHER): median delay | 23 w / 934 windows (7 % within 8 w) | 15 w / 590 windows (25 % within 8 w) |
+| head R +0.4: median delay | 29 w / 1163 windows (3 % within 8 w) | 17 w / 675 windows (22 % within 8 w) |
 
 ## 6. Challengers
 
