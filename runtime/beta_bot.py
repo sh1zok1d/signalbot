@@ -174,11 +174,11 @@ def _help_buttons(lang: str) -> list:
     # «Другие монеты»: the U5 fake door (BETA_MEASUREMENT_CONTRACT_V1 §6). Only here, never
     # pushed or repeated elsewhere; nothing multi-asset exists behind it.
     return [[(t(lang, "btn_terms"), "terms"), (t(lang, "btn_other_assets"), OTHER_ASSETS)],
-            [(t(lang, "btn_idea"), IDEA_BUTTON), (t(lang, "btn_interview"), INTERVIEW_BUTTON)],   # H1, H4
+            [(t(lang, "btn_idea"), IDEA_BUTTON)],                                                # H1
             [(t(lang, "btn_guide"), GUIDE_BUTTON)]]                                              # J2
 
 
-IDEA_BUTTON, INTERVIEW_BUTTON, GUIDE_BUTTON = "x:idea", "x:interview", "x:guide"
+IDEA_BUTTON, GUIDE_BUTTON = "x:idea", "x:guide"
 
 
 def _sample_level_alert(lang: str) -> str:
@@ -208,25 +208,6 @@ def _parse_reason(data: str):
     if parts[3] not in codes or not parts[2] or len(parts[2]) > 48:
         return None
     return ("noise" if parts[1] == "n" else "stop"), parts[2], parts[3]
-
-
-def _interview_slots(now: datetime) -> list:
-    """The next two weekdays on the participant's clock, 12:00 and 18:00 of the first, 12:00 of the second."""
-    from datetime import time as dtime
-    from beta.i18n import current_tz
-    tz = current_tz()
-    day, days = now.astimezone(tz).date(), []
-    while len(days) < 2:
-        day = day + timedelta(days=1)
-        if day.weekday() < 5:
-            days.append(day)
-    return [datetime.combine(d, dtime(h, 0), tzinfo=tz) for d, h in ((days[0], 12), (days[0], 18), (days[1], 12))]
-
-
-def _interview_buttons(now: datetime, lang: str) -> list:
-    from beta.decision_format import _when
-    rows = [[(_when(s, lang, with_day=True), f"i:{int(s.timestamp() // 60)}")] for s in _interview_slots(now)]
-    return rows + [[(t(lang, "interview_other"), "i:other")]]
 
 
 OTHER_ASSETS = "x:assets"
@@ -373,9 +354,6 @@ class BetaBotHandler:
         if cmd == "cancel":
             await conn.set_awaiting(uid, None, None)
             return [_msg(chat_id, t(lang, "cancel_ok"), lang=lang)]
-        if cmd == "interview":
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_interview",
-                                     [_msg(chat_id, t(lang, "interview_q"), _interview_buttons(now, lang), lang=lang)])
         if cmd == "lang":
             return await self._reply(conn, user, chat_id, lang, now, "cmd_lang",
                                      [_msg(chat_id, t(lang, "choose_lang"), _lang_buttons("set"), lang=lang)])
@@ -520,7 +498,7 @@ class BetaBotHandler:
 
     async def _store_text(self, conn, user, chat_id, lang, now, text: str, *, kind: str,
                           confirm: Optional[str] = None, action: Optional[str] = None) -> list:
-        """/feedback, an idea (H1) or an interview request (H4): the same limits, store and owner copy."""
+        """/feedback, an idea (H1) or a plain message (J4): the same limits, store and owner copy."""
         limits = self.cfg.section("feedback")
         if kind == "idea":
             await conn.set_awaiting(int(user["telegram_user_id"]), None, None)
@@ -534,8 +512,7 @@ class BetaBotHandler:
             return [_msg(chat_id, t(lang, "feedback_daily_limit", n=limits["max_per_utc_day"]), lang=lang)]
         await conn.insert_feedback_message(user_pk=int(user["user_pk"]), text=text, lang=lang,
                                            created_at=now, kind=kind)
-        await self._note(conn, user, action or {"feedback": "cmd_feedback", "idea": "idea_sent",
-                                                "interview": "interview_booked"}[kind], now)
+        await self._note(conn, user, action or {"feedback": "cmd_feedback", "idea": "idea_sent"}[kind], now)
         confirm = _msg(chat_id, confirm or t(lang, {"idea": "idea_thanks"}.get(kind, "feedback_thanks")), lang=lang)
         forward = self._owner_forward(user, lang, now, text, kind=kind,
                                       forward_kind="plain_text" if action == "plain_text" else kind)
@@ -554,7 +531,7 @@ class BetaBotHandler:
         fp = fingerprint(int(user["telegram_user_id"]))
         with render_tz(None):
             when = fmt_kyiv_date_hm(now, "en")
-        head = {"feedback": "Feedback", "idea": "Idea", "interview": "Interview request"}[kind]
+        head = {"feedback": "Feedback", "idea": "Idea"}[kind]
         body = (f"{head} · {fp} · {lang} · {when}\n"
                 f"{html.escape(text, quote=False)}\n"
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
@@ -972,24 +949,6 @@ class BetaBotHandler:
                                      [answer(""), _msg(chat_id, t(lang, "guide"), lang=lang)])
         if data == IDEA_BUTTON:                             # «💡 Идея / чего не хватает» (H1)
             return [answer("")] + await self._idea_prompt(conn, user, chat_id, lang, self.clock())
-        if data == INTERVIEW_BUTTON:                        # «📞 15 минут с командой» (H4)
-            now = self.clock()
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_interview",
-                                     [answer(""), _msg(chat_id, t(lang, "interview_q"), _interview_buttons(now, lang),
-                                                       lang=lang)])
-        if data[:2] == "i:" and (data == "i:other" or data[2:].isdigit()):     # the chosen slot (H4)
-            now = self.clock()
-            if data == "i:other":
-                text, reply = "slot: another time", t(lang, "interview_other_ok")
-            else:
-                slot = datetime.fromtimestamp(int(data[2:]) * 60, tz=timezone.utc)
-                from beta.decision_format import _when
-                from beta.i18n import fmt_clock
-                shown = f"{_when(slot, lang, with_day=True)} {t(lang, 'zone')}"
-                text, reply = f"slot: {slot.isoformat()} ({fmt_clock(slot, 'en')} participant time)", \
-                    t(lang, "interview_ok", slot=shown)
-            return [answer("")] + await self._store_text(conn, user, chat_id, lang, now, text, kind="interview",
-                                                         confirm=reply)
         if data == OTHER_ASSETS:                            # U5 fake door: one activity row per tap
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_other_assets",
                                      [answer(""), _msg(chat_id, t(lang, "other_assets_reply"), lang=lang)])
