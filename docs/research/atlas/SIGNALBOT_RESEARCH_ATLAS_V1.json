@@ -15596,7 +15596,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "b209d5ca3967fac21f8c3248ab2d8a758aa0fde45ff65c476d25aec2fe03d3e8",
+ "SOURCES_DIGEST": "1b35d827bf0b48bd8c505a59e57c4de28f3a3caa1b050a0a004a0cfd11b85101",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -22416,7 +22416,7 @@
    "function": "12 complete 5m bars; wick first touch; 23h life; direct week-block contrasts of the foundation estimand; map is foundation resolution, extension-first direction, outside occupancy, outward excursion/W. Cell effects and clock contrasts use single-step standardized max-stat intervals; the three non-foundation rows use Holm. One historical read on 2026-10-08.",
    "id": "OPENING-RANGE-OBJECT-V1",
    "mechanism": "MODE=DISCOVERY. Object name FROZEN_HOUR_RANGE. Primary cell UTC_00. OPENING is a hypothesis label, not a finding. UTC_08 and UTC_16 are funding-cadence diagnostics; UTC_12 is off-cadence. Same frozen hour constructor and weekday log-offset rotation. Not a session extreme and not a participation clock.",
-   "note": "EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 was read once on spot 2017-2019; route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE.",
+   "note": "EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 was read once on spot 2017-2019; route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE. Same-surface equal-width diagnosis is POST_OUTCOME_MECHANISM_DIAGNOSIS with EVIDENCE_UPGRADE none; this verdict is unchanged.",
    "period": "2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout",
    "practical_bar": "Foundation and rate rows 3 pp. Direct contrast |δ00−δhour| 3 pp. Outward excursion 0.25 W. Information floor 614 paired days and 100 ISO weeks, not lowered. Touch-time material rule: share |Δ|≥240 min at least 0.25, or median |Δ| at least 120 min.",
    "program": "OPENING_RANGE_V1",
@@ -22434,7 +22434,9 @@
     "scripts/research/opening_range_object_v1/multiplicity.py",
     "scripts/research/opening_range_object_v1/evaluate.py",
     "docs/RESEARCH_LEDGER.md",
-    "docs/CURRENT_RESEARCH_STATE.md"
+    "docs/CURRENT_RESEARCH_STATE.md",
+    "docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md",
+    "docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.json"
    ],
    "reopen": "Not a rerun of this map. A successor needs its own design and owner go. Not 2025/2026. Not adoption of UTC_08, UTC_12, or UTC_16. Not a product change. Not a new hour, duration, barrier fraction, or horizon inside this unit.",
    "row": "PRICE_STRUCTURE.levels",

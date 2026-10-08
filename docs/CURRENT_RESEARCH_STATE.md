@@ -34,6 +34,20 @@ Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
 
 Result: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.md`. Census: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_FEASIBILITY.md`. Design: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_DESIGN.md`.
 
+## FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1 — mechanism diagnosis — 2026-10-08
+
+`MODE = POST_OUTCOME_MECHANISM_DIAGNOSIS | EVIDENCE_UPGRADE = NONE | CONFIRMATION = false | ORIGINAL_RESULT_UNCHANGED = true | PRODUCT_CHANGE = none`
+`ROUTES UNCHANGED = FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE and NO_WIDTH_HELD_RESOLUTION_DIFFERENCE`
+`SURFACE = already consumed CORE_BTC_BINANCE_V0 [2020-01-01, 2025-01-01) | not a pristine confirmation`
+`UTC_00 COMMON SUPPORT = N 1718 / 262 weeks | published +9.48 pp reproduced | common-support original +9.55 pp | equal-width −0.58 pp | attenuation +10.13 pp`
+`LATE YEARS = 2023 +33.53 pp to +0.30 pp | 2024 +17.98 pp to −0.56 pp | those gaps do not survive equal width`
+`WIDTH = original pseudo median ratio about 1.02 with a heavy tail | 2021 median 0.39 too narrow | 2023 median 2.07 and 2024 median 1.66 too wide | equal-width ratio error about 1e-13`
+`ILLUSTRATION = WIDTH_REGIME_COUPLING_STRONGLY_SUPPORTED_AS_EXPLANATION | year signs differ inside about −1.69 to +0.30 pp | not a 2023 finding | not "width fully causes"`
+`UTC_12 = context only | +4.95 pp to −0.94 pp | not adopted`
+`NEXT = none started | one later design could ask whether frozen-hour width is a PIT-safe state of later activity | not a new boundary test`
+
+Diagnosis: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md`.
+
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 
 `UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`

@@ -4222,7 +4222,9 @@ units:
     - scripts/research/opening_range_object_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 was read once on spot 2017-2019; route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE.'
+    - docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md
+    - docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.json
+    note: 'EXECUTED ONCE. Route FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE. Evaluator fb434d3c before the read. Result 2026-10-08T20:41:03Z. opening_wording_allowed false. Not confirmed. Claim ceiling L2. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Later caveat: +9.48 pp is not evidence of a special boundary. Successor FROZEN_HOUR_EQUAL_WIDTH_V1 was read once on spot 2017-2019; route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE. Same-surface equal-width diagnosis is POST_OUTCOME_MECHANISM_DIAGNOSIS with EVIDENCE_UPGRADE none; this verdict is unchanged.'
   - id: FROZEN-HOUR-EQUAL-WIDTH-V1
     title: FROZEN_HOUR_EQUAL_WIDTH_V1
     program: OPENING_RANGE_V1
