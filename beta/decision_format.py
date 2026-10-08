@@ -19,6 +19,11 @@ _LANG_IX = {"ru": 0, "en": 1}
 # block B): below it a share becomes «мало данных (N)». It equals the statistics' own minimum
 # (`analogues.MIN_N`, `levels.MIN_EVENTS`); a test keeps them equal.
 MIN_N_SHOWN = 30
+# The bootstrap behind every L2 interval needs this many distinct days (analogues) or periods (level
+# history); with fewer, a large N gets no interval and the line says so, never «мало данных» beside it.
+# They equal `analogues.MIN_DAYS` and `levels.MIN_PERIODS`; a test keeps them equal.
+MIN_DAYS_SHOWN = 15
+MIN_PERIODS_SHOWN = 15
 
 
 def _ix(lang: str) -> int:
@@ -71,9 +76,10 @@ def pp_ci(ci: Optional[Sequence[float]], lang: str) -> str:
 
 
 def share_pair(a: float, b: float, lang: str) -> tuple:
-    """Two shares printed side by side: whole percents, or one decimal for both when the whole percents
-    coincide (never «52% против 52%» beside a difference of +1,0 п.п.)."""
-    if round(a * 100) != round(b * 100):
+    """Two shares printed side by side: whole percents while their difference is the rounded difference of
+    the shares, else one decimal for both (never «52% против 52%» beside +1,0 п.п., «52% против 53%» beside
+    −0,0 п.п. or «52% против 54%» beside −1,0 п.п.)."""
+    if round(a * 100) - round(b * 100) == round((a - b) * 100):
         return fmt_share(a, lang), fmt_share(b, lang)
     return tuple(fmt_plain_pct(x * 100.0, lang, nd=1) for x in (a, b))
 
@@ -291,7 +297,8 @@ def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Opt
     cell = (card.get("outcomes") or {}).get(h) or {}
     n = int(cell.get("n") or 0)
     if not analog_shown(cell):
-        return t(lang, "dc_analog_short", n=_n(n, lang))
+        return _short_line(("dc_analog_short", "dc_analog_fewdays", "dc_analog_noci"), n, cell.get("days"),
+                           MIN_DAYS_SHOWN, lang)
     base = cell["baseline"]
     ratio, rci = analog_range(cell, lang)
     p_up, base_up = share_pair(cell["p_up"], base["p_up"], lang)
@@ -470,8 +477,21 @@ def typical_move(view: Mapping[str, Any], h: str) -> Optional[float]:
 
 
 # ---- /levels -----------------------------------------------------------------------------
-_HIST_KEYS = {"levels": ("lv_hist", "lv_hist_short", "lv_hist_move"),
-              "alert": ("pa_level_hist", "pa_level_hist_short", "pa_level_move")}
+_HIST_KEYS = {"levels": ("lv_hist", ("lv_hist_short", "lv_hist_fewperiods", "lv_hist_noci"), "lv_hist_move"),
+              "alert": ("pa_level_hist", ("pa_level_hist_short", "pa_level_hist_fewperiods", "pa_level_hist_noci"),
+                        "pa_level_move")}
+
+
+def _short_line(keys: Sequence[str], n: int, units: Optional[int], min_units: int, lang: str) -> str:
+    """Why an L2 line has no numbers: too few cases; enough cases on too few distinct days or periods for
+    the interval («мало разных дней (412 случаев за 9 дн.)»); or an interval not computed yet (statistics
+    built before it existed)."""
+    short, few, noci = keys
+    if n < MIN_N_SHOWN:
+        return t(lang, short, n=_n(n, lang))
+    if units is not None and int(units) < min_units:
+        return t(lang, few, n=_n(n, lang), d=int(units))
+    return t(lang, noci, n=_n(n, lang))
 
 
 def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int, style: str = "levels") -> list:
@@ -485,7 +505,7 @@ def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int, style: 
         return []
     line, short, move_key = _HIST_KEYS[style]
     if not level_hist_shown(hist, "1h"):
-        return [t(lang, short, n=_n(real["n"], lang))]
+        return [_short_line(short, int(real["n"]), real.get("periods"), MIN_PERIODS_SHOWN, lang)]
     hold, ctrl_share = share_pair(r1["hold_rate"], c1["hold_rate"], lang)
     lines = [t(lang, line, n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
                hold=hold, ctrl=ctrl_share, diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),

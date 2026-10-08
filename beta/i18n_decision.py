@@ -72,6 +72,10 @@ DECISION_CATALOG: dict = {
     "dc_pp_ci": _pair("; 95% интервал {lo}…{hi}", "; 95% interval {lo}…{hi}"),
     "dc_ratio_ci": _pair(" (95% интервал ×{lo}…×{hi})", " (95% interval ×{lo}…×{hi})"),
     "dc_analog_short": _pair("↳ после похожих: мало данных ({n})", "↳ after similar: too little data ({n})"),
+    "dc_analog_fewdays": _pair("↳ после похожих: мало разных дней ({n} за {d} дн.)",
+                               "↳ after similar: too few distinct days ({n} over {d} days)"),
+    "dc_analog_noci": _pair("↳ после похожих: интервал ещё не посчитан ({n})",
+                            "↳ after similar: no interval computed yet ({n})"),
     "dc_unavailable": _pair("Коридор и уровни сейчас не показываем: {reason}.",
                             "Corridor and levels are not shown now: {reason}."),
     "dc_reason_stale": _pair("данные Binance отстают", "Binance data is late"),
@@ -116,6 +120,10 @@ DECISION_CATALOG: dict = {
     "lv_side_above": _pair("выше", "above"),
     "lv_side_below": _pair("ниже", "below"),
     "lv_hist_short": _pair("↳ после первого касания: мало данных ({n})", "↳ after the first touch: too little data ({n})"),
+    "lv_hist_fewperiods": _pair("↳ после первого касания: мало разных периодов ({n}, периодов: {d})",
+                                "↳ after the first touch: too few distinct periods ({n}, {d} periods)"),
+    "lv_hist_noci": _pair("↳ после первого касания: интервал ещё не посчитан ({n})",
+                          "↳ after the first touch: no interval computed yet ({n})"),
     "lv_hist_move": _pair("↳ за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                           "↳ 1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "lv_footer": _pair("День, неделя и месяц — по UTC, как дневная свеча на бирже. История — Binance с 2020 года; "
@@ -296,6 +304,10 @@ DECISION_CATALOG: dict = {
                            "After the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
                            "({diff} pp{ci})"),
     "pa_level_hist_short": _pair("После первого касания: мало данных ({n})", "After the first touch: too little data ({n})"),
+    "pa_level_hist_fewperiods": _pair("После первого касания: мало разных периодов ({n}, периодов: {d})",
+                                      "After the first touch: too few distinct periods ({n}, {d} periods)"),
+    "pa_level_hist_noci": _pair("После первого касания: интервал ещё не посчитан ({n})",
+                                "After the first touch: no interval computed yet ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
@@ -542,7 +554,8 @@ DECISION_TERMS = {
         "открытия дня, недели и месяца, сессии Азии, Европы и США, VWAP дня, объёмный центр вчера, круглые уровни, "
         "места крупных ликвидаций за 24ч. День, неделя и месяц — по UTC.\n"
         "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
-        "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.).\n"
+        "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.); её 95% интервал "
+        "считается по периодам уровня (дням, неделям или месяцам), а не по дням.\n"
         "После похожих — что было после таких же состояний 1ч / 4ч в истории Binance. Обычно — все часы с той же "
         "волатильностью. Разница — в п.п.; ход — во сколько раз больше или меньше обычного (обычный ход — ×1). "
         "95% интервал — неопределённость этой исторической оценки: насколько она менялась бы на другой выборке "
@@ -563,7 +576,8 @@ DECISION_TERMS = {
         "day, week and month opens, Asia, Europe and US sessions, the day VWAP, yesterday's volume POC, round numbers, "
         "places of large liquidations in 24h. Day, week and month are UTC.\n"
         "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "
-        "bot shows how the random one behaved and the difference in percentage points (pp).\n"
+        "bot shows how the random one behaved and the difference in percentage points (pp); its 95% interval is "
+        "computed over the level's periods (days, weeks or months), not over days.\n"
         "After similar — what followed the same 1h / 4h states in Binance history. Usual — all hours with the same "
         "volatility. The difference is in pp; the move is how many times larger or smaller than usual (the usual "
         "move is ×1). The 95% interval is the uncertainty of this historical estimate: how much it would vary on "
