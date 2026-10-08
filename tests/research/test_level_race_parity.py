@@ -2,7 +2,7 @@
 #352 constructor (scripts/research/level_touch_degradation_v1, `level_instances` → `build_episodes`
 → touch 1 of `scan_episode`).
 
-A parity module, like test_beta_d7_parity: it may import scripts.research. Bars, levels and
+A research-side parity test (tests/beta must not import scripts.research; test_beta_d7). Bars, levels and
 touches only; no outcome is computed. The opt-in real-data test runs only when the #352 5m panel
 is already in the DH1 cache and never fetches.
 """
