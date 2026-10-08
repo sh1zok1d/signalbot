@@ -1433,6 +1433,27 @@ class BetaConn:
                ON CONFLICT (user_pk, topic, subject) DO UPDATE SET reason=EXCLUDED.reason, at=EXCLUDED.at""",
             user_pk, topic, subject, reason, at)
 
+    async def insert_owner_forward(self, *, owner_message_id: int, user_pk: int, kind: str,
+                                   created_at: datetime) -> None:
+        """The owner copy of a participant's message, by the message_id Telegram returned for it."""
+        await self.conn.execute(
+            """INSERT INTO beta_owner_forwards (owner_message_id, user_pk, kind, created_at)
+               VALUES ($1,$2,$3,$4) ON CONFLICT (owner_message_id) DO NOTHING""",
+            int(owner_message_id), int(user_pk), kind, created_at)
+
+    async def owner_forward_target(self, owner_message_id: int) -> Optional[dict]:
+        """The participant whose message the owner copy `owner_message_id` was; None when it is no such copy,
+        the copy was purged, or the participant was deleted (the row cascades)."""
+        r = await self.conn.fetchrow(
+            """SELECT f.kind, u.user_pk, u.telegram_user_id, u.chat_id, u.lang, u.status
+               FROM beta_owner_forwards f JOIN beta_users u ON u.user_pk = f.user_pk
+               WHERE f.owner_message_id = $1""", int(owner_message_id))
+        return None if r is None else dict(r)
+
+    async def purge_owner_forwards_before(self, cutoff: datetime) -> int:
+        status = await self.conn.execute("DELETE FROM beta_owner_forwards WHERE created_at < $1", cutoff)
+        return int(status.split()[-1])
+
     async def purge_feedback_messages_before(self, cutoff: datetime) -> int:
         status = await self.conn.execute(
             "DELETE FROM beta_feedback_messages WHERE created_at < $1", cutoff)

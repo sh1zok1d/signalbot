@@ -44,6 +44,8 @@ class Outgoing:
     callback_id: Optional[str] = None
     message_id: Optional[int] = None
     mass: Optional[tuple] = None                # (audit action, label): one owner mass send, counted
+    sticker: Optional[str] = None               # kind 'sticker': the Telegram file_id the owner sent
+    forward_of: Optional[tuple] = None          # an owner copy: (user_pk, kind), mapped by its message_id once sent
 
 
 # Owner mass sends (/admin_broadcast, /admin_outage; A3 review): one paced path, and the owner is told
@@ -84,6 +86,24 @@ class BetaTelegramSender(TelegramSender):
         except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
             # Explicit API rejections (NB: BadRequest subclasses NetworkError in PTB,
             # so it must be matched first) — the message was NOT delivered.
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+        except (TimedOut, NetworkError) as exc:
+            raise DeliveryAmbiguous(type(exc).__name__) from exc
+        except TelegramError as exc:
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+        return msg.message_id
+
+    async def send_sticker(self, *, chat_id: int, sticker: str) -> int:
+        """sendSticker by file_id (regular, animated and video stickers alike), with send()'s error mapping."""
+        from telegram.error import (BadRequest, ChatMigrated, Forbidden, InvalidToken, NetworkError,
+                                    RetryAfter, TelegramError, TimedOut)
+        try:
+            msg = await self._ensure_bot().send_sticker(chat_id=chat_id, sticker=sticker)
+        except RetryAfter as exc:
+            raise DeliveryThrottled(retry_after_seconds(exc)) from exc
+        except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
             raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
                                                            chat_id=str(chat_id))) from exc
         except (TimedOut, NetworkError) as exc:
@@ -275,8 +295,12 @@ class BetaBotHandler:
         if (m.get("chat") or {}).get("type") != "private" or not m.get("from"):
             return []
         uid, chat_id = int(m["from"]["id"]), int(m["chat"]["id"])
-        cmd, args = parse_command(m.get("text"))
         now = self.clock()
+        if m.get("sticker") is not None:
+            # the owner's sticker reply to a participant's message (owner decision 2026-10-08); a sticker
+            # from anyone else has no effect and no reply
+            return await self._owner_sticker(conn, m, chat_id, uid, now) if is_owner(self.owner, uid) else []
+        cmd, args = parse_command(m.get("text"))
         if cmd in ("hypotheses", "pin"):
             # owner-only signature index (PRE_BETA_SCOPE_DECISION_V1 §7): anyone else gets the unknown-command reply
             if not is_owner(self.owner, uid):
@@ -513,13 +537,15 @@ class BetaBotHandler:
         await self._note(conn, user, action or {"feedback": "cmd_feedback", "idea": "idea_sent",
                                                 "interview": "interview_booked"}[kind], now)
         confirm = _msg(chat_id, confirm or t(lang, {"idea": "idea_thanks"}.get(kind, "feedback_thanks")), lang=lang)
-        forward = self._owner_forward(user, lang, now, text, kind=kind)
+        forward = self._owner_forward(user, lang, now, text, kind=kind,
+                                      forward_kind="plain_text" if action == "plain_text" else kind)
         if forward is None:
             logger.warning("beta feedback forward skipped: owner unavailable")
             return [confirm]
         return [confirm, forward]
 
-    def _owner_forward(self, user, lang: str, now: datetime, text: str, *, kind: str = "feedback"):
+    def _owner_forward(self, user, lang: str, now: datetime, text: str, *, kind: str = "feedback",
+                       forward_kind: Optional[str] = None):
         """Owner copy of user text. Not passed through assert_descriptive. The owner's clock is Kyiv."""
         if self.owner is None:
             return None
@@ -532,7 +558,40 @@ class BetaBotHandler:
         body = (f"{head} · {fp} · {lang} · {when}\n"
                 f"{html.escape(text, quote=False)}\n"
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
-        return Outgoing(kind="message", chat_id=int(self.owner), html=body)
+        return Outgoing(kind="message", chat_id=int(self.owner), html=body,
+                        forward_of=(int(user["user_pk"]), forward_kind or kind))
+
+    async def _owner_sticker(self, conn, m: Mapping[str, Any], chat_id: int, uid: int, now: datetime) -> list:
+        """The owner replied with a sticker to the bot's copy of a participant's message: the bot sends that
+        sticker to the participant, through the same sender and the mass-send count, so the owner is told
+        whether it was delivered. A paused participant gets it too (a factual reply to their own message).
+        Every refusal names its reason to the owner. Audited as admin_sticker; the file_id is not kept."""
+        sticker = m.get("sticker") or {}
+        kind = "video" if sticker.get("is_video") else "animated" if sticker.get("is_animated") else "regular"
+        reply_id = (m.get("reply_to_message") or {}).get("message_id")
+        file_id = sticker.get("file_id")
+        target = None
+        if reply_id is None:
+            result, text = "NO_REPLY", "Sticker not sent: reply with it to the bot's copy of a participant's message."
+        elif not file_id:
+            result, text = "NO_FILE_ID", "Sticker not sent: Telegram gave no file_id for it."
+        else:
+            target = await conn.owner_forward_target(int(reply_id))
+            if target is None:
+                result, text = "NOT_MAPPED", ("Sticker not sent: that message is not a copy of a participant's "
+                                              "message, or the participant was deleted, or the copy is past retention.")
+            else:
+                result, text = "OK", None
+        fp = None if target is None else fingerprint(int(target["telegram_user_id"]))
+        await conn.insert_audit(action="admin_sticker", authorized=True, actor_fingerprint=fingerprint(uid),
+                                target_fingerprint=fp, result=result,
+                                detail={"sticker_kind": kind, **({"forward_kind": target["kind"],
+                                                                  "status": target["status"]} if target else {})})
+        if target is None:
+            return [Outgoing(kind="message", chat_id=chat_id, html=html.escape(text, quote=False))]
+        mass = ("admin_sticker", f"Sticker to {fp}")
+        return [Outgoing(kind="mass_open", mass=mass),
+                Outgoing(kind="sticker", chat_id=int(target["chat_id"]), sticker=str(file_id), mass=mass)]
 
     async def _note(self, conn, user, action: str, at: datetime, detail: Optional[str] = None) -> None:
         if not user or user.get("user_pk") is None:
@@ -1045,11 +1104,13 @@ def _parse_tab(data: str):
 
 
 async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing], *,
-                           sleep=asyncio.sleep) -> dict:
+                           sleep=asyncio.sleep, store=None) -> dict:
     """Send the replies in order. Messages of an owner mass send are paced (MASS_INTERVAL_S), flood
     control is waited out once, and each is counted: {(action, label): {"recipients", "delivered",
     "failed", "unknown"}}; `unknown` is an ambiguous outcome (Telegram may have delivered it). A
-    `mass_open` marker opens the count, so an empty audience is reported as 0 of 0."""
+    `mass_open` marker opens the count, so an empty audience is reported as 0 of 0. An owner copy of a
+    participant's message (`forward_of`) is mapped by the message_id Telegram returned, in `store`
+    (beta_owner_forwards): the owner's sticker reply to it finds its participant."""
     counts: dict = {}
     prev_mass = False
     for o in out:
@@ -1061,13 +1122,26 @@ async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing], 
             if prev_mass:
                 await sleep(MASS_INTERVAL_S)
         prev_mass = o.mass is not None
-        outcome = await _deliver_one(sender, o, sleep=sleep)
+        sent_ids: list = []
+        outcome = await _deliver_one(sender, o, sleep=sleep, sent_ids=sent_ids)
+        if o.forward_of is not None and store is not None and sent_ids and sent_ids[0] is not None:
+            await _record_forward(store, int(sent_ids[0]), o.forward_of)
         if o.mass is not None:
             counts[o.mass][outcome] += 1
     return counts
 
 
-async def _deliver_one(sender, o: Outgoing, *, sleep) -> str:
+async def _record_forward(store, owner_message_id: int, forward_of: tuple) -> None:
+    user_pk, kind = forward_of
+    try:
+        async with store.connect() as conn:
+            await conn.insert_owner_forward(owner_message_id=owner_message_id, user_pk=int(user_pk), kind=kind,
+                                            created_at=datetime.now(timezone.utc))
+    except Exception as exc:  # noqa: BLE001 - the copy reached the owner; only a sticker reply to it is refused
+        logger.warning("owner forward mapping failed: %s", type(exc).__name__)
+
+
+async def _deliver_one(sender, o: Outgoing, *, sleep, sent_ids: Optional[list] = None) -> str:
     """"delivered", "failed" (refused or still throttled: not delivered) or "unknown" (ambiguous)."""
     for attempt in (1, 2):
         try:
@@ -1075,8 +1149,12 @@ async def _deliver_one(sender, o: Outgoing, *, sleep) -> str:
                 await sender.answer(o.callback_id, o.html)
             elif o.kind == "edit":
                 await sender.edit(chat_id=o.chat_id, message_id=o.message_id, html=o.html, buttons=o.buttons)
+            elif o.kind == "sticker":
+                await sender.send_sticker(chat_id=o.chat_id, sticker=o.sticker)
             else:
-                await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
+                mid = await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
+                if sent_ids is not None:
+                    sent_ids.append(mid)
             return "delivered"
         except DeliveryThrottled as exc:
             if attempt == 2 or o.mass is None:
@@ -1147,7 +1225,7 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
                     logger.warning("beta bot update failed: %s", type(exc).__name__)
                     await handler.skip(u)
                     continue
-                counts = await deliver_outgoing(sender, out)
+                counts = await deliver_outgoing(sender, out, store=store)
                 await report_mass_send(store, sender, owner_user_id, counts, now=datetime.now(timezone.utc))
             async with store.connect() as conn:
                 await conn.record_health("bot", now=datetime.now(timezone.utc), success=ok,
