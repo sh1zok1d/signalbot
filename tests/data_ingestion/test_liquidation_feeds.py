@@ -106,8 +106,9 @@ def test_an_okx_subscribe_error_reaches_the_log(caplog):
     c = OKXClient("BTCUSDT", cb)
     c._ct_val = 0.01
     with caplog.at_level(logging.INFO, logger="data_ingestion.okx_client"):
-        _run(c._handle_liquidation_message({"event": "error", "code": "60018",
-                                            "msg": "channel:liquidation-orders doesn't exist"}))
+        with pytest.raises(okx_client.SubscribeRefused):      # the socket is closed, then retried with backoff
+            _run(c._handle_liquidation_message({"event": "error", "code": "60018",
+                                                "msg": "channel:liquidation-orders doesn't exist"}))
         _run(c._handle_liquidation_message({"event": "subscribe",
                                             "arg": {"channel": "liquidation-orders", "instType": "SWAP"}}))
     errors = [r for r in caplog.records if r.levelno == logging.ERROR]
@@ -138,3 +139,79 @@ def test_without_a_usable_ctval_the_okx_feed_never_subscribes(monkeypatch):
     monkeypatch.setattr(okx_client.asyncio, "sleep", sleep)
     _run(c.run_liquidations_forever())
     assert connects == [] and c._ct_val is None and got == []
+
+
+class _FakeWS:
+    """Plays `frames` (a list of str, or "SILENCE" for a recv timeout), records what is sent."""
+
+    def __init__(self, frames):
+        self.frames, self.sent = list(frames), []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def send(self, msg):
+        self.sent.append(msg)
+
+    async def recv(self):
+        if not self.frames:
+            raise ConnectionError("closed")
+        f = self.frames.pop(0)
+        if f == "SILENCE":
+            raise asyncio.TimeoutError
+        return f
+
+
+def _loop_with(monkeypatch, sockets, c):
+    """run_liquidations_forever over `sockets` (one per connect); returns the backoff sleeps."""
+    sleeps = []
+
+    def connect(*_a, **_k):
+        return sockets.pop(0)
+
+    async def sleep(s):
+        sleeps.append(s)
+        if not sockets:
+            c.stop()
+
+    async def wait_for(aw, timeout):
+        return await aw
+    monkeypatch.setattr(okx_client.websockets, "connect", connect)
+    monkeypatch.setattr(okx_client.asyncio, "sleep", sleep)
+    monkeypatch.setattr(okx_client.asyncio, "wait_for", wait_for)
+    return sleeps
+
+
+def test_a_refused_okx_subscription_backs_off_instead_of_retrying_at_once(monkeypatch):
+    """Review of #374: the backoff was reset right after connect, before OKX answered, so a refused
+    subscription reconnected every ~31 s forever. It now grows until OKX acknowledges."""
+    got, cb = _collect()
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    refused = '{"event": "error", "code": "60018", "msg": "doesn\'t exist"}'
+    sleeps = _loop_with(monkeypatch, [_FakeWS([refused]) for _ in range(4)], c)
+    _run(c.run_liquidations_forever())
+    assert sleeps == [1.0, 2.0, 4.0, 8.0]
+    # an acknowledged subscription resets it
+    c2 = OKXClient("BTCUSDT", cb)
+    c2._ct_val = 0.01
+    ack = '{"event": "subscribe", "arg": {"channel": "liquidation-orders", "instType": "SWAP"}}'
+    sleeps = _loop_with(monkeypatch, [_FakeWS([refused]), _FakeWS([refused]), _FakeWS([ack])], c2)
+    _run(c2.run_liquidations_forever())
+    assert sleeps == [1.0, 2.0, 1.0]
+
+
+def test_a_silent_okx_socket_gets_a_text_ping_and_pong_is_swallowed(monkeypatch):
+    """Review of #374: OKX closes a socket silent for 30 s unless it receives a text "ping"."""
+    got, cb = _collect()
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    push = ('{"arg": {"channel": "liquidation-orders"}, "data": [{"instId": "BTC-USDT-SWAP", "details": '
+            '[{"posSide": "short", "side": "buy", "bkPx": "60000", "sz": "2", "ts": "1759900000000"}]}]}')
+    ws = _FakeWS(["SILENCE", "pong", push])
+    _loop_with(monkeypatch, [ws], c)
+    _run(c.run_liquidations_forever())
+    assert ws.sent[1:] == ["ping"] and [x.side for x in got] == ["short"]

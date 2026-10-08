@@ -951,8 +951,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "liq_long_name": {"ru": "лонгов", "en": "Long"},
     "liq_short_name": {"ru": "шортов", "en": "Short"},
     "liq_footnote": {
-        "ru": "≥ — нижняя граница: Binance передаёт не все ликвидации.",
-        "en": "≥ — lower bound: Binance does not report every liquidation.",
+        "ru": "≥ — нижняя граница: Binance и OKX передают не все ликвидации.",
+        "en": "≥ — lower bound: Binance and OKX do not report every liquidation.",
     },
     "liq_zero_footnote": {
         "ru": "* — $0 по неполным данным: это не значит, что ликвидаций не было.",

@@ -128,6 +128,14 @@ def test_push_factual_fallback_and_missing_delta_and_flush_lines():
     assert "Похоже на вынос шортов\n" in text and "Ликвидации шортов — топ-5% на 2 из 3 бирж" in text
     assert "Объём — в топ-5% часовых окон за 30 дней" in text
     assert len(_lines(text)) <= 8 and "EV-" not in text
+    # review of #378: n is the venues eligible for the side, never a fixed 3 (OKX out until it matures)
+    snap2 = {"rule_evaluations": {"LIQUIDATION_STRESS_SHORT": {"detail": {"voting": ["binance", "bybit"],
+                                                                          "eligible": ["binance", "bybit"]}}}}
+    flush2 = hg.evaluate_hour(CFG, _ctx(price=0.96, oi=0.1, taker=0.9, rng=0.5, vol=0.96, move=2.6, oi_pct=-2.9,
+                                        delta=95e6, open_=60900.0, close=62480.0),
+                              liquidation_episodes=[ep], snapshot=snap2)
+    text2 = format_push(_episode(), lang="ru", gate=flush2)
+    assert "Ликвидации шортов — топ-5% на 2 из 2 бирж" in text2 and "на 2 из 3" not in text2
 
 
 # ---- /catchup and the briefing (contract §1.1, §3.1, §3.2, §3.7-3.10) -----------------------------
