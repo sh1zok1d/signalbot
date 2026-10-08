@@ -113,6 +113,36 @@ def test_loader_and_solver_match_the_support_commit():
         assert hashlib.sha256(committed).hexdigest() == hashlib.sha256(current).hexdigest()
 
 
+def test_official_outcome_is_the_null_route_and_refuses_rerun(monkeypatch):
+    manifest = json.loads(
+        (ROOT / "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_EVALUATOR_MANIFEST.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    result = json.loads(
+        (ROOT / "docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.json").read_text(encoding="utf-8")
+    )
+    assert manifest["pre_outcome_evaluator_commit"] == "c51e7da046c785861877de9b5aa0ebea5a9a86a5"
+    assert manifest["code_digest"] == census.code_digest()
+    assert manifest["code_digest"] == "846c784c9bb09f6c236cc3ef31407301235cf03984e97fed9236e14477037303"
+    assert manifest["route"] == result["route"] == "NO_WIDTH_HELD_RESOLUTION_DIFFERENCE"
+    assert result["outcome_read"] is True
+    assert result["successor_started"] is False
+    utc_00 = result["cells"]["UTC_00"]
+    utc_12 = result["cells"]["UTC_12"]
+    assert (utc_00["n"], utc_00["iso_weeks"], utc_00["clears"]) == (817, 123, False)
+    assert (utc_12["n"], utc_12["iso_weeks"], utc_12["clears"]) == (833, 123, False)
+    assert utc_12["role"] == "diagnostic_not_adoptable"
+
+    def _boom():
+        raise AssertionError("official rerun opened the market")
+
+    monkeypatch.setattr("scripts.research.frozen_hour_equal_width_v1.data.load_panel", _boom)
+    with pytest.raises(SystemExit) as rerun:
+        evaluate.main()
+    assert str(rerun.value) == "REFUSING_RERUN"
+
+
 def test_pair_sink_matches_the_support_count():
     n = 14 * 288
     high = np.full(n, np.nan)

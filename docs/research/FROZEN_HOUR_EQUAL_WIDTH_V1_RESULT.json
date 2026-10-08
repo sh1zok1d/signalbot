@@ -1,0 +1,73 @@
+{
+  "barrier_path_read": true,
+  "boot_draws": 2000,
+  "cells": {
+    "UTC_00": {
+      "boot_seed": 20261031,
+      "cell": "UTC_00",
+      "clears": false,
+      "immediate_pseudo_rate": 0.24112607099143207,
+      "immediate_real_rate": 0.26560587515299877,
+      "interval_hi": 0.02237284271737255,
+      "interval_interpretable": true,
+      "interval_lo": -0.018029932228915663,
+      "iso_weeks": 123,
+      "n": 817,
+      "neither_immediate": {
+        "n": 488,
+        "paired_mean": 0.0,
+        "printed": true,
+        "role": "DESCRIPTIVE_NOT_A_CANDIDATE"
+      },
+      "paired_delta": 0.0024479804161566705,
+      "pseudo_resolution_rate": 0.9228886168910648,
+      "real_resolution_rate": 0.9253365973072215,
+      "role": "primary",
+      "valid_draws": 2000
+    },
+    "UTC_12": {
+      "boot_seed": 20261102,
+      "cell": "UTC_12",
+      "clears": false,
+      "immediate_pseudo_rate": 0.2737094837935174,
+      "immediate_real_rate": 0.2665066026410564,
+      "interval_hi": 0.021377672209026127,
+      "interval_interpretable": true,
+      "interval_lo": -0.006009796179302046,
+      "iso_weeks": 123,
+      "n": 833,
+      "neither_immediate": {
+        "n": 483,
+        "paired_mean": 0.008281573498964804,
+        "printed": true,
+        "role": "DESCRIPTIVE_NOT_A_CANDIDATE"
+      },
+      "paired_delta": 0.007202881152460984,
+      "pseudo_resolution_rate": 0.9483793517406963,
+      "real_resolution_rate": 0.9555822328931572,
+      "role": "diagnostic_not_adoptable",
+      "valid_draws": 2000
+    }
+  },
+  "claim_ceiling": "L2",
+  "code_digest": "846c784c9bb09f6c236cc3ef31407301235cf03984e97fed9236e14477037303",
+  "design_commit": "5c3f6e6bdc4df8ef3ce7266b318253c42dada4a3",
+  "design_sha256": "abb3283046277201278f2e952196e870e324009d86e39324d4fdca530b4cfef7",
+  "event_start": "2017-09-01",
+  "first_month": "2017-09",
+  "interpretation": "On this surface, after holding linear width equal, the frozen 3 pp and interval rule did not detect a resolution difference. That is compatible with the 2020\u20132024 perpetual contrast having depended on width and volatility-regime coupling. It does not prove that account, because this read also changes the era and the instrument. It does not say that width completely explains +9.48 pp. UTC_12 does not clear and is not adopted.",
+  "last_month": "2019-12",
+  "mode": "CONFIRMATION",
+  "outcome_read": true,
+  "practical_scale": 0.03,
+  "pre_outcome_evaluator_commit": "c51e7da046c785861877de9b5aa0ebea5a9a86a5",
+  "product_change": "none",
+  "read_at": "2026-10-08T22:02:27Z",
+  "route": "NO_WIDTH_HELD_RESOLUTION_DIFFERENCE",
+  "successor_started": false,
+  "support_census_head": "3b02de8380064aa2ce3fe384e86899e08d2b3778",
+  "surface": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+  "surface_end_exclusive": "2020-01-01",
+  "unit": "FROZEN_HOUR_EQUAL_WIDTH_V1",
+  "utc12_note": "UTC_12 does not clear and is not adopted."
+}

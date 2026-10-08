@@ -8699,3 +8699,21 @@ OUTCOME_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME; LATER_OUTCOME_RUN =
 OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
 PRODUCT_CHANGE = none
 ```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_V1 one historical outcome read
+
+**Unit.** `FROZEN_HOUR_EQUAL_WIDTH_V1`. One owner go. Route `NO_WIDTH_HELD_RESOLUTION_DIFFERENCE`. Not a confirmation of `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. +9.48 pp is not evidence of a special boundary, and this read does not say that width completely explains it.
+- **Identity.** Read `2026-10-08T22:02:27Z`. Evaluator commit `c51e7da046c785861877de9b5aa0ebea5a9a86a5`. Code digest `846c784c9bb09f6c236cc3ef31407301235cf03984e97fed9236e14477037303`. Design `5c3f6e6bdc4df8ef3ce7266b318253c42dada4a3`, SHA256 `abb3283046277201278f2e952196e870e324009d86e39324d4fdca530b4cfef7`. Support census HEAD `3b02de8380064aa2ce3fe384e86899e08d2b3778`. Seeds `20261031` and `20261102`, B = 2000.
+- **Surface.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, events `[2017-09-01, 2020-01-01)`, months 2017-09..2019-12. The support exposure stays. This entry is the outcome consumption of the same window. 241 off-grid opens stayed unplaced. No 2025/2026, E1, BitMEX, prospective, or product tape.
+- **UTC_00.** N 817, 123 ISO weeks. Real resolution 92.53%, pseudo 92.29%, paired delta +0.24 pp, 95% interval [−1.80, +2.24] pp. Does not clear.
+- **UTC_12.** N 833, 123 ISO weeks. Real 95.56%, pseudo 94.84%, paired delta +0.72 pp, interval [−0.60, +2.14] pp. Printed, not adopted.
+- **Descriptive only.** Neither-immediate paired mean: UTC_00 0.00 pp on N 488, UTC_12 +0.83 pp on N 483. Not in the route.
+- **Not started.** No new scale, hour, venue, prospective panel, forecast, or product line.
+- **Rerun.** A second official write returns `REFUSING_RERUN`.
+
+```
+WINDOWS_CONSUMED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, width-held 4h resolution, one read
+OUTCOME_READ = yes; ROUTE = NO_WIDTH_HELD_RESOLUTION_DIFFERENCE
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```
