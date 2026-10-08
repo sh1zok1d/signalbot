@@ -286,3 +286,16 @@ def test_prior_for_cases_uses_case_s_level():
     d0, d15 = np.array([-1, 1, 0, 0, 0.0]), np.array([-1, 0, 1, 0, 0.0])
     assert np.isclose(d0 @ cov @ d0, L.PRIOR_S_LEVEL_BY_CASE["A"] ** 2)
     assert np.isclose(d15 @ cov @ d15, L.PRIOR_S_LEVEL_BY_CASE["B"] ** 2)
+
+
+def test_fallback_prints_no_separate_usual_and_claims_no_level_offset():
+    for case in ("A", "B"):
+        s = L.Setup(mode="MODEL", case=case, holdout_passed=False, fallback_g2_holdout=True)
+        st = L.initial_state(s, now_ms=0)
+        assert st.state == "FALLBACK"
+        d = L.display_contract(st, s, calibrator_version="v")
+        assert d["probabilities"] == "FALLBACK" and d["usual"] is None and d["level_effect_claimed"] is False
+        assert d["template"] == "LR_FB_V1" and d["accuracy_line"] == "generic"
+    s = L.Setup(mode="MODEL", case="A", holdout_passed=True)
+    d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v")
+    assert d["usual"] == "G1_AT_EVENT_RAW"

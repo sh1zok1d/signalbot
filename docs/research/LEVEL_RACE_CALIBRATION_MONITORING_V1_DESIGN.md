@@ -82,9 +82,17 @@ Per head, logit p′ = a_class + b_(GENERIC or LEVEL)·logit p. θ = (a_GENERIC,
 
 **s_level by case** (`PRIOR_S_LEVEL_BY_CASE`, `prior_for_cases`): **0.5 in case A, 1.0 in case B.** The case is known before the prequential pass, because F1 §11b decides it on raw outputs.
 
-**Why by case** (dev-informed, disclosed). This revises the single s_level = 1.0 I sent earlier.
-- **Case B (G1@event raw on level rows).** The development level − generic gap is R +0.92 (T0 +1.07, T15 +0.74) and B +0.33. At s = 0.5 this is about two prior SD on head R, and the end-of-held-out level intercepts shrink to +0.86 / +0.56 against the true +1.07 / +0.74. At s = 1.0 they reach +1.01 / +0.67 (§10.7). Case B is never published (§7.3), but its level intercepts are estimated in shadow for a later version, so they should not be pulled toward generic.
-- **Case A (M1 raw on level rows).** The level intercept is a small correction to a model that already carries the level offset; M1's dev CITL is within ±2 pp. A tighter prior then helps the small classes: the champion's held-out G0–G3 pass rate is 96 % / 84 % (T0 / T15) at s = 0.5, against 90 % / 62 % at 1.0 and 85 % / 56 % at 1.5 (§10.7).
+**Why by case.**
+- **Case A:** the level rows feed M1 raw, and M1 already carries the level terms. The level intercept is only a residual correction on top of them; M1's dev CITL is within ±2 pp, so a tight prior is appropriate.
+- **Case B:** the level rows feed G1@event raw, which has no level term. The level intercept would have to absorb the whole level offset, about R +0.92 and B +0.33 on the dev numbers, so a tight prior would pull it toward generic. In case B these intercepts are shadow only: never published, estimated for a later version.
+
+**Fixing rule.** The case is fixed by the §11b raw-output rule before the prequential pass. This is the last prior change: after the freeze nothing in the prior moves (architect, 2026-10-08).
+
+**Search exposure (synthetic, disclosed).**
+- Values tried: s_level ∈ {0.5, 1.0, 1.5} (§10.7).
+- Champion's held-out G0–G3 pass rate, T0 / T15: 96 % / 84 % at 0.5, 90 % / 62 % at 1.0, 85 % / 56 % at 1.5.
+- End-of-held-out level intercepts with G1@event raw against the true +1.07 / +0.74: +0.86 / +0.56 at 0.5, +1.01 / +0.67 at 1.0.
+- An earlier proposal was a single value of 1.0; it was superseded by this by-case rule.
 
 ### 3.3 Slope: hierarchical, not fully shared
 
@@ -110,6 +118,8 @@ The generic stream has 4 hourly anchors per independent 4h window and 4 price pa
 ## 4. Live floor (`L3_LIVE`)
 
 At least **150** resolved live forecasts in the class, and G2 and G3 on the whole live record of the version (F1 §7). In the calm world, L3_LIVE is reached at about week 33 (T0) and 46 (T15) after the switch to MODEL.
+
+**L3_LIVE is not reached inside the beta.** The 30-day test sees about 30 (T0) and 20 (T15) resolved live forecasts per class, far below the floor of 150. During the beta a passing class shows `L3_HISTORY_BACKED` with «live: копится (N = …)».
 
 ## 5. Drift monitors
 
@@ -163,6 +173,24 @@ No monitor catches a 7 pp drift within a year at these event rates. An 11–15 p
 - the level classes only have to show that their offset has not moved.
 
 The weekly report puts the drift statistics in front of the mini-head long before a monitor fires.
+
+**Detection delay** (required before the freeze; flagged to the architect on 2026-10-08):
+- Median delay from onset to the first exit from L3, in weeks and in events since onset.
+- Counted among runs in L3 at onset; runs with no exit are censored at the 78-week horizon.
+- τ = 0.25, 200 replications.
+- Chosen values: D1 E > 30, D2/D3 over 150 at 99.7 %. Planning values: D1 E > 10, D2/D3 over 100 at 95 %, return E ≤ 10.
+
+| Drift (from live week 26) | chosen T0 | chosen T15 | planning T0 | planning T15 |
+|---|---|---|---|---|
+| head B +0.4 logit (≈ +10 pp) | > 78 w (47 % by 78 w; false exit before onset 3 %) | > 78 w (30 % by 78 w; false exit before onset 0 %) | 18 w / 125 ev (91 % by 78 w; false exit before onset 32 %) | 34 w / 180 ev (73 % by 78 w; false exit before onset 11 %) |
+| head B −0.4 logit (≈ −10 pp) | 66 w / 479 ev (58 % by 78 w; false exit before onset 7 %) | > 78 w (43 % by 78 w; false exit before onset 3 %) | 14 w / 107 ev (96 % by 78 w; false exit before onset 29 %) | 22 w / 106 ev (92 % by 78 w; false exit before onset 16 %) |
+| head B slope falls to 0.7 | > 78 w (9 % by 78 w; false exit before onset 1 %) | > 78 w (5 % by 78 w; false exit before onset 2 %) | 54 w / 404 ev (66 % by 78 w; false exit before onset 30 %) | 60 w / 295 ev (60 % by 78 w; false exit before onset 22 %) |
+
+**What this says.**
+- At the chosen values, a ±10 pp shift is detected within the 78 weeks in about half the runs at T0 and a third at T15; a slope falling to 0.7 almost never.
+- The planning values detect ±10 pp in a median of 14–34 weeks. But they leave L3 falsely before any drift in 29–32 % of runs within 26 weeks, and in 42–56 % within 52 weeks (§10.1).
+- Neither set reaches about 8 weeks, which is 40–60 level events, where a calibration intercept has a standard error of about 7 pp.
+- Faster detection needs more events per class (pooling T0 and T15, or the generic stream), not another threshold.
 
 ## 6. Challengers
 

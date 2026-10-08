@@ -723,4 +723,8 @@ def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optio
     return {"version": LR_STATE_VERSION, "mode": setup.mode, "case": setup.case, "state": st.state,
             "since_ms": st.since_ms, "reason": st.reason, "template": full, "push_template": push,
             "probabilities": probs, "calibrator_version": calibrator_version if probs else None,
+            # «обычно»: G1@event beside the champion in L3; none in FALLBACK (its number is the generic
+            # model itself, shown with its calibration line, §6 / §11b); HIST keeps its F1 §0 cell mean
+            "usual": {"CHAMPION": "G1_AT_EVENT_RAW", "FALLBACK": None}.get(probs, "HIST_CELL" if st.state == "HIST" else None),
+            "level_effect_claimed": False,                       # never in user text (F1 §11b)
             "accuracy_line": {"L3_HISTORY_BACKED": "holdout", "L3_LIVE": "live", "FALLBACK": "generic"}.get(st.state)}

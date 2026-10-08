@@ -45,6 +45,7 @@ class World:
     drift_b: float = 0.0              # live drift of the level truth, head B, from live week drift_week
     drift_r: float = 0.0
     drift_week: int = 26
+    drift_slope_b: float = 0.0        # > 0: the level head-B truth slope becomes this from drift_week
     level_effect: float = 1.0         # 0: no level effect in truth (M1's offset wrong)
     chal_beta: float = 0.0            # C1 covariate effect on head B, T15 only
     s_level: float = 1.0
@@ -77,8 +78,9 @@ def gen(w: World, c: str, weeks: int, week0: int, rng, *, live: bool, u):
     tr_r = g1_r + p["off_r"]
     tr_b_mean = g1_b + p["off_b"]
     centre = p["mu_b"] + p["off_b"]
-    tr_b = centre + slope * (tr_b_mean - centre)
     on = (week >= w.drift_week) if (live and lvl) else np.zeros(n, bool)
+    slope_arr = np.where(on, w.drift_slope_b, slope) if w.drift_slope_b > 0 else slope
+    tr_b = centre + slope_arr * (tr_b_mean - centre)
     tr_r = tr_r + u[week + week0] + w.drift_r * on
     tr_b = tr_b + u[week + week0] + w.drift_b * on
     if c == "LEVEL_T15":
@@ -196,9 +198,10 @@ def rep(args):
                     first["D1reftol"] = int(wk)
             new = L.next_state(st, setup[c], health=L.Health(), mon=m, mon_fb=mf, now_ms=cut)
             if new.state != st.state:
-                trans.append((int(wk), new.state, new.reason))
+                trans.append((int(wk), new.state, new.reason, len(done)))
             st = new
-        res["classes"][c].update(transitions=trans, first=first, final=st.state, n_live=len(lv))
+        n_pre = sum(1 for r in lv if r["week"] - HOLDOUT_WEEKS < w.drift_week)
+        res["classes"][c].update(transitions=trans, first=first, final=st.state, n_live=len(lv), n_pre=n_pre)
     return res
 
 
@@ -214,6 +217,8 @@ def scenarios():
         out.append((f"drift_b+{d}", replace(base, drift_b=d), "live"))
         out.append((f"drift_b-{d}", replace(base, drift_b=-d), "live"))
     out += [("drift_r-0.6", replace(base, drift_r=-0.6), "live"), ("drift_r+0.6", replace(base, drift_r=0.6), "live")]
+    out += [("delay_b+0.4", replace(base, drift_b=0.4), "live"), ("delay_b-0.4", replace(base, drift_b=-0.4), "live"),
+            ("delay_slope0.7", replace(base, drift_slope_b=0.7), "live")]
     out += [(f"ho_shift_b{sh}", replace(base, shift_b=sh), "holdout") for sh in (0.2, 0.4, 0.6)]
     out += [("ho_dev_gains", replace(base, b0_gap_r=0.6, b0_gap_b=0.25), "holdout"),
             ("ho_dev_gains_tau0", replace(base, b0_gap_r=0.6, b0_gap_b=0.25, tau=0.0), "holdout")]
@@ -277,9 +282,33 @@ def summarize(w, mode, rs):
                      first_l3_after_drift_26w={m: _mean([dw <= x["first"].get(m, 999) < dw + 26 for x, s0 in zip(cs, l3) if s0])
                                                for m in ("D1", "D2", "D3", "D1ref", "D1reftol")},
                      first_before_drift={m: _mean([x["first"].get(m, 999) < dw for x in cs]) for m in ("D1", "D2", "D3")},
-                     n_live=_mean([x["n_live"] for x in cs]))
+                     n_live=_mean([x["n_live"] for x in cs]),
+                     **_delays(cs, ex, l3, dw))
         s["classes"][c] = d
     return s
+
+
+def _delays(cs, ex, l3, dw):
+    """Median delay from drift onset to the first exit from L3, among runs in L3 at onset; runs with
+    no exit by the end are censored at the horizon (median reported only when ≥ 50 % detected)."""
+    horizon = LIVE_WEEKS - dw
+    wk, ev, det = [], [], 0
+    pool = [(x, e) for x, e, s0 in zip(cs, ex, l3) if s0 and not (e and e[0] < dw)]
+    for x, e in pool:
+        if e:
+            det += 1
+            wk.append(e[0] - dw)
+            ev.append(e[3] - x["n_pre"])
+        else:
+            wk.append(float("inf"))
+            ev.append(float("inf"))
+    if not pool:
+        return {}
+    med_w, med_e = float(np.median(wk)), float(np.median(ev))
+    return {"delay_runs": len(pool), "detected_by_end": det / len(pool), "horizon_weeks": horizon,
+            "delay_median_weeks": med_w if np.isfinite(med_w) else None,
+            "delay_median_events": med_e if np.isfinite(med_e) else None,
+            "delay_q25_weeks": float(np.quantile(wk, 0.25)) if np.isfinite(np.quantile(wk, 0.25)) else None}
 
 
 def _apply(overrides):
