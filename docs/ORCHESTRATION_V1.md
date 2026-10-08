@@ -71,6 +71,12 @@ Session ids are in §6, which the architect keeps current.
 - no open review threads; the branch fresh against main;
 - a merge commit. Never squash a branch whose SHAs are cited by frozen records.
 
+**Tests (owner, 2026-10-08: «полный прогон тестов делать не нужно. И перепроверять тесты уже проверенные в агентах тоже»):**
+- No full `pytest` run, by anyone.
+- The agent that writes a change runs its focused tests and reports them in the PR.
+- Reviewers (mini-heads and the architect) read that report and review the diff. They do not re-run tests an agent already ran.
+- A reviewer runs a test only when the report lacks one that the change needs.
+
 These PRs get the architect's review before merge: schema, push, collectors, the measurement contract, and any forecast display. Nothing is deployed without the owner.
 
 ## 5. Records
