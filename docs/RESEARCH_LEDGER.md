@@ -8583,3 +8583,87 @@ OBJECTS_2025_2026_USED = none; E1 / V3 untouched; COMPILER_V3 = not run
 HIST_TABLE_V1 = computed once; MODEL = not started; HELD_OUT_READ = no
 PRODUCT_CHANGE = none (table artifact only); FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 design frozen; support census only; resolution not read
+
+**Unit.** `OPENING_RANGE_OBJECT_V1` (atlas `OPENING-RANGE-OBJECT-V1`), family `OPENING_RANGE_V1`, `MODE = DISCOVERY`. Claim ceiling L2. A new line. It does not rescore DH3-V1, the participation-clock row, or any Level Engine unit.
+- **Design.** Commit `3be350eb0f71011928b1c99cc92f37059d631252`, file SHA256 `7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8`, before any post-interaction resolution label. Source main `03ad8ef3a3434b4426154aab2af6b651c9807de8`.
+- **Object.** First UTC hour, 12 complete 5m bars, bounds frozen at 01:00, first wick interaction only, lifespan until the next 00:00. The noon hour is a predeclared veto, not a second candidate. No duration grid.
+- **Control.** Weekday half-rotation of log offsets placed on the same decision close. Time of day, weekday, and the future path are shared. Today's width is not matched.
+- **Exposure.** `CORE_BTC_BINANCE_V0` dates `[2020-01-01, 2025-01-01)`. Class `DISCOVERY_ON_EXPOSED_SURFACE`. `EXACT_CLAIM_PREVIOUSLY_READ = false`. `NEIGHBORING_PATH_PREVIOUSLY_READ = true`. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`. Not placed on `CALENDAR.sessions`. No 2025/2026 object. No E1 holdout.
+- **Support, not an outcome.** Primary: 1827 calendar days, 1821 usable geometries, 1817 first interactions (1 ambiguous, 472 immediate), 1815 one-sided outcome-eligible, 1719 paired, 262 ISO weeks. Noon veto: 1704 paired, 262 ISO weeks, one lifespan truncated by the panel end. Information status `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME` on both cells (floor 614 pairs and 100 weeks). Conservative half-width about 3.34 pp on the primary cell. `outcome_read = false`. A second census invocation returns `REFUSING_RERUN`.
+- **Not computed.** Resolution, extension versus reentry, excursion, time outside, realized volatility, and any real-minus-pseudo effect. The interaction counts are the size of a later estimand.
+- **Product.** No `/btc`, `/levels`, `/check`, `/risk`, Telegram, scoring, findings-registry, or deploy change. The forecast-layer next unit is unchanged. The accruing volatility-transition prospective confirmation is unchanged.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, formation geometry and first-interaction existence only (further exposure of an already consumed row; resolution estimand not read; not CONSUMED for this estimand; not a confirmation; not a reopen of DH3-V1)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 amendment A1; still no outcome
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. Amendment A1. The original design commit `3be350eb0f71011928b1c99cc92f37059d631252` (SHA256 `7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8`) is not rewritten. Amendment commit `fb57fc8df8960e336b6dd779a339ec390b74e76b`. Amendment file SHA256 `230b8818f154ad3b26450e25baab0fe368360c723c6ccabc86005cab6903803a`.
+- **Why.** 00:00 UTC is a Binance funding timestamp (`MARKET_03_FUNDING_SNAPSHOT`: cadence 00:00 / 08:00 / 16:00 UTC). A real touch and a pseudo touch can fall hours apart. One resolution definition cannot be read as the absence of every structure.
+- **Known at the amendment.** `outcome_read = false`. No Y, no barrier-after-touch, no excursion, no volatility. The original census had already counted formation and first-interaction existence for `UTC_00` (1719 paired days, 262 weeks) and `UTC_12` (1704, 262).
+- **Object name.** `FROZEN_HOUR_RANGE`. Primary cell `UTC_00`. `OPENING` is a hypothesis label, not a route.
+- **Clock cells.** `UTC_08` `[08:00, 09:00)` and `UTC_16` `[16:00, 17:00)` use the same constructor. `UTC_12` stays the off-cadence diagnostic. Not four candidates. Floor 614 / 100 weeks not lowered.
+- **A1 census, support and touch time only.** Paired days / weeks: `UTC_00` 1719/262, `UTC_08` 1716/262, `UTC_12` 1704/262, `UTC_16` 1698/262. All four `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`. Primary elapsed median 15 min real and 10 min pseudo. Paired Δ median 0 min, mean −42.4 min. |Δ| percentiles 5 / 30 / 110 min. Share |Δ|≥240 min = 15.3%. Same clock hour 60.3%. Material rule (share ≥25% or median |Δ|≥120 min) did not fire. Handling `PUBLISH_AUDIT_NO_CORRECTION`. No rematch.
+- **Map.** Foundation resolution, unchanged. Direction (extension first). Outside occupancy. Outward excursion / W. Resolution clock and the #368 volatility transition are excluded. Routes are frozen. Evaluator `REFUSING_OUTCOME_BEFORE_OWNER_GO`.
+- **Product.** No change. Forecast layer and the accruing #368 prospective confirmation are unchanged.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, amendment A1 support and touch-time audit for UTC_00, UTC_08, UTC_12, UTC_16 (further exposure; resolution estimand not read; not CONSUMED for this estimand)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; TIMING_HANDLING = PUBLISH_AUDIT_NO_CORRECTION; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 amendment A2; multiplicity only; still no outcome
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. Amendment A2. File SHA256 `64ae661cd2dd8815085817d1cc7c8062cb822328a74b3caf3e5f9c80c0aa7d40`. Original design `3be350eb0f71011928b1c99cc92f37059d631252` and amendment A1 `fb57fc8df8960e336b6dd779a339ec390b74e76b` are not rewritten.
+- **Known at A2.** `outcome_read = false`. `y_known = false`. No Y, no barrier-after-touch, no excursion, no volatility.
+- **Unchanged.** Object `FROZEN_HOUR_RANGE`, cells `UTC_00` / `UTC_08` / `UTC_12` / `UTC_16`, 60m formation, pseudo, touch, touch-time handling `PUBLISH_AUDIT_NO_CORRECTION`, 4h horizon, `0.5 W`, practical scales, support counts, map rows.
+- **Families.** `FOUNDATION_CELL_EFFECTS`: four foundation means, studentized max-T from the A1 joint week bootstrap. `CLOCK_SPECIFICITY`: the three contrasts `δ00−δ08`, `δ00−δ12`, `δ00−δ16`, their own max-T critical value, not three marginal 95% intervals. `NONFOUNDATION_MAP`: Holm on direction, outside occupancy, and outward excursion. Direction is `BARRIER_FAMILY_DECOMPOSITION`. Occupancy and excursion are `INDEPENDENT_OBSERVABLE`.
+- **Route.** `ORTHOGONAL_CANDIDATE_ON_UTC_00` is renamed `NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00`. Clearing rows are listed in declaration order and not ranked. A marginal interval does not set a candidate.
+- **Product.** No change. Evaluator still `REFUSING_OUTCOME_BEFORE_OWNER_GO`.
+
+```
+WINDOWS_EXPOSED = none added; A1 support census unchanged; resolution estimand still not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; Y_KNOWN = false; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 one historical outcome read
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. One read. Evaluator commit `fb434d3c467ebde6d00b93c3551d3a965f789eb5`, code digest `f4774f348672864b3e6c9ffca97acca42bdc4a1744104a76142186cf4ea7c5d1`, written before the read. Read at `2026-10-08T20:41:03Z`. Surface `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`.
+- **Route.** `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. `opening_wording_allowed = false`. No hour adopted. Not a funding-causality claim.
+- **Foundation paired delta.** UTC_00 +9.48 pp (real 91.8%, pseudo 82.3%, N 1719, 262 weeks). UTC_08 +6.59 pp (N 1716). UTC_12 +4.93 pp (N 1704). UTC_16 +7.48 pp (N 1698). All four clear the simultaneous cell-effect rule.
+- **Contrasts.** δ00−δ08 +2.90 pp, simultaneous interval includes 0. δ00−δ16 +2.00 pp, does not clear. δ00−δ12 +4.55 pp, clears. Specificity uses the simultaneous contrasts, not the separate cell tests.
+- **Map, UTC_00 only.** Direction extension-first +7.04 pp, bootstrap p 0.00050, Holm p 0.00150, clears, role barrier decomposition. Outside occupancy −0.86 pp, Holm p 0.425, does not clear. Outward excursion −0.264 W, bootstrap p 0.00100, Holm p 0.00200, clears. Listed, not ranked.
+- **Stability, descriptive.** UTC_00 year deltas: 2020 −2.0 pp, 2021 −5.6 pp, 2022 +3.1 pp, 2023 +33.5 pp, 2024 +18.0 pp. Sides high +10.5 pp and low +8.5 pp. A year is not a winner.
+- **Touch time.** `PUBLISH_AUDIT_NO_CORRECTION`. No rematch, no stratification, no nearby sensitivity.
+- **Claim.** L2 historical difference on a discovery surface. Not a current probability. Not confirmed. A second official run returns `REFUSING_RERUN`. No successor started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, frozen FROZEN_HOUR_RANGE map (foundation resolution, three clock contrasts, UTC_00 direction, outside occupancy, outward excursion)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = yes, once, 2026-10-08T20:41:03Z; RERUN = REFUSING_RERUN
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-08 — FROZEN_HOUR_RANGE post-outcome diagnosis; no new window; no evidence upgrade
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. `MODE = POST_OUTCOME_DIAGNOSIS`. The official result, route, design, A1, and A2 are not rewritten. Official result SHA256 `9d21dafa4272bc0dab16329187edd65a7acf50adad071b80c8d63f2ea3c57fae`.
+- **Reread.** The already consumed `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)` pairs only. Diagnosis script `scripts/research/frozen_hour_range_post_outcome_diagnosis_v1.py`, outside the evaluator package, so the pre-outcome code digest is unchanged. Parity with every published foundation delta and year delta was required before the note was written.
+- **Description.** The pooled foundation delta is a fall in the pseudo resolution rate, not a rise in the real rate. The sharp half is 2023H2. The frozen weekday half-rotation partners an object day with a same weekday about 910 days away, so 2023H2 receives 2021 width and 2021 receives 2023 width. In the predeclared similar-width bin the UTC_00 resolution difference is about −1.3 pp. The extension-first and excursion signs are mixtures of those two width directions, not a path that extends and then stops short.
+- **Not done.** No confirmation, no adjusted claim, no new hour, no successor, no product change, no atlas rewrite.
+
+```
+WINDOWS_CONSUMED = none new; DIAGNOSTIC_REREAD of the already consumed FROZEN_HOUR_RANGE surface
+EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_RESULT_UNCHANGED = true
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched
+PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```

@@ -1,3 +1,44 @@
+## OPENING_RANGE_OBJECT_V1 — one historical outcome read — 2026-10-08
+
+`ROUTE = FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | opening_wording_allowed = false | hour_adopted = null`
+`CLAIM = L2_HISTORICAL_DIFFERENCE_ON_DISCOVERY_SURFACE | ceiling L2 | not a current probability | not confirmed`
+`READ AT = 2026-10-08T20:41:03Z | evaluator commit fb434d3c467ebde6d00b93c3551d3a965f789eb5 | code digest f4774f348672864b3e6c9ffca97acca42bdc4a1744104a76142186cf4ea7c5d1`
+`FOUNDATION PAIRED DELTA = UTC_00 +9.48 pp (N 1719) | UTC_08 +6.59 pp (N 1716) | UTC_12 +4.93 pp (N 1704) | UTC_16 +7.48 pp (N 1698) | all four clear the simultaneous family rule`
+`CONTRASTS = δ00−δ08 +2.90 pp simultaneous interval includes 0 | δ00−δ12 +4.55 pp clears | δ00−δ16 +2.00 pp does not clear`
+`MAP ON UTC_00 = direction extension-first +7.04 pp Holm p 0.0015 clears, role BARRIER_FAMILY_DECOMPOSITION | outside occupancy −0.86 pp does not clear | outward excursion −0.264 W Holm p 0.0020 clears, role INDEPENDENT_OBSERVABLE`
+`STABILITY = descriptive only | UTC_00 year deltas 2020 −2.0 pp, 2021 −5.6 pp, 2022 +3.1 pp, 2023 +33.5 pp, 2024 +18.0 pp | not a year winner`
+`TOUCH = PUBLISH_AUDIT_NO_CORRECTION | no rematch`
+`NOT OPENED = 2025/2026, E1, product sample, prospective sample | rerun REFUSING_RERUN | successor not started`
+
+Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Result: `docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md`.
+
+## OPENING_RANGE_OBJECT_V1 — post-outcome diagnosis — 2026-10-08
+
+`MODE = POST_OUTCOME_DIAGNOSIS | EVIDENCE_UPGRADE = NONE | ORIGINAL_RESULT_UNCHANGED = true | CONFIRMATION = false`
+`ROUTE UNCHANGED = FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | claim ceiling L2 | not a confirmation`
+`DESCRIPTION = pooled delta is a pseudo-rate collapse | 2023H2 is the sharp half | weekday half-rotation lag about 910 days swaps 2021 width with 2023 width | similar-width bin about -1.3 pp on UTC_00`
+`MAP SIGNS = extension-first gap is the late, pseudo-wider block | smaller pooled excursion is the early, real-wider tail | outside occupancy cancels across those blocks`
+`NOT STARTED = width-held successor | fresh surface | new hour | product | forecast | atlas unit not rewritten`
+
+Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
+
+## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
+
+`UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`
+`SEPARATE LINE = does not replace the forecast-layer NEXT_UNIT and does not continue Level Engine`
+`ORIGINAL DESIGN = 3be350eb0f71011928b1c99cc92f37059d631252 | sha256 7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8 | not rewritten`
+`AMENDMENT A1 = fb57fc8df8960e336b6dd779a339ec390b74e76b | file sha256 230b8818f154ad3b26450e25baab0fe368360c723c6ccabc86005cab6903803a | written while outcome_read was false | no Y known`
+`OBJECT NAME = FROZEN_HOUR_RANGE | primary cell UTC_00 [00:00, 01:00) | OPENING is a hypothesis label, not a route`
+`CLOCK CELLS = UTC_00 primary; UTC_08 and UTC_16 funding-cadence diagnostics; UTC_12 off-cadence diagnostic | not four candidates | floor 614 pairs and 100 weeks not lowered`
+`SUPPORT = paired days / weeks: UTC_00 1719/262, UTC_08 1716/262, UTC_12 1704/262, UTC_16 1698/262 | all INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`
+`TOUCH TIME = UTC_00 median |Δ| 30 min, share |Δ|≥240 min 15.3%, mean signed Δ −42.4 min | material rule did not fire | handling PUBLISH_AUDIT_NO_CORRECTION | no rematch`
+`MAP = foundation resolution; direction extension-first; outside occupancy; outward excursion/W | resolution clock and volatility transition excluded | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`AMENDMENT A2 = file sha256 64ae661cd2dd8815085817d1cc7c8062cb822328a74b3caf3e5f9c80c0aa7d40 | interpretation only | outcome_read = false | y_known = false | families FOUNDATION_CELL_EFFECTS and CLOCK_SPECIFICITY use STUDENTIZED_MAX_T | NONFOUNDATION_MAP uses HOLM | route NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00 | direction role BARRIER_FAMILY_DECOMPOSITION`
+`NOT READ = Y, extension rate, reentry rate, excursion, traverse, realized volatility, real-minus-pseudo effect | outcome_read = false`
+`NEXT = a separate owner go for the one outcome read in A1, reported under the A2 family rules | PRODUCT_CHANGE = none`
+
+Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. Amendment A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. Amendment A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Audit: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.md`.
+
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08
 
 `DECISION = docs/FORECAST_LAYER_DECISION_V1.md | chain of command docs/ORCHESTRATION_V1.md`
