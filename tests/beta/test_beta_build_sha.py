@@ -54,6 +54,9 @@ def test_the_units_installer_records_the_build_sha_and_never_leaves_a_stale_one(
     text = (ROOT / "deploy" / "install_beta_units.sh").read_text()
     assert 'rev-parse HEAD' in text and '"${REPO_DIR}/BUILD_SHA"' in text and 'rm -f "${REPO_DIR}/BUILD_SHA"' in text
     assert "BUILD_SHA" in (ROOT / ".gitignore").read_text().split()
+    # run as root (sudo) on a checkout owned by the service user: without safe.directory git refuses
+    # ("dubious ownership") and the file would always be removed (review of #386)
+    assert text.count('git -c safe.directory="${REPO_DIR}" -C "${REPO_DIR}"') == 2
 
 
 @needs_git
