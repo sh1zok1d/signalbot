@@ -24,6 +24,12 @@ from .base_client import (ExchangeClient, Trade, OpenInterest, Funding,
 logger = logging.getLogger(__name__)
 
 WS_URL = "wss://stream.bybit.com/v5/public/linear"
+
+
+def bybit_liquidation_side(s):
+    """allLiquidation `S` is the liquidated position's side: Buy -> long, Sell -> short.
+    Anything else is unreadable (None; never guessed)."""
+    return {"Buy": "long", "Sell": "short"}.get(s)
 REST_BASE = "https://api.bybit.com"
 
 
@@ -69,13 +75,18 @@ class BybitClient(ExchangeClient):
                 await self.callbacks.on_trade(trade)
         elif topic.startswith("allLiquidation."):
             # v5 allLiquidation payload: list of {T: ms, s, S: "Buy"/"Sell",
-            # v: size, p: price}. S is the side of the liquidation order:
-            # "Buy" -> a short was force-bought back (short liquidated),
-            # "Sell" -> a long was force-sold (long liquidated).
+            # v: executed size (base), p: bankruptcy price}. S is the POSITION
+            # side (Bybit v5 docs: "When you receive a Buy update, this means
+            # that a long position has been liquidated"). Until 2026-10 this
+            # was read the other way round (rows with liquidations.mapping_version
+            # NULL; docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R2).
             d = msg.get("data", {})
             items = d if isinstance(d, list) else [d]
             for item in items:
-                side = "short" if item.get("S") == "Buy" else "long"
+                side = bybit_liquidation_side(item.get("S"))
+                if side is None:
+                    logger.warning("[bybit] liquidation without a readable side skipped")
+                    continue
                 price = float(item["p"])
                 qty = float(item["v"])
                 await self.callbacks.on_liquidation(Liquidation(

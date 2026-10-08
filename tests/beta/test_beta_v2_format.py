@@ -182,7 +182,7 @@ def test_levels_card_has_history_beside_a_random_level():
     blk = block()
     blk["levels"]["above"][0]["history"] = old
     text = plain(df.format_levels(blk, "ru", now=NOW))
-    assert "↳ после первого касания: мало данных (812 случаев)" in text and "п.п." not in text
+    assert "↳ после первого касания: интервал ещё не посчитан (812 случаев)" in text and "п.п." not in text
 
 
 def test_level_move_is_shown_beside_the_random_level_never_as_its_own_usual():
@@ -250,7 +250,8 @@ def test_analog_line_states_the_difference_and_its_interval_never_a_verdict():
     # a payload built before the interval existed (it may carry the mean log range): «мало данных», never a
     # bare difference (review of #343, findings 1 and 4)
     old = {k: v for k, v in cell.items() if k != "ci95"}
-    assert df.analog_line({"window": "4h", "outcomes": {"4h": old}}, "ru") == "↳ после похожих: мало данных (412 случаев)"
+    assert df.analog_line({"window": "4h", "outcomes": {"4h": old}}, "ru") == \
+        "↳ после похожих: интервал ещё не посчитан (412 случаев)"
     small = {"window": "1h", "outcomes": {"1h": {**cell, "n": 12}}}
     assert df.analog_line(small, "ru") == "↳ после похожих: мало данных (12 случаев)"
     assert df.analog_line(None, "ru") is None

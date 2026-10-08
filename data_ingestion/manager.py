@@ -92,7 +92,7 @@ class IngestionManager:
         async def on_liquidation(l: Liquidation) -> None:
             await self.db.insert_liquidations([(
                 l.exchange, l.symbol, _to_ts(l.ts), l.side, l.price, l.qty,
-                l.notional, l.is_snapshot_feed,
+                l.notional, l.is_snapshot_feed, l.mapping_version,
             )])
             logger.info("[%s] LIQUIDATION %s side=%s qty=%.4f price=%.2f",
                         l.exchange, l.symbol, l.side, l.qty, l.price)

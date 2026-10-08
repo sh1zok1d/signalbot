@@ -166,7 +166,7 @@ def test_an_objective_level_shows_its_own_history_beside_a_random_level():
     b = block()
     b["levels"]["above"][0]["history"] = {k: v for k, v in HIST.items() if k != "ci95"}
     bare = plain(ck.format_check(b, STATS, [62950.0], "ru", now=NOW))
-    assert "↳ после первого касания: мало данных (812 случаев)" in bare and "п.п." not in bare
+    assert "↳ после первого касания: интервал ещё не посчитан (812 случаев)" in bare and "п.п." not in bare
 
 
 def test_event_zone_horizons_have_no_number():
@@ -183,16 +183,16 @@ def test_buttons_carry_the_level():
     assert ck.parse_level_callback("k:" + "9" * 70) is None and ck.parse_level_callback("u:1") is None
     from beta.market_alerts import alert_buttons
     rows = alert_buttons("level", {"next": {"edge": 64000.0}}, "ru")
-    assert rows[-1] == [("🎯 Проверить 64 000", "k:64000.00")]
-    assert len(alert_buttons("event", {}, "ru")) == 2
+    assert rows[2] == [("🎯 Проверить 64 000", "k:64000.00")] and rows[-1][0][1] == "m:levels"   # then the mute (E2)
+    assert len(alert_buttons("event", {}, "ru")) == 3                                          # incl. the mute
     # a sharp move offers the nearest level in its own direction, never the upper one by default
     near = [{"edge": 63100.0}, {"edge": 61900.0}]
     down = alert_buttons("move", {"near": near, "close": 62400.0, "move_pct": -1.4}, "ru")
-    assert down[-1] == [("🎯 Проверить 61 900", "k:61900.00")]
+    assert down[2] == [("🎯 Проверить 61 900", "k:61900.00")]
     up = alert_buttons("move", {"near": near, "close": 62400.0, "move_pct": 1.4}, "ru")
-    assert up[-1] == [("🎯 Проверить 63 100", "k:63100.00")]
+    assert up[2] == [("🎯 Проверить 63 100", "k:63100.00")]
     nothing_below = alert_buttons("move", {"near": [{"edge": 63100.0}], "close": 62400.0, "move_pct": -1.4}, "ru")
-    assert len(nothing_below) == 2
+    assert len(nothing_below) == 3 and nothing_below[-1][0][1] == "m:moves"
     from beta.formatter import btc_buttons
     brief = btc_buttons({"kind": "brief", "decision": block()}, "ru", 5)
     assert brief[-1] == [("🎯 Проверить 62 950", "k:62950.00"), ("🎯 Проверить 61 900", "k:61900.00")]
