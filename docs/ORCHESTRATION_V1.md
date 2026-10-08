@@ -33,7 +33,7 @@ Session ids are in §6, which the architect keeps current.
 
 **The architect decides without the owner:**
 - priorities, order and scope cuts inside the owner's recorded decisions;
-- reviews, merges under the owner's merge rule of 2026-10-06, conflicts and shared-file order;
+- red-teaming the mini-heads' reports (§3a), merges under the owner's merge rule of 2026-10-06 (the architect merges PRs itself: owner, 2026-10-08, «можешь мержить сам. Даю право»), conflicts and shared-file order;
 - the design notes, gates and tolerances of this program's units, before any outcome;
 - wording inside the honesty rules (PRODUCT_DECISION_V2 §3, EVIDENCE_AND_CLAIMS);
 - creating and stopping agent sessions and their scheduled checks.
@@ -51,6 +51,15 @@ Session ids are in §6, which the architect keeps current.
 - **Emergency exception:** production is down and the architect has not answered for more than 2 hours. Then a mini-head may write to the owner directly.
 - **Polling:** the architect checks both mini-heads on its own schedule and answers by session message. Mini-heads keep their own track checks.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
+
+## 3a. Who checks whom
+
+Owner, 2026-10-08: «Перепроверять и редтимить работу агента должны мини главы. Их отчеты должен уже редтимить ты».
+
+- **Mini-heads check their agents.** They review and red-team every track PR before merge: the diff, the reported tests, scope against the decisions, honesty of wording, frozen-record and protected-data rules. They try to break it: wrong inputs, edge cases, leakage, a claim beyond its evidence. They send findings back to the track, not to the architect.
+- **The architect checks the mini-heads.** It red-teams each mini-head report: whether the claims hold, whether the evidence cited supports them, what was not checked, conflicts with the other branch and with the owner's decisions. It does not redo the mini-head's diff review.
+- **When a report does not hold up**, the architect asks the mini-head for the missing evidence. Only then does it read the code itself.
+- **What a report carries:** what changed and why; the PR; the tests the track ran and their results; what the mini-head checked and found; what it did not check; open risks.
 
 ## 4. Files and merges
 
@@ -74,10 +83,10 @@ Session ids are in §6, which the architect keeps current.
 **Tests (owner, 2026-10-08: «полный прогон тестов делать не нужно. И перепроверять тесты уже проверенные в агентах тоже»):**
 - No full `pytest` run, by anyone.
 - The agent that writes a change runs its focused tests and reports them in the PR.
-- Reviewers (mini-heads and the architect) read that report and review the diff. They do not re-run tests an agent already ran.
-- A reviewer runs a test only when the report lacks one that the change needs.
+- The mini-head reads that report and reviews the diff (§3a). It does not re-run tests the agent already ran.
+- The mini-head runs a test only when the report lacks one that the change needs.
 
-These PRs get the architect's review before merge: schema, push, collectors, the measurement contract, and any forecast display. Nothing is deployed without the owner.
+For schema, push, collectors, the measurement contract, any forecast display and every research freeze or one-shot read, the mini-head sends its report to the architect before merge and waits for the answer. Nothing is deployed without the owner.
 
 ## 5. Records
 
@@ -93,5 +102,7 @@ Decisions live in documents on main, not in chat. A decision given in a session 
 | ОПГ-1 track B | `session_013RP6YCG63Jdzff8dcz4GqV` | `claude/signalbot-evaluator-comparison-jyvj1h` |
 | ОПГ-1 research (idle) | `session_01Ark63JX6mZenzMdR4tZotQ` | `ccr-acce4a3e-eyc9rh` |
 | ОПГ-2 mini-head | `session_01E8Cb7vqxs52Lu2tLBxkicT` | its own (started from `ccr-174417bb-r3l40b`) |
-| ОПГ-2 tracks | created by ОПГ-2 | their own |
+| ОПГ-2 F1 «Модель» | `session_013u4aiHu3PPakqyWC7yezcf` | `claude/opg2-f1-level-race-model` |
+| ОПГ-2 F2 «Живой контур» + #368 operations | `session_01BEq76aMeSBEcfRX9WGbsSW` | `claude/opg2-f2-level-race-live` |
+| ОПГ-2 F3 «Калибровка и мониторинг» | `session_01UxyP3Q5J8a97sVRWj3L6EV` | `claude/opg2-f3-level-race-calibration` |
 | Level Engine chain (Cursor) | stopped 2026-10-08; chain owned by ОПГ-2 | `cursor/level-*-08d8` (merged by PR #376) |

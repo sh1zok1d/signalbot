@@ -294,6 +294,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             episodes: dict = {}
             analogues, since_year = await _analogue_source(conn, now)
             lat_summary = None
+            push_levels = None                     # the levels line of the push (F1), built on first use
             for row in await conn.fetch_pending_deliveries(max_rows, now=now):
                 now = clock()
                 did = row["delivery_id"]
@@ -332,11 +333,13 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 lang = row.get("user_lang") or "ru"
                 if lat_summary is None:
                     lat_summary = await class_summary(conn, now)
+                if push_levels is None:
+                    push_levels = await _push_levels(conn, cfg, now)
                 with render_tz(row.get("user_tz")):          # the recipient's clock (C5)
                     text = format_push(ep, lang=lang, gate=row.get("gate"),
                                        analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
                                        latency=latency_field("push", row["decision_ts"], now, lat_summary),
-                                       research=research_main_surfaces_enabled(cfg))
+                                       research=research_main_surfaces_enabled(cfg), levels=push_levels or None)
                 # (2) commit PENDING -> SENDING before the single API call
                 outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"],
                                                         html=text, buttons=feedback_buttons(ep.public_id, lang),
@@ -479,6 +482,18 @@ async def _analogue_source(conn, now: datetime) -> tuple:
     return stats.get("analogues"), year
 
 
+async def _push_levels(conn, cfg: BetaConfig, now: datetime) -> dict:
+    """The decision block's levels for the unusual-hour push (backlog F1), once per run; {} when the block is
+    unavailable or fails: the push goes out without the line."""
+    try:
+        from .decision import build_decision
+        block = await build_decision(conn, cfg, now=now)
+    except Exception as exc:  # noqa: BLE001 - a missing line never blocks a push
+        logging.getLogger("beta.delivery").warning("push levels unavailable: %s", type(exc).__name__)
+        return {}
+    return (block.get("levels") or {}) if block.get("available") else {}
+
+
 def _push_analogue(analogues, gate) -> Optional[dict]:
     from .analogues import lookup
     from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
@@ -616,7 +631,8 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         with render_tz(row.get("user_tz")):              # the recipient's clock (C5)
             text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
                                   first_brief=bool(row.get("first_brief", False)))
-            buttons = btc_buttons(payload, lang, row["view_pk"])
+            from .formatter import vote_row
+            buttons = (btc_buttons(payload, lang, row["view_pk"]) or []) + [vote_row("brief", row["view_pk"], lang)]
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
                                                 buttons=buttons, clock=clock)
         if outcome != SENT:

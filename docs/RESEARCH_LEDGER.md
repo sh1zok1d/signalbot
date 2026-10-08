@@ -8568,3 +8568,18 @@ PROSPECTIVE_CONFIRMATION_STARTED = yes; ACCRUAL = AWAITING_START; EXACT_OUTCOME_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 CROSS_VENUE_STARTED = no; COHORT_CLOSED = no; PAIR_MAP_FROZEN = no
 ```
+
+## 2026-10-08 — LEVEL_RACE_FORECAST_V1 design frozen; HIST table V1 computed once on 2020–2024; model not started
+
+**Unit.** `LEVEL_RACE_FORECAST_V1` (atlas `LEVEL-RACE-FORECAST-V1`), family `LEVEL_BEHAVIOR_V1`, program `FORECAST_LAYER_DECISION_V1`, `MODE = DISCOVERY` then one held-out read. ОПГ-2 track F1.
+- **Design.** `997ba98615135b263684ad10f9c044335910a346` (`docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md` + `.json`), frozen before any race outcome; chain `bd4d257 → c0fe8ba → d7e9783 → 0ba50cd → 80fbed4 → 997ba98`.
+- **Read.** `CORE_BTC_BINANCE_V0` events 2020-02-01..2024-12-31, #352 constructor unchanged: 1919 eligible first touches (T0 rows); j+1/j+2 census NEITHER 1332, BREAK 296, REJECT 278, AMBIGUOUS 13; T15 rows 1332. 121 T0 closes outside the barrier pair (B0 floor rule).
+- **Table.** `docs/research/LEVEL_RACE_HIST_TABLE_V1.json`, sha256 `4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b`, code `748dae25`. 6 T0 cells + 18 T15 cells; ladder: T0 4 CELL / 2 LOW_N (MONTH); T15 9 CELL / 3 POOLED_SIDE / 6 LOW_N. L2 descriptive; no selection, no level-effect claim.
+- **Not done.** No model fit, no CV, no B1/M1/C1, no generic stream, no 2025/2026 object, no held-out read. No product file changed.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-02..2024-12 PRICE_STRUCTURE.levels (further exposure, 4h race shares)
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched; COMPILER_V3 = not run
+HIST_TABLE_V1 = computed once; MODEL = not started; HELD_OUT_READ = no
+PRODUCT_CHANGE = none (table artifact only); FINDINGS_REGISTRY = unchanged
+```

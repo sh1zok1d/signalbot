@@ -271,7 +271,8 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         level_msgs = [x for x in s.sent if "максимум вчера" in plain(x[1]) and "первое касание" in plain(x[1])]
         assert [x[0] for x in level_msgs] == [A]                  # B: levels off; C: push off
         assert level_msgs[0][2][:2] == [[("📊 BTC сейчас", "b:now")], [("Уровни", "L:levels"), ("Риск", "L:risk")]]
-        assert all(d.startswith("k:") for row in level_msgs[0][2][2:-1] for _l, d in row)   # «🎯 Проверить» the next level
+        assert all(d.startswith("k:") for row in level_msgs[0][2][2:-2] for _l, d in row)   # «🎯 Проверить» the next level
+        assert [d[:8] for _l, d in level_msgs[0][2][-2]] == ["v:level:", "v:level:"]          # «Полезно / Шум» (F6)
         assert level_msgs[0][2][-1] == [("🔕 Не присылать такие", "m:levels")]               # the one-tap mute (E2)
         # the morning briefing renders the decision block in the same cycle (under the unseeded,
         # stale tape: the A2 line instead of corridor and levels, the calendar from the block)
