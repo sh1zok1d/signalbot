@@ -411,7 +411,9 @@ printf 'BETA_FINGERPRINT_KEY=%s\n' "$(python3 -c "import secrets;print(secrets.t
 sudo grep -c '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env   # must print 1; never print the value
 ```
 
-Then deploy and restart as usual. From then on fingerprints are keyed: audit rows written before the switch keep the old unkeyed form and no longer match new ones, and `/admin_reply <fp>` works only with fingerprints the bot printed after the switch.
+**Keep a copy outside the server too** (for example the owner's password manager) and never in a database dump or a backup: losing it changes every fingerprint and breaks `/admin_reply` continuity.
+
+**Deploy order:** add the key to `.env` → restart the beta (bot and notifier units) → restart the collector (`sudo systemctl restart signalbot.service`). The refusal to start without the key is the guard: a beta unit that cannot read it does not run. From then on fingerprints are keyed: audit rows written before the switch keep the old unkeyed form and no longer match new ones, and `/admin_reply <fp>` works only with fingerprints the bot printed after the switch.
 
 ## Soak (7 days, push disabled)
 
