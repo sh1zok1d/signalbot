@@ -276,7 +276,7 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert level_msgs[0][2][-1] == [("🔕 Не присылать такие", "m:levels")]               # the one-tap mute (E2)
         # the morning briefing renders the decision block in the same cycle (under the unseeded,
         # stale tape: the A2 line instead of corridor and levels, the calendar from the block)
-        briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
+        briefs = [x for x in s.sent if plain(x[1]).startswith("Сводка BTC")]
         assert len(briefs) == 3 and "Коридор и уровни сейчас не показываем: данные отстают." in plain(briefs[0][1])
         assert "Коридор (Binance" not in plain(briefs[0][1])
         assert "\nСобытия в ближайшие сутки: 15:30 CPI США (инфляция)\n" in plain(briefs[0][1])

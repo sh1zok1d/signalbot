@@ -24,8 +24,12 @@ ACTIVITY_ACTIONS = (
     "btn_levels", "btn_risk", "cmd_research",
     "brief_withheld", "btn_other_assets", "btn_btc_now", "tab_research",
     "cmd_check", "btn_check", "btn_watch", "weekly_delivered",
-    "cmd_tz", "btn_mute", "btn_unmute", "cmd_type", "type_set",
+    "cmd_tz", "set_mute", "set_unmute", "cmd_type", "type_set",
 )
+
+
+# the one-tap mute and its undo under a push (backlog E2): settings, never reactions (review of #373, #375)
+MUTE_ACTIONS = ("set_mute", "set_unmute")
 
 
 def generate_invite_code() -> str:

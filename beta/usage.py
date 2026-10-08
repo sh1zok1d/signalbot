@@ -171,10 +171,12 @@ MUTES = {"hour": ("cmd_push", "hours:"), "level": ("cmd_push", "levels:"), "even
 def as_setting(row: dict) -> dict:
     """«🔕 Не присылать такие» / «↩️ Вернуть» under a push (backlog E2) read as the `/push <type> off|on`
     they set, so every mute count and the time to disable see both ways of muting."""
-    if row.get("action") in ("btn_mute", "btn_unmute") and row.get("detail") in ("hours", "levels", "events",
+    from .access import MUTE_ACTIONS
+    if row.get("action") in MUTE_ACTIONS and row.get("detail") in ("hours", "levels", "events",
                                                                                  "moves", "weekly"):
-        return {**row, "action": "cmd_push", "button": True,       # still a tap for the F5 button metric
-                "detail": f"{row['detail']}:{'off' if row['action'] == 'btn_mute' else 'on'}"}
+        # a setting, never a reaction: a mute is a negative U2 signal (PRE_BETA_SCOPE_DECISION_V1 §6.6)
+        return {**row, "action": "cmd_push",
+                "detail": f"{row['detail']}:{'off' if row['action'] == 'set_mute' else 'on'}"}
     return row
 
 
@@ -215,7 +217,8 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
     inside = [r for r in mine if _aware(start) <= _aware(r["at"]) <= _aware(end)]
     # per participant, sorted once: deliveries (prompts) and taps (reactions)
     sent_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"] in DELIVERIES) for pk, rows in by_user.items()}
-    taps_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")) or r.get("button"))
+    # a reaction is a tab or a button; a setting (a one-tap mute included) never is (review of #375)
+    taps_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
                for pk, rows in by_user.items()}
     organic = post_push = 0
     organic_days: dict = {}
@@ -311,7 +314,10 @@ def delivery_type(row: dict) -> Optional[str]:
 
 
 def _push_key(row: dict) -> str:
-    ref = {"push": "decision_id", "alert": "alert_pk", "brief": "brief_date", "weekly": "weekly_pk"}[row["kind"]]
+    if row["kind"] == "brief":
+        # one message per slot: participants in other zones share a local date but not a slot (review of #373)
+        return f"brief:{row.get('brief_date')}:{row.get('decision_ts')}"
+    ref = {"push": "decision_id", "alert": "alert_pk", "weekly": "weekly_pk"}[row["kind"]]
     return f"{row['kind']}:{row.get(ref)}"
 
 

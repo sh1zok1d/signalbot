@@ -244,6 +244,9 @@ DECISION_CATALOG: dict = {
                               "потом — о касании.",
                               "When the level is closer than the usual 1h move, I send one message ahead, then one "
                               "at the touch."),
+    "al_approach_note_list": _pair("Для уровня дальше обычного хода за час пришлю одно сообщение заранее, потом — о касании.",
+                                   "For a level farther than the usual 1h move I send one message ahead, then one at "
+                                   "the touch."),
     "al_deleted": _pair("Удалено: {n}.", "Deleted: {n}."),
     "al_limit": _pair("Уже {n} уровней — это максимум. Удалите лишний: /alert del 1",
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),

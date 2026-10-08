@@ -26,9 +26,9 @@ from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_m
 from .formatter import format_owner_alert, format_push
 from .i18n import render_tz
 from .latency import class_summary, latency_field
-from .detector import in_quiet_hours
+from .detector import in_quiet_hours, own_budget_spent
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
-                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
+                     D_UNKNOWN, DAILY_CAP, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -319,6 +319,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                                                    suppression_reason=QUIET_HOURS)
                     report["suppressed"] += 1
                     continue
+                if await own_budget_spent(conn, row, cap=int(cfg["max_new_pushes_per_utc_day"]), outbox_kind="push"):
+                    # this participant already had their day's pushes (their own date, review of #373)
+                    await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                                   suppression_reason=DAILY_CAP)
+                    report["suppressed"] += 1
+                    continue
                 if sender is None:
                     await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                                    error_summary="sender unavailable (no bot token)")
@@ -503,32 +509,45 @@ def _push_analogue(analogues, gate) -> Optional[dict]:
     return lookup(analogues, "1h", res.get("key"))
 
 
-def brief_slot(now: datetime, time_kyiv: str, tz: Optional[str] = None):
-    """(local date, UTC instant) of today's briefing slot on the participant's clock (Kyiv when `tz` is
-    None; backlog C5 / E3), or None before it. Instants are compared, never wall clocks: on the night
-    the clock goes back a slot inside the repeated hour is its first occurrence, and a slot that does
-    not exist (the hour skipped in spring) comes at the same moment one hour later on the clock."""
+def brief_slot(now: datetime, time_kyiv: str, tz: Optional[str] = None, *, days_back: int = 0):
+    """(local date, UTC instant) of the briefing slot on the participant's clock (Kyiv when `tz` is None;
+    backlog C5 / E3) of today, or of `days_back` days before it, or None before it. Instants are compared,
+    never wall clocks: on the night the clock goes back a slot inside the repeated hour is its first
+    occurrence, and a slot that does not exist (the hour skipped in spring) comes at the same moment one
+    hour later on the clock."""
     from datetime import time as dtime
     from .i18n import tz_of
     zone = tz_of(tz)
-    local = now.astimezone(zone)
+    day = now.astimezone(zone).date() - timedelta(days=days_back)
     hh, mm = int(time_kyiv[:2]), int(time_kyiv[3:])
-    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone).astimezone(timezone.utc)
+    slot = datetime.combine(day, dtime(hh, mm), tzinfo=zone).astimezone(timezone.utc)
     if now < slot:
         return None
-    return local.date(), slot.astimezone(now.tzinfo)
+    return day, slot.astimezone(now.tzinfo)
 
 
 def brief_due(now: datetime, user: Mapping[str, Any], default_time: str, max_delay: timedelta):
     """(local date, UTC slot) when this participant's briefing is due in a run at `now`, else None: their
     slot on their clock has come, at most `max_delay` ago, and their local date has no briefing row yet
     (`last_brief_date`). One row per local date, whatever the clock does in between."""
-    slot = brief_slot(now, user.get("brief_time") or default_time, user.get("tz"))
-    if slot is None or now - slot[1] > max_delay:
+    for days_back in (0, 1):        # yesterday's late slot (23:30) is still due at 00:05 within max_delay
+        slot = brief_slot(now, user.get("brief_time") or default_time, user.get("tz"), days_back=days_back)
+        if slot is None or now - slot[1] > max_delay:
+            continue
+        if user.get("last_brief_date") is not None and user["last_brief_date"] >= slot[0]:
+            return None
+        return slot
+    return None
+
+
+async def own_push_reasons(conn, user_pk: Optional[int], view: Mapping[str, Any]) -> Optional[dict]:
+    """The reader's own outcome for each unusual hour of the view (review of #373), or None when unknown
+    (no participant, or a store without the query): the note then follows the decision."""
+    fn = getattr(conn, "own_push_reasons", None)
+    if fn is None or user_pk is None:
         return None
-    if user.get("last_brief_date") is not None and user["last_brief_date"] >= slot[0]:
-        return None
-    return slot
+    ids = [h["decision_id"] for h in ((view.get("market") or {}).get("unusual_hours") or ()) if h.get("decision_id")]
+    return await fn(int(user_pk), ids)
 
 
 def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
@@ -630,6 +649,7 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         lang = row.get("user_lang") or "ru"
         with render_tz(row.get("user_tz")):              # the recipient's clock (C5)
             text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
+                                  own_reasons=await own_push_reasons(conn, row.get("user_pk"), payload),
                                   first_brief=bool(row.get("first_brief", False)))
             from .formatter import vote_row
             buttons = (btc_buttons(payload, lang, row["view_pk"]) or []) + [vote_row("brief", row["view_pk"], lang)]

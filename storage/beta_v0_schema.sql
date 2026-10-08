@@ -494,6 +494,9 @@ BEGIN
         EXECUTE format('ALTER TABLE beta_user_activity DROP CONSTRAINT %I', cname);
     END IF;
 END $$;
+-- review of #373: a one-tap mute is a setting (a negative U2 signal), never a `btn_*` reaction
+UPDATE beta_user_activity SET action = 'set_mute' WHERE action = 'btn_mute';
+UPDATE beta_user_activity SET action = 'set_unmute' WHERE action = 'btn_unmute';
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
@@ -510,7 +513,7 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the weekly report (backlog B4), a delivery of its own class
     'weekly_delivered',
     -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
-    'cmd_tz', 'btn_mute', 'btn_unmute',
+    'cmd_tz', 'set_mute', 'set_unmute',
     -- the trader type: the question (/type or after joining) and the answer
     'cmd_type', 'type_set'));
 
@@ -549,6 +552,25 @@ BEGIN
         ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS'));
+    END IF;
+END $$;
+
+-- Each participant's own daily budget (review of #373): a push or market alert that some participants
+-- receive is SUPPRESSED / DAILY_CAP for one who already had their day's messages. Widen once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%QUIET_HOURS%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_CAP%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS', 'DAILY_CAP'));
     END IF;
 END $$;
 

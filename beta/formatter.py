@@ -547,7 +547,7 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
 
 
 def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabled: bool = True,
-                   first_brief: bool = False) -> str:
+                   first_brief: bool = False, own_reasons: Optional[Mapping[int, Optional[str]]] = None) -> str:
     """/catchup and the morning briefing: one render path over the shared view
     (BETA_COPY_CONTRACT_V1 §1.1). Window price path, the unusual hours of the window
     (the push gate's own qualification, read from the market side), the 1h / 4h state
@@ -571,7 +571,7 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
         lines.append(t(lang, "insufficient"))
     else:
         lines.append(_price_span_line(window, lang))
-        lines.extend(_unusual_hours_lines(cfg, market, lang, push_enabled=push_enabled))
+        lines.extend(_unusual_hours_lines(cfg, market, lang, push_enabled=push_enabled, own_reasons=own_reasons))
     lines.append("")
     state = []
     for h in ("1h", "4h"):
@@ -655,7 +655,8 @@ _CATCHUP_MAX_LINES = 15
 _CATCHUP_TAIL_LINES = 6          # Сейчас, 1ч, 4ч, 24ч, Данные, and the first-brief hint at most
 
 
-def _unusual_hours_lines(cfg, market: Mapping[str, Any], lang: str, *, push_enabled: bool) -> list:
+def _unusual_hours_lines(cfg, market: Mapping[str, Any], lang: str, *, push_enabled: bool,
+                         own_reasons: Optional[Mapping[int, Optional[str]]] = None) -> list:
     hours = market.get("unusual_hours") or []
     if not hours:
         days = market.get("history_days")
@@ -664,14 +665,15 @@ def _unusual_hours_lines(cfg, market: Mapping[str, Any], lang: str, *, push_enab
         return [t(lang, "no_unusual_hours")]
     out, budget = [], _CATCHUP_MAX_LINES - 2 - _CATCHUP_TAIL_LINES
     for hour in hours[:3]:
-        block = _hour_block(cfg, hour, lang, push_enabled=push_enabled)
+        block = _hour_block(cfg, hour, lang, push_enabled=push_enabled, own_reasons=own_reasons)
         if out and len(out) + len(block) > budget:
             break
         out.extend(block)
     return out
 
 
-def _hour_block(cfg, hour: Mapping[str, Any], lang: str, *, push_enabled: bool) -> list:
+def _hour_block(cfg, hour: Mapping[str, Any], lang: str, *, push_enabled: bool,
+                own_reasons: Optional[Mapping[int, Optional[str]]] = None) -> list:
     gate = hour.get("gate") or {}
     values = gate.get("values") or {}
     label = _gate_state_text(gate, lang)
@@ -685,7 +687,12 @@ def _hour_block(cfg, hour: Mapping[str, Any], lang: str, *, push_enabled: bool) 
     if unsigned:
         lines.append(unsigned)
     if push_enabled:
-        note = _withheld_note(cfg, hour.get("suppression_reason"), lang)
+        # the reader's own outcome when known (their night, their own daily budget; review of #373), else the
+        # decision's
+        reason = hour.get("suppression_reason")
+        if own_reasons is not None and hour.get("decision_id") in own_reasons:
+            reason = own_reasons[hour["decision_id"]]
+        note = _withheld_note(cfg, reason, lang)
         if note:
             lines.append(note)
     return lines

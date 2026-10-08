@@ -159,7 +159,7 @@ def _interp(h, **kw):
 def test_brief_calm_night_matches_the_reference_message():
     m = _market(_interp("1h", price=0.5), _interp("4h", price=0.5))
     text = format_catchup(CFG, _view(m, kind="brief"), "ru", first_brief=True)
-    assert text == ("<b>BTC за ночь · 00:00–08:00 (Киев)</b>\n"
+    assert text == ("<b>Сводка BTC · 00:00–08:00 (Киев)</b>\n"
                     "Цена 61 420 → 61 880 (+0,75%), мин 61 210, макс 61 990\n"
                     "Необычных часов не было.\n\n"
                     "<b>Сейчас</b> · 1ч и 4ч: обычное состояние\n"            # one line when both agree (C2)

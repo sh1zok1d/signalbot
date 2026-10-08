@@ -14,7 +14,9 @@ messages went out.
 - **Owner version.** The same text plus the operational breakdown of `/admin_stats`
   (backlog H6) and the journal's weekly counts, sent to the owner once per report.
 - **Schedule.** `decision.weekly_report`: Sunday evening Kyiv by default, outside the U1a
-  withdrawal weekdays (Mon–Fri), so it never meets a withheld briefing.
+  withdrawal weekdays (Mon–Fri) on the Kyiv clock. A participant whose night it is then gets it when
+  their quiet hours end (review of #373); east of about UTC+5 that is their Monday morning, which may
+  be a U1a withdrawal day on their clock (the measurement contract, X5, records it).
 """
 from __future__ import annotations
 
@@ -177,7 +179,12 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
                                                           now=clock()):
         now = clock()
         did = row["delivery_id"]
-        if now - row["decision_ts"] > max_delay:
+        from .detector import quiet_end
+        # the participant's night: the report waits for its end, and its delay counts from there
+        due = quiet_end(cfg, row["decision_ts"], row.get("user_tz")) or row["decision_ts"]
+        if now < due:
+            continue
+        if now - due > max_delay:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_EXPIRED, now=now,
                                            suppression_reason=DELIVERY_TOO_OLD)
             out["expired"] += 1

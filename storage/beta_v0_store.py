@@ -520,12 +520,23 @@ class BetaConn:
         """Push decisions whose unusual-hour gate PASSED, decided in [start, end], oldest
         first. Delivery-side suppression is reported, never filtered (decision §3.1b.3)."""
         rows = await self.conn.fetch(
-            """SELECT d.decision_ts, d.decision, d.suppression_reason, d.gate, e.public_id, e.event_type
+            """SELECT d.decision_id, d.decision_ts, d.decision, d.suppression_reason, d.gate, e.public_id, e.event_type
                FROM beta_push_decisions d JOIN beta_episodes e USING (episode_pk)
                WHERE e.symbol=$1 AND d.decision_ts >= $2 AND d.decision_ts <= $3
                  AND d.gate IS NOT NULL AND (d.gate->>'qualified')::boolean
                ORDER BY d.decision_ts, d.decision_id""", symbol, start, end)
         return [{**dict(r), "gate": _load(r["gate"])} for r in rows]
+
+    async def own_push_reasons(self, user_pk: int, decision_ids: Sequence[int]) -> dict:
+        """{decision_id: this participant's own outcome}: None when it was sent to them, else their
+        delivery's suppression reason (review of #373: a note about an unsent hour is the reader's own)."""
+        if not decision_ids:
+            return {}
+        rows = await self.conn.fetch(
+            """SELECT decision_id, state, suppression_reason FROM beta_notification_deliveries
+               WHERE kind='push' AND user_pk=$1 AND decision_id = ANY($2::bigint[])""",
+            user_pk, [int(x) for x in decision_ids])
+        return {r["decision_id"]: (None if r["state"] == "SENT" else r["suppression_reason"]) for r in rows}
 
     async def flag_correction(self, *, snapshot_digests: Sequence[str], note: str) -> int:
         """Annotate (never rewrite) episodes decided from a later-corrected snapshot."""
@@ -924,6 +935,42 @@ class BetaConn:
         rows = await self.conn.fetch(
             f"SELECT DISTINCT tz FROM beta_users WHERE status='ACTIVE' AND push_enabled AND {pref}")
         return [r["tz"] for r in rows]
+
+    async def recipient_loads(self, pref: str, *, since: datetime, outbox_kind: str,
+                              alert_kinds: Sequence[str] = ()) -> list:
+        """{tz, times} for every ACTIVE participant with pushes and `pref` on: their zone and the decision
+        times of their messages of this budget since `since` that are sent or still on the way (review of
+        #373: each participant's own daily budget). `alert_kinds` narrows the market alerts to a budget."""
+        if pref not in ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly"):
+            raise ValueError(f"unknown push preference {pref!r}")
+        rows = await self.conn.fetch(
+            f"""SELECT u.user_pk, u.tz,
+                       array_remove(array_agg(x.decision_ts ORDER BY x.decision_ts), NULL) AS times
+                FROM beta_users u
+                LEFT JOIN beta_notification_deliveries x ON x.user_pk = u.user_pk AND x.kind = $2
+                     AND x.decision_ts >= $1 AND x.state IN ('PENDING', 'SENDING', 'SENT', 'DELIVERY_UNKNOWN')
+                     AND ($2 <> 'alert' OR EXISTS (SELECT 1 FROM beta_market_alerts a
+                            WHERE a.alert_pk = x.alert_pk AND a.kind = ANY($3::text[])))
+                WHERE u.status='ACTIVE' AND u.push_enabled AND u.{pref}
+                GROUP BY u.user_pk, u.tz""", since, outbox_kind, list(alert_kinds))
+        return [{"user_pk": r["user_pk"], "tz": r["tz"], "times": list(r["times"] or [])} for r in rows]
+
+    async def count_sent_on_own_day(self, *, user_pk: int, ts: datetime, tz: Optional[str], outbox_kind: str,
+                                    alert_kinds: Sequence[str] = ()) -> int:
+        """How many messages of this budget the participant was sent on their own calendar date of `ts`
+        (their clock; review of #373)."""
+        from beta.i18n import tz_of
+        zone = tz_of(tz)
+        start_local = datetime.combine(ts.astimezone(zone).date(), datetime.min.time(), tzinfo=zone)
+        end_local = datetime.combine(ts.astimezone(zone).date() + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+        return int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_notification_deliveries x
+               WHERE x.user_pk = $1 AND x.kind = $2 AND x.state = 'SENT'
+                 AND x.decision_ts >= $3 AND x.decision_ts < $4
+                 AND ($2 <> 'alert' OR EXISTS (SELECT 1 FROM beta_market_alerts a
+                        WHERE a.alert_pk = x.alert_pk AND a.kind = ANY($5::text[])))""",
+            user_pk, outbox_kind, start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc),
+            list(alert_kinds)))
 
     async def set_user_tz(self, telegram_user_id: int, tz: Optional[str]) -> bool:
         """The participant's time zone (backlog C5); None = Kyiv. The caller validated it (i18n.parse_tz)."""
@@ -1380,7 +1427,7 @@ class BetaConn:
         # backlog F5: which message each delivery was (the activity row knows only the type)
         deliveries = await self.conn.fetch(
             """SELECT d.kind, a.kind AS alert_kind, d.decision_id, d.alert_pk, d.brief_date, d.weekly_pk,
-                      d.user_pk, d.finished_at AS at
+                      d.decision_ts, d.user_pk, d.finished_at AS at
                FROM beta_notification_deliveries d LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
                WHERE d.state = 'SENT' AND d.user_pk IS NOT NULL""")
         return {"users": [dict(r) for r in users],

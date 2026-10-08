@@ -19,7 +19,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
-from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
+from beta.access import MUTE_ACTIONS, PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owner_parts, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected, DeliveryThrottled
@@ -287,7 +287,7 @@ class BetaBotHandler:
             if hours is None:
                 return [_msg(chat_id, t(lang, "catchup_usage"), lang=lang)]
             html_text, buttons = await self._catchup(conn, now, lang, hours,
-                                                    push_enabled=bool(user.get("push_enabled", True)))
+                                                    push_enabled=bool(user.get("push_enabled", True)), user=user)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_catchup",
                                      [_msg(chat_id, html_text, buttons, lang=lang)])
         if cmd == "push":
@@ -452,11 +452,13 @@ class BetaBotHandler:
             await self._shown(conn, "btc", view.get("decision"), now, view_pk=view_pk)
         return text, btc_buttons(view, lang, view_pk)
 
-    async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True):
+    async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True, user=None):
         """/catchup: the same view object with the window summary and 1h/4h labels."""
         from beta.formatter import btc_buttons, format_catchup, view_degraded
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
-        text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
+        from beta.delivery import own_push_reasons
+        own = await own_push_reasons(conn, (user or {}).get("user_pk"), view)
+        text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled, own_reasons=own)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
         if not view_degraded(view):                 # a degraded view prints no «после похожих»: nothing to link
             await self._shown(conn, "catchup", view.get("decision"), now, view_pk=view_pk, market=view.get("market"))
@@ -481,17 +483,19 @@ class BetaBotHandler:
 
     async def _tz_cmd(self, conn, uid: int, user, lang: str, args: Optional[str], now: datetime) -> tuple:
         """/tz: show or set the participant's time zone (backlog C5). Returns (reply, activity detail)."""
-        from beta.i18n import fmt_clock, parse_tz, zone_name
+        from beta.i18n import KYIV_ALIASES, fmt_clock, is_fixed_offset, parse_tz, zone_name
         arg = (args or "").strip()
         if not arg:
             q = self.cfg.quiet_hours_kyiv
             return t(lang, "tz_usage", name=zone_name(lang), quiet=f"{q[0]}–{q[1]}"), "status"
-        tz = None if arg.lower() in ("kyiv", "kiev", "киев", "europe/kyiv") else parse_tz(arg)
-        if tz is None and arg.lower() not in ("kyiv", "kiev", "киев", "europe/kyiv"):
+        kyiv_default = arg.lower() in KYIV_ALIASES                  # every spelling of Kyiv: the default (NULL)
+        tz = None if kyiv_default else parse_tz(arg)
+        if tz is None and not kyiv_default:
             return t(lang, "tz_bad"), "bad"
         await conn.set_user_tz(uid, tz)
         use_render_tz(tz)
-        return t(lang, "tz_ok", name=zone_name(lang, now), clock=fmt_clock(now, lang)), "set"
+        reply = t(lang, "tz_ok", name=zone_name(lang, now), clock=fmt_clock(now, lang))
+        return (reply + "\n" + t(lang, "tz_fixed_note") if is_fixed_offset(tz) else reply), "set"
 
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
@@ -608,7 +612,7 @@ class BetaBotHandler:
                 dist = fmt_signed_pct((a["price"] / price - 1) * 100.0, lang) if price else "—"
                 lines.append(t(lang, "al_list_line", k=k, price=fmt_price(a["price"], lang), dist=dist))
             lines.append(t(lang, "al_list_footer"))
-            lines.append(t(lang, "al_approach_note"))
+            lines.append(t(lang, "al_approach_note_list"))       # conditional: not every level gets one
             return "\n".join(lines)
         raw = "".join(parts).replace(",", ".").replace("$", "")
         try:
@@ -634,16 +638,22 @@ class BetaBotHandler:
         stats = await latest_stats(conn, now=now)
         model = (stats or {}).get("range_model")
         hz = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")     # absent in its event zone
+        # the approach message is promised only when it can come: the 1h typical move is known now (outside its
+        # event zone) and the level is farther than it (review of #373)
+        h1 = ((block.get("corridor") or {}).get("horizons") or {}).get("1h") or {}
+        typ = h1.get("typical_move_pct")
+        approach = t(lang, "al_approach_note") if block.get("available") and typ and abs(dist) > typ else None
         if model and hz:
             from beta.rangecast import touch_probability
             p = touch_probability(model, "24h", hz["scale_pct"], abs(dist))
-            return t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
-                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang)) + "\n" + t(lang, "al_approach_note")
+            reply = t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
+                      now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
+            return "\n".join(x for x in (reply, approach) if x)
         reply = t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
                   now=fmt_price(price, lang))
         # no chance: say why (stale statistics), or that the 24h horizon is inside a release's zone
         note = df.unavailable_line(block, lang) or df.zone_note(block.get("event_zone"), ["24h"], lang)
-        return "\n".join(x for x in (reply, note, t(lang, "al_approach_note")) if x)
+        return "\n".join(x for x in (reply, note, approach) if x)
 
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
         return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
@@ -813,7 +823,7 @@ class BetaBotHandler:
                                         [[(t(lang, "btn_unmute"), f"a:{kind}")]], lang=lang)]
             else:
                 out = [answer(""), _msg(chat_id, t(lang, "unmute_ok", name=name), lang=lang)]
-            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_mute" if off else "btn_unmute",
+            return await self._reply(conn, user, chat_id, lang, self.clock(), MUTE_ACTIONS[0 if off else 1],
                                      out, detail=kind)
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
