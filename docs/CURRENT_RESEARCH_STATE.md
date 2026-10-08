@@ -1,3 +1,23 @@
+## LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 — executed once; discovery; no incremental sequence structure; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 (atlas LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design fcfc3e43 before any post-first opposite-barrier scan) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #362 b005eaac -> #365 3ad8431e -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = sequence of the frozen BREAK and REJECT barriers after the first one-sided hit | not H02 close-back-inside mean reversion | not V2 false-break | not #362 path memory | not the #365 resolution clock | price only`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | no volume, taker, OI, spot, other venue, or book`
+`EXPOSURE = FIRST_EVENT_TYPE_ALREADY_EXPOSED = true | POST_FIRST_OPPOSITE_BARRIER_SEQUENCE was unread until design fcfc3e43 | then read once`
+`CLOCK = T = open of touch bar j | scan j+1..j+48 | opposite scan starts at k+1 | same-bar both hits stay FIRST_AMBIGUOUS | no scan past T+4h`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched N=1231 | unusable 0 | 254 weeks | real BREAK 579 REJECT 539 | pseudo BREAK 467 REJECT 549`
+`P1 = later REJECT given FIRST_BREAK | real 18.13% pseudo 14.99% | delta +3.15 pp (95% -1.23..+7.56, q=0.320, N=579/467, 2000/2000) | under 5 pp | class NONE`
+`P2 = later BREAK given FIRST_REJECT | real 20.22% pseudo 18.94% | delta +1.28 pp (95% -3.27..+5.95, q=0.578, N=539/549) | under 5 pp | class NONE`
+`STABILITY = P1 years 4/5 positive, 2024 -7.64 pp, LOYO keeps the sign | P2 years 2/5 and omit-2020 flips | neither contrast is statistical, so the route is not unstable`
+`DESCRIPTIVE = two-sided traversal real 17.87% pseudo 14.78% (+3.09 pp) | one-sided resolution real 73.44% pseudo 68.40% (+5.04 pp of all pairs, not a primary; the conditional complements are -3.15 and -1.28 pp)`
+`ROUTING = NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical conditional rates | not a current false-break probability | not an acceptance probability | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no FALSE_BREAK / ACCEPTED_BREAK / CONFIRMED_REJECT | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = volume-at-level; acceptance thresholds; close-based false-break; cross-venue composition; prospective confirmation; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 — executed once; discovery; resolution clock faster than pseudo; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 (atlas LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 56b162f0 before any barrier time) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_RESOLUTION_CLOCK_CANDIDATE`

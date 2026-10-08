@@ -1,0 +1,486 @@
+{
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261022,
+  "candidate_classes": [],
+  "claim_ceiling": "L2",
+  "data_artifact": false,
+  "dependencies": {
+    "clock": "3ad8431ee62cc48c86eeaeface9b50884babfbbe",
+    "path": "b005eaac895d3a4c644d16101d2e5eb7d2ff8d5f",
+    "touch": "dfc9e0f04358de15606382472badeb5aee787039"
+  },
+  "design_sha": "fcfc3e438e4cbea4213e8284a4cb851234e030f0",
+  "exposure_status": "DISCOVERY_ONLY",
+  "family": "LEVEL_BEHAVIOR_V1",
+  "fdr_q": 0.1,
+  "first_event": {
+    "pseudo": {
+      "AMBIGUOUS": 8,
+      "BREAK": 467,
+      "NEITHER": 207,
+      "REJECT": 549,
+      "UNUSABLE": 0
+    },
+    "real": {
+      "AMBIGUOUS": 6,
+      "BREAK": 579,
+      "NEITHER": 107,
+      "REJECT": 539,
+      "UNUSABLE": 0
+    }
+  },
+  "first_event_type_already_exposed": true,
+  "gates": {
+    "P1": true,
+    "P2": true
+  },
+  "mode": "DISCOVERY",
+  "n_labeled": 1231,
+  "n_matched": 1231,
+  "n_unusable": 0,
+  "note": "Discovery only. A historical difference in post-first barrier sequence is not a current false-break probability and not an acceptance probability.",
+  "novelty_ok": true,
+  "one_sided": {
+    "delta": 0.050365556458164096,
+    "n": 1231,
+    "pseudo": 0.6839967506092608,
+    "real": 0.7343623070674249,
+    "status": "DESCRIPTIVE"
+  },
+  "outcomes_sequence_read": true,
+  "overall_candidate": false,
+  "p1_class": "NONE",
+  "p2_class": "NONE",
+  "practical_pp": 0.05,
+  "primaries": {
+    "P1": {
+      "bootstrap_valid": 2000,
+      "candidate": false,
+      "class": "NONE",
+      "delta": 0.03145421664022369,
+      "delta_ci95": [
+        -0.012265252084627743,
+        0.07563239864615977
+      ],
+      "families": [
+        {
+          "delta": 0.023159303882195448,
+          "n_pseudo": 405,
+          "n_real": 498,
+          "name": "DAY",
+          "p_pseudo": 0.15555555555555556,
+          "p_real": 0.178714859437751
+        },
+        {
+          "delta": 0.07905982905982906,
+          "n_pseudo": 52,
+          "n_real": 72,
+          "name": "WEEK",
+          "p_pseudo": 0.11538461538461539,
+          "p_real": 0.19444444444444445
+        },
+        {
+          "delta": 0.1222222222222222,
+          "n_pseudo": 10,
+          "n_real": 9,
+          "name": "MONTH",
+          "p_pseudo": 0.1,
+          "p_real": 0.2222222222222222
+        }
+      ],
+      "family_rule": {
+        "material_opposite": false,
+        "pass": true
+      },
+      "information_limited": false,
+      "loyo": [
+        {
+          "delta": 0.03418439716312058,
+          "n_pseudo": 375,
+          "n_real": 470,
+          "name": "omit_2020",
+          "p_pseudo": 0.14666666666666667,
+          "p_real": 0.18085106382978725
+        },
+        {
+          "delta": 0.026579064217128273,
+          "n_pseudo": 344,
+          "n_real": 419,
+          "name": "omit_2021",
+          "p_pseudo": 0.17151162790697674,
+          "p_real": 0.19809069212410502
+        },
+        {
+          "delta": 0.01716411140342919,
+          "n_pseudo": 365,
+          "n_real": 453,
+          "name": "omit_2022",
+          "p_pseudo": 0.16164383561643836,
+          "p_real": 0.17880794701986755
+        },
+        {
+          "delta": 0.024066250819747143,
+          "n_pseudo": 399,
+          "n_real": 493,
+          "name": "omit_2023",
+          "p_pseudo": 0.15037593984962405,
+          "p_real": 0.1744421906693712
+        },
+        {
+          "delta": 0.05463725463725465,
+          "n_pseudo": 385,
+          "n_real": 481,
+          "name": "omit_2024",
+          "p_pseudo": 0.12207792207792208,
+          "p_real": 0.17671517671517672
+        }
+      ],
+      "loyo_rule": {
+        "n_checked": 5,
+        "pass": true
+      },
+      "n_pseudo": 467,
+      "n_real": 579,
+      "name": "P1",
+      "p": 0.16022895365984507,
+      "p_pseudo": 0.14989293361884368,
+      "p_real": 0.18134715025906736,
+      "q": 0.32045790731969015,
+      "se": 0.022398471087131437,
+      "side_rule": {
+        "material_opposite": false,
+        "pass": true
+      },
+      "sides": [
+        {
+          "delta": 0.031269507317411516,
+          "n_pseudo": 259,
+          "n_real": 334,
+          "name": "resistance",
+          "p_pseudo": 0.1274131274131274,
+          "p_real": 0.15868263473053892
+        },
+        {
+          "delta": 0.034360282574568274,
+          "n_pseudo": 208,
+          "n_real": 245,
+          "name": "support",
+          "p_pseudo": 0.1778846153846154,
+          "p_real": 0.21224489795918366
+        }
+      ],
+      "stable": true,
+      "statistical": false,
+      "weeks": 254,
+      "year_rule": {
+        "n_eligible": 5,
+        "n_matched": 4,
+        "pass": true
+      },
+      "years": [
+        {
+          "delta": 0.020442760271240534,
+          "n_pseudo": 92,
+          "n_real": 109,
+          "name": "2020",
+          "p_pseudo": 0.16304347826086957,
+          "p_real": 0.1834862385321101
+        },
+        {
+          "delta": 0.04806910569105692,
+          "n_pseudo": 123,
+          "n_real": 160,
+          "name": "2021",
+          "p_pseudo": 0.08943089430894309,
+          "p_real": 0.1375
+        },
+        {
+          "delta": 0.0826330532212885,
+          "n_pseudo": 102,
+          "n_real": 126,
+          "name": "2022",
+          "p_pseudo": 0.10784313725490197,
+          "p_real": 0.19047619047619047
+        },
+        {
+          "delta": 0.07387140902872777,
+          "n_pseudo": 68,
+          "n_real": 86,
+          "name": "2023",
+          "p_pseudo": 0.14705882352941177,
+          "p_real": 0.22093023255813954
+        },
+        {
+          "delta": -0.07640617222498758,
+          "n_pseudo": 82,
+          "n_real": 98,
+          "name": "2024",
+          "p_pseudo": 0.2804878048780488,
+          "p_real": 0.20408163265306123
+        }
+      ]
+    },
+    "P2": {
+      "bootstrap_valid": 2000,
+      "candidate": false,
+      "class": "NONE",
+      "delta": 0.012791008107167351,
+      "delta_ci95": [
+        -0.032700091068506,
+        0.059492868050835514
+      ],
+      "families": [
+        {
+          "delta": 0.02787880992216482,
+          "n_pseudo": 472,
+          "n_real": 466,
+          "name": "DAY",
+          "p_pseudo": 0.1652542372881356,
+          "p_real": 0.19313304721030042
+        },
+        {
+          "delta": -0.05954676952748317,
+          "n_pseudo": 68,
+          "n_real": 61,
+          "name": "WEEK",
+          "p_pseudo": 0.3382352941176471,
+          "p_real": 0.2786885245901639
+        },
+        {
+          "delta": -0.16666666666666666,
+          "n_pseudo": 9,
+          "n_real": 12,
+          "name": "MONTH",
+          "p_pseudo": 0.3333333333333333,
+          "p_real": 0.16666666666666666
+        }
+      ],
+      "family_rule": {
+        "material_opposite": false,
+        "pass": true
+      },
+      "information_limited": false,
+      "loyo": [
+        {
+          "delta": -0.0073154931506127785,
+          "n_pseudo": 451,
+          "n_real": 421,
+          "name": "omit_2020",
+          "p_pseudo": 0.1973392461197339,
+          "p_real": 0.19002375296912113
+        },
+        {
+          "delta": 0.00707876561633089,
+          "n_pseudo": 393,
+          "n_real": 399,
+          "name": "omit_2021",
+          "p_pseudo": 0.19592875318066158,
+          "p_real": 0.20300751879699247
+        },
+        {
+          "delta": 0.026535600977791646,
+          "n_pseudo": 435,
+          "n_real": 442,
+          "name": "omit_2022",
+          "p_pseudo": 0.18160919540229886,
+          "p_real": 0.2081447963800905
+        },
+        {
+          "delta": 0.01609219566733877,
+          "n_pseudo": 461,
+          "n_real": 454,
+          "name": "omit_2023",
+          "p_pseudo": 0.18655097613882862,
+          "p_real": 0.2026431718061674
+        },
+        {
+          "delta": 0.020414673046251997,
+          "n_pseudo": 456,
+          "n_real": 440,
+          "name": "omit_2024",
+          "p_pseudo": 0.18640350877192982,
+          "p_real": 0.20681818181818182
+        }
+      ],
+      "loyo_rule": {
+        "n_checked": 5,
+        "pass": false
+      },
+      "n_pseudo": 549,
+      "n_real": 539,
+      "name": "P2",
+      "p": 0.5783809904537853,
+      "p_pseudo": 0.1894353369763206,
+      "p_real": 0.20222634508348794,
+      "q": 0.5783809904537853,
+      "se": 0.023015711823606705,
+      "side_rule": {
+        "material_opposite": false,
+        "pass": true
+      },
+      "sides": [
+        {
+          "delta": -0.033262764632627645,
+          "n_pseudo": 292,
+          "n_real": 275,
+          "name": "resistance",
+          "p_pseudo": 0.1678082191780822,
+          "p_real": 0.13454545454545455
+        },
+        {
+          "delta": 0.0587194906261054,
+          "n_pseudo": 257,
+          "n_real": 264,
+          "name": "support",
+          "p_pseudo": 0.2140077821011673,
+          "p_real": 0.2727272727272727
+        }
+      ],
+      "stable": false,
+      "statistical": false,
+      "weeks": 254,
+      "year_rule": {
+        "n_eligible": 5,
+        "n_matched": 2,
+        "pass": false
+      },
+      "years": [
+        {
+          "delta": 0.09270148737461087,
+          "n_pseudo": 98,
+          "n_real": 118,
+          "name": "2020",
+          "p_pseudo": 0.15306122448979592,
+          "p_real": 0.2457627118644068
+        },
+        {
+          "delta": 0.02692307692307694,
+          "n_pseudo": 156,
+          "n_real": 140,
+          "name": "2021",
+          "p_pseudo": 0.17307692307692307,
+          "p_real": 0.2
+        },
+        {
+          "delta": -0.0440405136552722,
+          "n_pseudo": 114,
+          "n_real": 97,
+          "name": "2022",
+          "p_pseudo": 0.21929824561403508,
+          "p_real": 0.17525773195876287
+        },
+        {
+          "delta": -0.004545454545454547,
+          "n_pseudo": 88,
+          "n_real": 85,
+          "name": "2023",
+          "p_pseudo": 0.20454545454545456,
+          "p_real": 0.2
+        },
+        {
+          "delta": -0.022482893450635394,
+          "n_pseudo": 93,
+          "n_real": 99,
+          "name": "2024",
+          "p_pseudo": 0.20430107526881722,
+          "p_real": 0.18181818181818182
+        }
+      ]
+    }
+  },
+  "product_integration_candidate": false,
+  "pseudo_table": {
+    "BREAK_NO_LATER_REJECT": {
+      "n": 397,
+      "share": 0.32250203086921203
+    },
+    "BREAK_THEN_REJECT": {
+      "n": 70,
+      "share": 0.05686433793663688
+    },
+    "FIRST_AMBIGUOUS": {
+      "n": 8,
+      "share": 0.006498781478472786
+    },
+    "NEITHER": {
+      "n": 207,
+      "share": 0.16815597075548336
+    },
+    "REJECT_NO_LATER_BREAK": {
+      "n": 445,
+      "share": 0.36149471974004876
+    },
+    "REJECT_THEN_BREAK": {
+      "n": 104,
+      "share": 0.08448415922014622
+    }
+  },
+  "real_table": {
+    "BREAK_NO_LATER_REJECT": {
+      "n": 474,
+      "share": 0.3850528025995126
+    },
+    "BREAK_THEN_REJECT": {
+      "n": 105,
+      "share": 0.08529650690495533
+    },
+    "FIRST_AMBIGUOUS": {
+      "n": 6,
+      "share": 0.00487408610885459
+    },
+    "NEITHER": {
+      "n": 107,
+      "share": 0.08692120227457352
+    },
+    "REJECT_NO_LATER_BREAK": {
+      "n": 430,
+      "share": 0.34930950446791226
+    },
+    "REJECT_THEN_BREAK": {
+      "n": 109,
+      "share": 0.08854589764419171
+    }
+  },
+  "reversal_delay": {
+    "pseudo_BREAK_THEN_REJECT": {
+      "median": 60.0,
+      "n": 70,
+      "p25": 31.25,
+      "p75": 118.75
+    },
+    "pseudo_REJECT_THEN_BREAK": {
+      "median": 87.5,
+      "n": 104,
+      "p25": 50.0,
+      "p75": 151.25
+    },
+    "real_BREAK_THEN_REJECT": {
+      "median": 70.0,
+      "n": 105,
+      "p25": 40.0,
+      "p75": 135.0
+    },
+    "real_REJECT_THEN_BREAK": {
+      "median": 90.0,
+      "n": 109,
+      "p25": 40.0,
+      "p75": 145.0
+    }
+  },
+  "routing": "NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE",
+  "source_main": "1a2e425303fb29e1044ca57452b8ad9b6f0a831b",
+  "successor_candidate": "NONE",
+  "table_complete": true,
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "two_sided": {
+    "delta": 0.03086921202274573,
+    "n": 1231,
+    "pseudo": 0.1478472786352559,
+    "real": 0.17871649065800163,
+    "status": "DESCRIPTIVE"
+  },
+  "unit": "LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1"
+}

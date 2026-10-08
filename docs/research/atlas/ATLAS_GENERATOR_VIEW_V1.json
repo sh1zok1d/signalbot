@@ -397,7 +397,7 @@
    "frontier_value": 5,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 20,
+   "prior_signature_count": 21,
    "prior_signatures": [
     {
      "function": "CONFLUENT_LEVEL_HOLD_4H",
@@ -448,6 +448,11 @@
      "function": "LEVEL_APPROACH_STATE_DISCOVERY_V1",
      "id": "LEVEL-APPROACH-STATE-DISCOVERY-V1",
      "mechanism": "MODE=DISCOVERY. Which point-in-time characteristics of how price approaches an already-known structural BTC level carry incremental historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Not a test of a prechosen trader story. Successor in the level family after LEVEL-TOUCH-DEGRADATION-V1 and LEVEL-REJECTION-MEMORY-V1, not a rescore of either."
+    },
+    {
+     "function": "LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1",
+     "id": "LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. After the first one-sided #352 barrier of a structural first touch, is the opposite barrier reached inside the same 4h event more or less often than after the matched pseudo-price touch. The object is sequence semantics, not a predictor."
     },
     {
      "function": "LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1",
@@ -7718,7 +7723,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "230b2d61ee650de91465fe56bf6ab31a2f8b30b5e944317151d508b32d9da2e1",
+ "SOURCES_DIGEST": "d335ec3a68bd8e667e69545bc739953b0bdf06c0f0a8174d054e33184c26e6ff",
  "SURFACES": [
   {
    "also_cols": [

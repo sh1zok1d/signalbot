@@ -8441,3 +8441,25 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 executed once; discovery; no incremental sequence structure; not integrated
+
+**Unit.** `LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1` (atlas `LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #365 `3ad8431ee62cc48c86eeaeface9b50884babfbbe`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `fcfc3e438e4cbea4213e8284a4cb851234e030f0` before any post-first opposite-barrier scan. The six classes, the 4h horizon, the parent first-event rule, the 5 pp scale, and the FDR were not changed after the sequences were read.
+- **Exposure.** `FIRST_EVENT_TYPE_ALREADY_EXPOSED = true`. Parent BREAK / REJECT / NEITHER / AMBIGUOUS counts were already known. `POST_FIRST_OPPOSITE_BARRIER_SEQUENCE_NOT_YET_READ = true` at the design commit. The sequence was then read once.
+- **Novelty.** The object is whether the opposite frozen barrier is reached after the first one-sided hit, inside the original 4h event, relative to the matched pseudo touch. It is not H02, not the V2 false-break lifecycle, not the #362 path predictor, and not the #365 resolution clock. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`.
+- **Data.** Price OHLC only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No volume, taker, open interest, spot, other venue, or book.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched pairs 1231. Unusable windows 0. Real first events: BREAK 579, REJECT 539, AMBIGUOUS 6, NEITHER 107. Pseudo: BREAK 467, REJECT 549, AMBIGUOUS 8, NEITHER 207. 254 weeks. Both denominator gates pass.
+- **P1.** Later REJECT given FIRST_BREAK: real 18.13% (105/579), pseudo 14.99% (70/467), delta +3.15 pp (95% −1.23..+7.56, p=0.160, q=0.320, 2000/2000). Under 5 pp. Interval includes 0. Class `NONE`. Years +2.04 / +4.81 / +8.26 / +7.39 / −7.64. Four of five share the sign. 2024 is opposite and above 5 pp; the frozen rule was not rewritten. Leave-one-year-out stays positive.
+- **P2.** Later BREAK given FIRST_REJECT: real 20.22% (109/539), pseudo 18.94% (104/549), delta +1.28 pp (95% −3.27..+5.95, p=0.578, q=0.578). Under 5 pp. Interval includes 0. Class `NONE`. Years +9.27 / +2.69 / −4.40 / −0.45 / −2.25. The year rule fails, and omitting 2020 flips the leave-one-year-out sign. The contrast is not statistical, so this is not an unstable structure.
+- **Descriptive.** Two-sided traversal 17.87% real versus 14.78% pseudo (+3.09 pp). One-sided resolution 73.44% versus 68.40% (+5.04 pp of all pairs). That unconditional share is not a primary. Conditional on the first event, the one-sided gaps are the negatives of P1 and P2. Reversal-delay medians: real break-then-reject 70 min (N=105), real reject-then-break 90 min (N=109). No delay cutoff was tested.
+- **Routing.** `NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. The historical conditional reversal rates do not differ from the matched pseudo touch by the frozen 5 pp bar. Not a current false-break probability. Not an acceptance probability.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `FALSE_BREAK`, `ACCEPTED_BREAK`, `CONFIRMED_REJECT`, or whipsaw alert. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. Volume-at-level, acceptance thresholds, a close-based false-break rule, cross-venue composition, and prospective confirmation were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, price OHLC only, post-first opposite-barrier sequence versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; volume / taker / OI / spot / other venue / book / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
