@@ -1334,11 +1334,15 @@ class Database:
         return len(rows)
 
     async def insert_liquidations(self, rows: Sequence[tuple]) -> int:
-        """rows: (exchange, symbol, ts, side, price, qty, notional, is_snapshot_feed[, mapping_version])
-        Live-only, no upsert needed (each event is unique). mapping_version: see
-        data_ingestion.base_client.LIQUIDATION_MAPPING_VERSION (NULL for an 8-field row)."""
+        """rows: (exchange, symbol, ts, side, price, qty, notional, is_snapshot_feed, mapping_version)
+        Live-only, no upsert needed (each event is unique). mapping_version (data_ingestion.base_client.
+        LIQUIDATION_MAPPING_VERSION) is required: NULL means "written under the old mapping", so a
+        writer that forgot it would mislabel new rows as old (review of #374)."""
         if not rows:
             return 0
+        for r in rows:
+            if len(r) != 9 or r[8] is None:
+                raise ValueError("insert_liquidations: every row needs its mapping_version (9 fields)")
         assert self.pool is not None
         async with self.pool.acquire() as conn:
             await conn.executemany(
@@ -1347,7 +1351,7 @@ class Database:
                     (exchange, symbol, ts, side, price, qty, notional, is_snapshot_feed, mapping_version)
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
                 """,
-                [tuple(r) + (None,) * (9 - len(r)) for r in rows],
+                [tuple(r) for r in rows],
             )
         return len(rows)
 

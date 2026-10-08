@@ -120,6 +120,8 @@ def test_claim_rows_carry_the_shown_numbers_b0_prices_and_mode():
     assert r["subject_key"] == f"{e['event_id']}:T15" and r["eval_rule_id"] == "LEVEL_RACE_4H_V1"
     s, n = r["subject"], r["numbers"]
     assert s["mode"] == "HIST" and s["table_sha256"] == TABLE["table_sha256"] and s["cell"] == v["cell"]
+    from beta.build import build_sha
+    assert s["build_sha"] == build_sha() and s["versions"]["event"] == "BETA_STRUCTURAL_TOUCH_V1"
     assert s["p_up"] == v["p_up"] and s["p_dn"] == v["p_dn"] and s["p_dn"] < s["position"] < s["p_up"]
     assert math.isclose(sum(n["event_b0"].values()), 1.0, abs_tol=1e-5)
     if v["template"] != "LR_HIST_LOW_N_V1":

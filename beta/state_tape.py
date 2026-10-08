@@ -159,26 +159,40 @@ def extract_metrics(result: Optional[Stage2BucketResult], cfg: BetaConfig,
     percentile history. A per-venue liquidation value is recorded ONLY when that
     venue's feed was declared available AND its heartbeat was healthy — otherwise
     None (absence is never a measured zero). The venue's raw 5m kline OHLC is
-    recorded by value as ``x:<venue>:kline_<ohlc>``."""
+    recorded by value as ``x:<venue>:kline_<ohlc>``.
+
+    `venues[ex]["liq_mapping"]` (beta.liq_mapping, set by the detector) says how the venue's raw
+    liquidation rows of this bucket were written: old-mapping Bybit values are swapped, a mixed
+    bucket and an unproven OKX feed are not measured. A map built with it carries
+    `LIQ_MAPPING_KEY`, so it is never corrected again when read as history."""
+    from .liq_mapping import LIQ_MAPPING_KEY, LIQ_MAPPING_VERSION, correct_venue
     out: dict[str, Optional[float]] = {}
     c = result.consensus_feature if result is not None else None
     for m in CONSENSUS_METRICS + CONTEXT_METRICS:
         v = None if c is None else getattr(c, m)
         out[metric_key(None, m)] = None if v is None else float(v)
     by_ex = {v.exchange: v for v in (result.exchange_features if result is not None else ())}
+    mapped = bool(venues) and all("liq_mapping" in (venues.get(ex) or {}) for ex in cfg.exchanges)
     for ex in cfg.exchanges:
         efv = by_ex.get(ex)
+        vals = {}
         for _side, field in LIQ_SIDES:
             v = None if efv is None else getattr(efv, field)
             if not venue_liq_ok.get(ex, False):
                 v = None
-            out[metric_key(ex, field)] = None if v is None else float(v)
+            vals[field] = None if v is None else float(v)
+        if mapped:
+            vals = correct_venue(vals, venues[ex]["liq_mapping"])
+        for _side, field in LIQ_SIDES:
+            out[metric_key(ex, field)] = vals[field]
         if not carries_temporal_context(cfg.state_schema_version):
             continue                               # V1 payload: no kline OHLC
         ohlc = ((venues or {}).get(ex) or {}).get("ohlc") or {}
         for field in VENUE_OHLC_FIELDS:
             v = ohlc.get(field)
             out[metric_key(ex, f"kline_{field}")] = None if v is None else float(v)
+    if mapped:
+        out[LIQ_MAPPING_KEY] = float(LIQ_MAPPING_VERSION)
     return out
 
 
