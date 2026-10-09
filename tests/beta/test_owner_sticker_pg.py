@@ -160,3 +160,44 @@ def test_owner_forwards_are_purged_with_the_feedback_messages():
             assert await conn.purge_owner_forwards_before(NOW + timedelta(days=400)) == 1
         await pool.close()
     run(body())
+
+
+def test_preview_owner_only_never_holds_back_the_owners_own_replies():
+    """The owner's UX preview (2026-10-09): with `access.preview_owner_only` on, an owner sticker reply and
+    /admin_reply still reach the participant (explicit owner actions), while an automated alert to the same
+    participant is SUPPRESSED / SUPPRESSED_PREVIEW."""
+    async def body():
+        from beta_fakes import CFG, ON, Clock
+        from beta.delivery import PREVIEW_BLOCKED, SendPacer, send_one
+        from runtime.beta_bot import BetaBotHandler, deliver_outgoing
+        pool = await fresh_pool()
+        preview = CFG.with_overrides(access={**dict(CFG["access"]), "preview_owner_only": True})
+        h = BetaBotHandler(BetaStore(pool), preview, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW),
+                           bot_username="BetaBot")
+        sender = Sender()
+        async with BetaStore(pool).connect() as conn:
+            code = await conn.create_invite(label="pv", max_uses=5, now=NOW)
+        uid = 900000000409
+        await _join(h, uid, code, 1)
+        mid = await _forward(h, pool, sender, uid, "/feedback hello", 10)
+        await _owner_sticker(h, pool, sender, _sticker(OWNER, 20, reply_to=mid, file_id="FP"))
+        assert sender.stickers == [(uid, "FP")]
+        out = await h.handle(_msg(OWNER, f"/admin_reply {fingerprint(uid)} hi there", 21))
+        await deliver_outgoing(sender, out, store=BetaStore(pool))
+        assert any(chat == uid and "hi there" in html for chat, html, _ in sender.sent)
+        async with BetaStore(pool).connect() as conn:                 # an automated alert to the same participant
+            pk = await conn.insert_market_alert(kind="level", alert_key="level:pv", decision_ts=NOW, decision="PUSH",
+                                                suppression_reason=None, payload={"at": NOW.isoformat()})
+            user_pk = (await conn.get_user(uid))["user_pk"]
+            did = await conn.conn.fetchval(
+                """INSERT INTO beta_notification_deliveries (kind, alert_pk, user_pk, state, decision_ts)
+                   VALUES ('alert', $1, $2, 'PENDING', $3) RETURNING delivery_id""", pk, user_pk, NOW)
+            n = len(sender.sent)
+            res = await send_one(conn, sender, SendPacer().set_preview(preview, OWNER), did, chat_id=uid,
+                                 html="automated", clock=Clock(NOW))
+        assert res[0] == PREVIEW_BLOCKED and len(sender.sent) == n
+        row = (await _rows(pool, "SELECT state, suppression_reason FROM beta_notification_deliveries "
+                                 "WHERE delivery_id = $1", did))[0]
+        assert row == {"state": "SUPPRESSED", "suppression_reason": "SUPPRESSED_PREVIEW"}
+        await pool.close()
+    run(body())
