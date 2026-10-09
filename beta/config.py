@@ -113,7 +113,7 @@ _HORIZON_CHANGES_KEYS = {"version", "range_wider_ratio", "range_narrower_ratio",
 
 # Join cap and activity retention. They never enter the rules digest.
 _ACCESS_KEYS = {"max_active_users"}
-_ACCESS_OPTIONAL = {"tiers_enforced", "u3_offer"}
+_ACCESS_OPTIONAL = {"tiers_enforced", "u3_offer", "preview_owner_only"}
 _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 
 # /feedback limits. Presentation only. They never enter the rules digest.
@@ -560,6 +560,8 @@ def _validate_access(d: Mapping[str, Any]) -> None:
     _int(a["max_active_users"], "access.max_active_users", minimum=1)
     if "tiers_enforced" in a:
         _bool(a["tiers_enforced"], "access.tiers_enforced")
+    if "preview_owner_only" in a:
+        _bool(a["preview_owner_only"], "access.preview_owner_only")
     offer = a.get("u3_offer")
     if offer is not None:
         _exact_keys(offer, {"price", "method"}, "access.u3_offer")

@@ -43,6 +43,9 @@ PUSH_DISABLED = "PUSH_DISABLED"
 DELIVERY_TOO_OLD = "DELIVERY_TOO_OLD"
 DATA_DEGRADED_REASON = "DATA_DEGRADED"
 USER_INACTIVE = "USER_INACTIVE"
+# Delivery-only: an automated message to anyone but the owner while `access.preview_owner_only` is on (the
+# owner's UX preview). Terminal: never retried, never sent after the flag goes off.
+SUPPRESSED_PREVIEW = "SUPPRESSED_PREVIEW"
 # Delivery-only: a briefing withheld on a U1a withdrawal day (BETA_MEASUREMENT_CONTRACT_V1 §6).
 BRIEF_WITHDRAWAL = "BRIEF_WITHDRAWAL"
 # PRODUCT_FIRST_DECISION_V1 §3 rows 7-8: the product-level unusual-hour gate and the

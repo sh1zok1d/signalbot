@@ -179,7 +179,7 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
     w = cfg.section("decision")["weekly_report"]
     out = {"built": False, "scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "throttled": 0, "expired": 0,
            "suppressed": 0}
-    pacer = pacer if pacer is not None else SendPacer()
+    pacer = pacer if pacer is not None else SendPacer().set_preview(cfg, owner_user_id)   # preview on: owner only
     max_delay = timedelta(minutes=int(w["max_delay_min"]))
     now = clock()
     from .detector import _recipient_tzs

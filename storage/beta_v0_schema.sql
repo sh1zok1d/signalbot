@@ -531,7 +531,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- the test opening: Day 0 is the Kyiv date of the first unknown join at or after it (owner, 2026-10-08)
     'admin_test_open',
     -- the owner's sticker reply to a participant's message (owner decision 2026-10-08)
-    'admin_sticker'));
+    'admin_sticker',
+    -- the owner's UX preview of one notification type, to the owner only (2026-10-09)
+    'admin_preview'));
 
 -- The minimal deletion record (owner, 2026-10-08; BETA_MEASUREMENT_CONTRACT_V1 §1.5): how many unknown
 -- participants who joined at or after the test opening were deleted, per Kyiv join date. The enrolled
@@ -655,6 +657,26 @@ BEGIN
         ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS', 'DAILY_CAP'));
+    END IF;
+END $$;
+
+-- The owner's UX preview (`access.preview_owner_only`): an automated message to anyone but the owner is
+-- SUPPRESSED / SUPPRESSED_PREVIEW, terminal. Widen once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%DAILY_CAP%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%SUPPRESSED_PREVIEW%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS', 'DAILY_CAP',
+            'SUPPRESSED_PREVIEW'));
     END IF;
 END $$;
 
