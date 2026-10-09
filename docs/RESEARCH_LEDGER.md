@@ -8912,3 +8912,12 @@ ROUTE = TREND_REGIME_MODULATION_NOT_DETECTED | DISCOVERY_ONLY | no promotion
 WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-01-01..2024-12-31 x R_1H: 6 cells (three tercile partials, delta B0, delta B1, interaction)
 NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variables or horizons | no successor
 ```
+
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 (Cursor) ported to the canonical surface: amendment A2 frozen, outcome-blind census (no fit)
+
+`OWNER = option (b): Cursor's frozen, unfitted prototype first, only on RP4H Unit B's canonical 2025-26 surface; ADAPTIVE_B1_FORECAST_V1 decided afterwards`
+`PORT = scripts/research/rp4h_forecast_prototype_a2/ | eligibility, folds, model, evaluate, __init__ byte-identical to Cursor tip a7b0805e | constants, market, support adapted for A2 | vendored grid and BitMEX sample (blobs in VENDORED.md) | parent design 7a04ddb5, A1 6d0d93d3 copied byte-identical`
+`AMENDMENT_A2 = docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_AMENDMENT_A2.md | SHA256 e46fd86defdc99eb7411c1c55aaa647a96bab90dfb8c4d1905397397147bcfb8 | changes only the 2025-26 source (Cursor's file contained the E1-development slice 2026-08-02..08-15, an exact-class RP4H exposure)`
+`CENSUS (outcome-blind; reproduced byte for byte) = BITMEX 113,210 / 171 weeks and BINANCE_2020_2024 162,084 / 242 identical to Cursor's A1 | BINANCE_2025_2026 59,657 / 90 (A1 60,999 / 92) | total 334,951 / 503 | SUPPORT 54b82c61, FOLDS d03f1b90, ADAPTER efd7b8a8`
+`RUNTIME = Python 3.11 / numpy 2.1.3 / pandas 2.2.3 (requirements pins, CI); fold-clock guard refuses pandas 3`
+`MODEL_FIT = false | OWNER_GO = false | OUTCOMES_READ = none`

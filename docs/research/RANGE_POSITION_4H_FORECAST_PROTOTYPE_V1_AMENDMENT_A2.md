@@ -1,6 +1,18 @@
-# RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-outcome amendment A2 (DRAFT, not frozen)
+# RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-outcome amendment A2 (frozen before any fit)
 
-**Status:** `DRAFT`. The owner freezes it by pinning this file's SHA256 in `scripts/research/rp4h_forecast_prototype_a2/constants.py` (`AMENDMENT_A2_SHA256`, now `PENDING`). Until then the market path refuses with `AMENDMENT_A2_PENDING`, in addition to `AWAITING_OWNER_GO`.
+**Status:** `FROZEN` before any fit. This file's SHA256 is pinned in `scripts/research/rp4h_forecast_prototype_a2/constants.py` (`AMENDMENT_A2_SHA256`). The market path refuses on a mismatch (`AMENDMENT_A2_HASH_MISMATCH`), and refuses with `AWAITING_OWNER_GO` while `OWNER_GO` is false.
+
+**Owner decision.** 2026-10-09, option (b): run Cursor's frozen prototype first, but only on the canonical Opus 2025–2026 surface, and decide on ADAPTIVE_B1_FORECAST_V1 afterwards.
+
+**Execution, after a separate owner GO:**
+- A go commit sets `OWNER_GO = True` in `constants.py`. Nothing else changes.
+- The one-shot fit runs through the parent's market entry point on the pinned runtime below.
+- It writes its journal under `docs/research/range_position_4h_forecast_prototype_v1_a2_execution/`. A second attempt exits `REFUSING_RERUN` (`ATTEMPT.json`).
+
+**Runtime pin (fail-closed):**
+- Python 3.11 with numpy 2.1.3 and pandas 2.2.3 (the `requirements.txt` pins; the CI runtime).
+- The vendored fold clock is correct only there. `runtime_guard.assert_fold_clock` refuses any other result with `FOLD_CLOCK_RUNTIME_MISMATCH`.
+- On the container's default Python 3.13 / pandas 3, 15 vendored tests fail for that reason, and the guard blocks the run.
 
 **Unit label:** `RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_A2`. Parent: `RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1`.
 
