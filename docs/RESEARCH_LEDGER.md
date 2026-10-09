@@ -8908,3 +8908,20 @@ WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 and BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILI
 OUTCOME_READ = yes; LABEL = POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_DECISION_VALUE_V1 design, scores unread
+
+**Mode.** `POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT`. `outcome_read = false`. The unit cannot raise an evidence tier. It does not authorize a product change.
+- **Principle.** Signalbot does not require the market to produce a preselected effect magnitude. Observables, estimands, evaluation, and anti-overfitting protections are frozen before scoring. A practical threshold is used only when an external decision cost, product utility, or operational requirement already justifies it. `rho >= +0.10` is not applied. No Brier or precision floor is applied.
+- **Question.** What decision value does formation width add, beyond `RV_FORMATION`, for the upper quartile of next-hour activity?
+- **Audit.** Product labels in `config/beta_v0.yaml` are `label_elevated 0.80`, `label_high 0.95`, `label_extreme 0.99`. They rank the current rolling hour's range, move, and volume (`beta/context.py`, `beta/hour_gate.py`). `beta/interpretation.py` says a label never says what comes next. They are not a forecast of `RV_NEXT`, so they are not the target.
+- **Target.** `HIGH` is next-hour `ACTIVITY` at least the training-fold linear quantile `0.75`. Model is unpenalized logistic on the same training-referenced rank scores. Decision threshold is that model's own training probability quantile at `0.75`. Primary proper score is Brier. Tail measure is AUROC and is not a route input. Descriptive quantiles `0.50`, `2/3`, and `0.90` are not route inputs.
+- **Folds.** The same yearly expanding tests, 2021 through 2024. Seeds `20261112` and `20261113`. ISO-week block bootstrap of the realized OOS sequence, `B = 2000`, two-sided quantiles `0.025` and `0.975`. No refit inside the bootstrap.
+- **Prospective.** `FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1` stays unscored. Governance hold `ON_HOLD_PENDING_DECISION_VALUE_REVIEW`. Amendments are not rewritten.
+- **Design.** SHA256 `28e5f96da131e75321086b083545a4b0e9715685c595a80094e644a840694e51`.
+
+```
+WINDOWS_CONSUMED = none new; the decision-value scores are not yet read
+OUTCOME_READ = no; EVIDENCE_CLASS = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
+```

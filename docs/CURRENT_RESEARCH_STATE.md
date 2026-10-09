@@ -1,3 +1,16 @@
+## FORMATION_WIDTH_DECISION_VALUE_V1 — design frozen, scores unread — 2026-10-09
+
+`MODE = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT | outcome_read = false | evidence tier unchanged`
+`QUESTION = what decision value WIDTH adds beyond RV_FORMATION for upper-quartile next-hour ACTIVITY`
+`PRIMARY = train upper quartile 0.75 of ACTIVITY | unpenalized logistic on training rank scores | Brier and paired call accuracy | no magnitude floor`
+`SURFACES = CORE_BTC_BINANCE_V0 [2020-01-01, 2025-01-01) | LEVEL_CROSS_VENUE_PERP_5M_V0 [2020-04-01, 2025-01-01) | already consumed | not pooled`
+`FOLDS = yearly expanding tests 2021, 2022, 2023, 2024 | seeds Binance 20261112 | Bybit 20261113 | B = 2000 | two-sided 95 percent`
+`PRODUCT LABELS = 0.80 / 0.95 / 0.99 not adopted | they label the current rolling hour, not a forecast of RV_NEXT`
+`NOT OPENED = BitMEX, 2025/2026, E1, prospective forward association, product integration`
+`DESIGN SHA256 = 28e5f96da131e75321086b083545a4b0e9715685c595a80094e644a840694e51`
+
+Design: `docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_DESIGN.md`.
+
 ## FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 — one OOS characterization — 2026-10-09
 
 `MODE = POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT | outcome_read = true | evidence tier unchanged | not a confirmation`
@@ -34,6 +47,7 @@ Design: `docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md
 `NOT OPENED = forward association, BitMEX, another historical venue, 2025/2026 archive, E1, product`
 `GO = a separate owner go is required for the first formal checkpoint, and only once N reaches 1460 | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
 `GOVERNANCE_HOLD = ON_HOLD_PENDING_PREDICTIVE_VALUE_CHARACTERIZATION | forward scoring is not started | checkpoints, Amendment A1 budget, and the refusing evaluator are unchanged | forward association not read`
+`GOVERNANCE_HOLD_UPDATE = ON_HOLD_PENDING_DECISION_VALUE_REVIEW | the line above stays the record of the earlier pause | forward association still not read | checkpoints and Amendment A1 unchanged | evaluator still refuses`
 
 Amendment: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md`.
 

@@ -1,0 +1,9 @@
+{
+  "design_sha256": "28e5f96da131e75321086b083545a4b0e9715685c595a80094e644a840694e51",
+  "evaluator_digest": "87de6e88b061373efdfc8780d86570c9e538c9658dcc26f760b6cdcc0e8d9623",
+  "historical_practical_rho_applied": false,
+  "outcome_read": false,
+  "product_labels_adopted": false,
+  "prospective_forward_read": false,
+  "unit": "FORMATION_WIDTH_DECISION_VALUE_V1"
+}
