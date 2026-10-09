@@ -51,6 +51,7 @@ def from_view(view: Mapping[str, Any]) -> dict:
         "source": "view",
         "kind": view.get("kind", "btc"),
         "status": view.get("product_status"),
+        "status_reasons": list(view.get("status_reasons") or ()),
         "data_through": view.get("data_through"),
         "decision_available": bool(dec.get("available")),
         "decision_reason": dec.get("reason"),

@@ -22,7 +22,18 @@ Every screen has up to three levels, and each level allows only certain claims:
 4. **«🎯 Рядом»:** at most 2 levels (the one at the price first, then the nearest above and below): the name from data, ↑ / ↓, the distance %. Omitted when there are none.
 5. The calendar line when CPI / FOMC is within 24 h.
 
-**Calm** is a full sentence with numbers: «💤 Спокойно. За час +0,3 %, диапазон и объём как обычно.» The «как обычно» part appears only when both labels are known (mature tier); otherwise only the move.
+**The calm family** (no salience rule fires) is one full sentence with numbers, and each state reads differently by formal predicate:
+- «💤 Спокойно. За час +0,3 %, диапазон и объём как обычно.» — both 1h labels known and ordinary;
+- «💤 Тихо. За час +0,02 %, диапазон уже обычного, …» — compression: the 1h range in the existing low band (`context.tail_label` «bottom», rank ≤ `tail_display_max`, mature tier);
+- «… объём ниже обычного» — thin trading: the 1h volume in the same low band;
+- «💤 Выходные. …» — `data_through` falls on a Saturday or Sunday;
+- the brief / catchup view adds its window: «📅 За 8 ч (02:00–10:00 Киев): BTC +0,30 %, диапазон 63 980–64 390.»;
+- an unknown label (young history) drops the band words and keeps the move only.
+The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unchanged.
+
+**Stale ≠ degraded.** Both fire the frozen `stale` salience rule, and render differently:
+- **stale** (status `DATA STALE` or decision reason `DATA_STALE`): «₿ BTC», then «🔎 Данные запаздывают: последние от 05:00 Киев. Текущих цифр нет.» and nothing else — no price, levels, calendar, or L3 numbers;
+- **degraded** (`DATA DEGRADED`): the normal header with price, «🔎 Неполные данные: открытые позиции. Остальное — ниже.» (inputs named from `view.status_reasons`), then everything still valid; band words and L3 lines of a partial family are dropped.
 
 **Example (RU), /btc L1, busy:**
 ```
@@ -129,10 +140,27 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `st_move` | {emoji} BTC {pct} за час | {emoji} BTC {pct} over the hour | an episode, the range bands or high volume fired; ⚡ for an episode or the extreme range band, else 📈 / 📉 by the sign of horizons.1h.price_move_pct |
 | `st_level` | 🎯 BTC у уровня {name} {edge} | 🎯 BTC at a level: {name} {edge} | only level_at / event_today / corridor_edge fired and decision.levels.at is set |
 | `st_quiet` | 💤 За час {pct} | 💤 {pct} over the hour | only event_today / corridor_edge fired: the hour itself was quiet |
-| `st_calm` | 💤 Спокойно. За час {pct}, диапазон и объём как обычно. | 💤 Calm. {pct} over the hour, range and volume as usual. | nothing fires and both 1h labels (range, volume) are known and below context.label_high |
-| `st_calm_short` | 💤 Спокойно. За час {pct}. | 💤 Calm. {pct} over the hour. | nothing fires, a 1h label is unknown (history not mature) |
+| `st_calm_head` | 💤 Спокойно. | 💤 Calm. | nothing fires (or only the degraded-data line), no 1h low band and not a weekend |
+| `st_calm_head_low` | 💤 Тихо. | 💤 Quiet. | as st_calm_head, and the 1h range or volume is in the low band (tail_label bottom, rank <= context.tail_display_max, tier mature) |
+| `st_calm_head_weekend` | 💤 Выходные. | 💤 Weekend. | as st_calm_head, and data_through falls on a Saturday or Sunday (the user's clock) |
+| `st_calm_move` | за час {pct} | {pct} over the hour | the calm line: horizons.1h.price_move_pct |
+| `calm_both_usual` | диапазон и объём как обычно | range and volume as usual | both 1h labels known, neither high nor in the low band |
+| `calm_range_usual` | диапазон как обычно | range as usual | 1h range label known, not high, not in the low band (volume is in the low band) |
+| `calm_volume_usual` | объём как обычно | volume as usual | 1h volume label known, not high, not in the low band (range is in the low band) |
+| `calm_range_low` | диапазон уже обычного | range narrower than usual | 1h range in the low band (rank <= context.tail_display_max, tier mature) |
+| `calm_volume_low` | объём ниже обычного | volume below usual | 1h volume in the low band (rank <= context.tail_display_max, tier mature) |
 | `st_calm_noprice` | 💤 Спокойно. | 💤 Calm. | nothing fires and the 1h move is missing |
-| `st_stale` | 🔎 Свежих данных нет — показываю последнее, что есть. | 🔎 No fresh data — showing the last known state. | product status DATA STALE or DATA DEGRADED, or decision reason DATA_STALE |
+| `hdr_btc_bare` | ₿ BTC | ₿ BTC | stale data: no current price or time on the header |
+| `st_stale` | 🔎 Данные запаздывают: последние от {clock} Киев. Текущих цифр нет. | 🔎 Data is late: the latest is from {clock} Kyiv. No current numbers. | product status DATA STALE, or decision reason DATA_STALE; the view's data_through |
+| `st_stale_never` | 🔎 Данные запаздывают. Текущих цифр нет. | 🔎 Data is late. No current numbers. | as st_stale, and the view has no data_through |
+| `st_degraded` | 🔎 Неполные данные: {inputs}. Остальное — ниже. | 🔎 Partial data: {inputs}. The rest is below. | product status DATA DEGRADED (not stale); inputs named from view.status_reasons |
+| `in_price` | цена и диапазон | price and range | status reason FAMILY_UNUSABLE:price_structure |
+| `in_oi` | открытые позиции | open positions | status reason FAMILY_UNUSABLE:oi |
+| `in_volume` | объём | volume | status reason FAMILY_UNUSABLE:volume |
+| `in_feed` | поток с бирж | the exchange feed | status reason INGESTION_HEARTBEAT_UNHEALTHY |
+| `in_calc` | расчёт последнего часа | the last hour's calculation | status reason MATERIALIZATION_FAILED, STALE_COHERENCE_BARRIER or EVALUATION_NOT_FRESH |
+| `in_any` | часть входных данных | some inputs | DATA DEGRADED with no known reason |
+| `win_line` | 📅 За {hours} ч ({start}–{end} Киев): BTC {pct}, диапазон {low}–{high}. | 📅 Last {hours} h ({start}–{end} Kyiv): BTC {pct}, range {low}–{high}. | the view carries a complete market window (the brief / catchup view): market.window |
 | `cx_episode` | сейчас {name} | {name} is on | an active episode in state TRIGGERED |
 | `cx_range_extreme` | цена ходит намного шире обычного для этого часа | the price swings far wider than usual for this hour | 1h range rank >= context.label_extreme, tier mature |
 | `cx_range_high` | цена ходит шире обычного для этого часа | the price swings wider than usual for this hour | 1h range rank >= context.label_high (below extreme), tier mature |
@@ -145,7 +173,8 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `ev_fomc` | решение ФРС | the Fed decision | event kind FOMC |
 | `hdr_why` | 🔎 Почему так | 🔎 Why | L2 of the screen |
 | `b_now` | 📊 Что видно сейчас | 📊 What we see now | always on L2 |
-| `now_stale` | Свежих данных нет, цифры могут отставать от рынка. | There is no fresh data; numbers may lag the market. | st_stale |
+| `now_stale` | Новых данных давно не было, поэтому текущих цифр нет. | No new data has arrived for a while, so there are no current numbers. | st_stale |
+| `now_degraded` | Неполные: {inputs}. Цифры по ним не показываю, остальные — по полным данным. | Partial: {inputs}. Their numbers are not shown; the rest comes from complete data. | st_degraded |
 | `now_episode` | Сейчас {name}: его условия выполняются прямо сейчас. | {name} is on: its conditions hold right now. | cx_episode |
 | `now_level_at` | Цена стоит у уровня: {name} {edge}. | The price is at a level: {name} {edge}. | decision.levels.at is set |
 | `now_range_extreme` | За последний час цена прошла намного больше, чем обычно в это время суток. | In the last hour the price covered far more ground than usual for this time of day. | cx_range_extreme |
@@ -153,8 +182,10 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `now_volume_high` | Торгуют активнее, чем обычно в это время суток. | Trading is busier than usual for this time of day. | cx_volume_high |
 | `now_event` | В {clock} выходит {event}. | {event} is out at {clock}. | ev_today |
 | `now_corridor_edge` | Цена у края диапазона, в котором она обычно проводит сутки. | The price is near the edge of the range it usually stays in over a day. | cx_corridor_edge |
-| `now_calm` | Диапазон и объём за час — как обычно в это время суток. | Range and volume over the hour are as usual for this time of day. | st_calm |
-| `now_calm_young` | Сравнить с обычным пока не с чем: истории этого часа ещё мало. | Nothing to compare with yet: this hour's history is still short. | st_calm_short |
+| `now_calm` | Диапазон и объём за час — как обычно в это время суток. | Range and volume over the hour are as usual for this time of day. | calm_both_usual |
+| `now_range_low` | За час цена прошла меньше, чем обычно в это время суток. | Over the hour the price covered less ground than usual for this time of day. | calm_range_low |
+| `now_volume_low` | Торгуют меньше, чем обычно в это время суток. | Trading is thinner than usual for this time of day. | calm_volume_low |
+| `now_calm_young` | Сравнить с обычным пока не с чем: истории этого часа ещё мало. | Nothing to compare with yet: this hour's history is still short. | nothing fires and a 1h label is unknown (history not mature) |
 | `b_hist` | 🔎 Что было в похожих ситуациях | 🔎 What happened in similar cases | a nearby level with a stored first-touch history |
 | `hist_same` | У уровня «{name}» через час цена была {side} него так же часто, как у случайного уровня. | At «{name}», an hour later the price was {side} it about as often as at a random level. | history.verdicts.1h == as_usual (levels.py, Holm-adjusted) |
 | `hist_more` | У уровня «{name}» через час цена была {side} него чаще, чем у случайного уровня. | At «{name}», an hour later the price was {side} it more often than at a random level. | history.verdicts.1h == differs and real hold_rate > control hold_rate |
@@ -214,6 +245,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | **F** no drama | No «обвал / взрыв / паника / ракета», no «!!» | `test_rule_F_no_drama` |
 | **G** lively words only by rule | Every phrase has a predicate; the renderer prints only dictionary phrases and fact values | `test_rule_G_every_phrase_has_a_rule_and_the_doc_lists_them` |
 | **H** no machine language | No internal tokens in any rendered output | `test_no_machine_language_reaches_a_user` |
+| **J** distinct states | The calm family (usual, compression, thin, weekend, night window) and stale vs degraded read differently | `test_calm_family_states_read_differently`, `test_stale_shows_nothing_current_and_degraded_names_the_partial_input` |
 | **I** anatomy | L1 header / state / «Рядом» ≤ 2; L3 bold groups; notifications: headline with number, one sentence, window, buttons | `test_l1_anatomy_and_l3_groups`, `test_notifications_have_one_headline_one_sentence_and_a_window` |
 
 Also tested:
@@ -234,7 +266,7 @@ Also tested:
   - `level_card` 1 (facts: `{"zone": …}`);
   - `hour`, `level`, `move`, `brief` 1.
 - **Facts** (`beta/ux/facts.py`, read-only copies of the persisted payload; nothing is computed):
-  - `from_view(view)` for `/btc`, `/levels` and the brief (the catchup view);
+  - `from_view(view)` for `/btc`, `/levels` and the brief (the catchup view); it carries `status_reasons` (additive key) so degraded data can name the partial input;
   - `from_alert("level" | "move", payload)`;
   - `from_hour_gate(triggered_at, gate)`.
   - `facts_equivalent(facts, view)` lists any fact that drifted from the payload.

@@ -132,12 +132,66 @@ def _nearest(f, n: int) -> list:
     return out[:n]
 
 
-def _labels_known(f) -> bool:
-    return sel._label(f, "range_width_pct_median") is not None and sel._label(f, "volume_notional_usd_sum") is not None
-
-
 # ---- /btc L1 -------------------------------------------------------------------------------------
+_REASON_INPUT = {"FAMILY_UNUSABLE:price_structure": "in_price", "FAMILY_UNUSABLE:oi": "in_oi",
+                 "FAMILY_UNUSABLE:volume": "in_volume", "INGESTION_HEARTBEAT_UNHEALTHY": "in_feed",
+                 "MATERIALIZATION_FAILED": "in_calc", "STALE_COHERENCE_BARRIER": "in_calc",
+                 "EVALUATION_NOT_FRESH": "in_calc"}
+_PARTIAL_FAMILY = {"in_price": "range_width_pct_median", "in_volume": "volume_notional_usd_sum"}
+
+
+def _partial(f) -> list:
+    """The degraded inputs as phrase keys, in a fixed order, from view.status_reasons."""
+    keys = {_REASON_INPUT[r] for r in f.get("status_reasons") or () if r in _REASON_INPUT}
+    return [k for k in ("in_price", "in_oi", "in_volume", "in_feed", "in_calc") if k in keys] or ["in_any"]
+
+
+def _inputs(f, lang: str) -> str:
+    return ", ".join(text(k, lang) for k in _partial(f))
+
+
+def _degraded(f) -> bool:
+    return "stale" in sel.salient(f) and not sel.stale_only(f)
+
+
+def _weekend(f) -> bool:
+    if not f.get("data_through"):
+        return False
+    from beta.i18n import local
+    return local(datetime.fromisoformat(f["data_through"].replace("Z", "+00:00"))).weekday() >= 5
+
+
+def _band(f, metric: str) -> Optional[str]:
+    """'low' | 'usual' | None (unknown, or a family the degraded status names as partial)."""
+    if _degraded(f) and metric in {_PARTIAL_FAMILY.get(k) for k in _partial(f)} | (
+            {"range_width_pct_median", "volume_notional_usd_sum"} if "in_any" in _partial(f) else set()):
+        return None
+    if sel.low_band(f, metric):
+        return "low"
+    lab = sel._label(f, metric)
+    return "usual" if lab in ("normal", "elevated") else None
+
+
+def _calm_lines(f, lang: str) -> list:
+    """The calm family: one sentence with the hour's move and the range / volume bands it can name."""
+    pct = (f.get("h1") or {}).get("price_move_pct")
+    if pct is None:
+        return [text("st_calm_noprice", lang)]
+    rng, vol = _band(f, "range_width_pct_median"), _band(f, "volume_notional_usd_sum")
+    head = "st_calm_head_weekend" if _weekend(f) else ("st_calm_head_low" if "low" in (rng, vol) else "st_calm_head")
+    frag = [text("st_calm_move", lang, pct=spct(pct, lang))]
+    if rng == "usual" and vol == "usual":
+        frag.append(text("calm_both_usual", lang))
+    else:
+        frag += [text(k, lang) for k, on in (("calm_range_low", rng == "low"), ("calm_range_usual", rng == "usual"),
+                                             ("calm_volume_low", vol == "low"), ("calm_volume_usual", vol == "usual"))
+                 if on]
+    return [text(head, lang) + " " + _sentence(frag)]
+
+
 def _l1_header(f, lang: str) -> str:
+    if sel.stale_only(f):
+        return text("hdr_btc_bare", lang)
     when = clock(f["data_through"]) if f.get("data_through") else "—"
     if f.get("price") is not None:
         return text("hdr_btc", lang, price=price(f["price"], lang), clock=when)
@@ -148,8 +202,12 @@ def _state_lines(keys, f, lang: str) -> list:
     """The state line (with its number) and one context sentence, from facts only."""
     h1 = f.get("h1") or {}
     pct = h1.get("price_move_pct")
-    if "stale" in keys:
-        return [text("st_stale", lang)]
+    if "stale" in keys and sel.stale_only(f):
+        if f.get("data_through"):
+            return [text("st_stale", lang, clock=clock(f["data_through"]))]
+        return [text("st_stale_never", lang)]
+    pre = [text("st_degraded", lang, inputs=_inputs(f, lang))] if "stale" in keys else []
+    keys = [k for k in keys if k != "stale"] or ["nothing"]
     active = [k for k in keys if k in _ACTIVE]
     if active:
         emoji = "⚡" if ("episode" in keys or "range_extreme" in keys) or pct is None else ("📈" if pct >= 0 else "📉")
@@ -163,28 +221,41 @@ def _state_lines(keys, f, lang: str) -> list:
                 frag.append(text("cx_" + k, lang))
         if frag:
             lines.append(_sentence(frag))
-        return lines
+        return pre + lines
     if "level_at" in keys:
         z = f["levels"]["at"]
         lines = [text("st_level", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang))]
     elif keys == ["nothing"]:
-        if pct is None:
-            return [text("st_calm_noprice", lang)]
-        return [text("st_calm" if _labels_known(f) else "st_calm_short", lang, pct=spct(pct, lang))]
+        return pre + _calm_lines(f, lang)
     else:
         lines = [text("st_quiet", lang, pct=spct(pct, lang))] if pct is not None else [text("st_calm_noprice", lang)]
     if "corridor_edge" in keys:
         lines.append(_sentence([text("cx_corridor_edge", lang)]))
-    return lines
+    return pre + lines
+
+
+def _window_line(f, lang: str) -> Optional[str]:
+    w = f.get("window") or {}
+    if not (w.get("window_start") and w.get("window_end") and w.get("price_move_pct") is not None
+            and w.get("low") is not None and w.get("high") is not None and f.get("window_hours")):
+        return None
+    return text("win_line", lang, hours=int(f["window_hours"]), start=clock(w["window_start"]),
+                end=clock(w["window_end"]), pct=spct(w["price_move_pct"], lang), low=price(w["low"], lang),
+                high=price(w["high"], lang))
 
 
 def _btc_l1(f, lang: str) -> str:
     keys = sel.salient(f)
     blocks = [[H(_l1_header(f, lang))], _state_lines(keys, f, lang)]
+    if sel.stale_only(f):
+        return _join(blocks)
+    win = _window_line(f, lang)
+    if win:
+        blocks.append([win])
     near = _nearest(f, NEAR_MAX)
     if near:
         blocks.append([H(text("near_hdr", lang))] + [_level_line("near_line", z, f, lang) for z in near])
-    ev = sel.next_event(f) if "stale" not in keys else None
+    ev = sel.next_event(f)
     if ev:
         blocks.append([text("ev_today", lang, clock=clock(ev["at"]), event=_event_name(ev["kind"], lang))])
     return _join(blocks)
@@ -195,7 +266,8 @@ def _now_lines(keys, f, lang: str) -> list:
     out = []
     for k in keys:
         if k == "stale":
-            out.append(text("now_stale", lang))
+            out.append(text("now_stale", lang) if sel.stale_only(f) else
+                       text("now_degraded", lang, inputs=_inputs(f, lang)))
         elif k == "episode":
             from beta.formatter import plain_name
             name = plain_name(f["episode"]["event_type"], lang)
@@ -209,8 +281,18 @@ def _now_lines(keys, f, lang: str) -> list:
             e = sel.next_event(f)
             out.append(text("now_event", lang, clock=clock(e["at"]), event=_event_name(e["kind"], lang)))
         elif k == "nothing":
-            out.append(text("now_calm" if _labels_known(f) else "now_calm_young", lang))
+            out += _calm_now(f, lang)
+    if keys and keys[0] == "stale" and not sel.stale_only(f) and len(keys) == 1:
+        out += _calm_now(f, lang)
     return out
+
+
+def _calm_now(f, lang: str) -> list:
+    rng, vol = _band(f, "range_width_pct_median"), _band(f, "volume_notional_usd_sum")
+    if rng == "usual" and vol == "usual":
+        return [text("now_calm", lang)]
+    out = [text(k, lang) for k, on in (("now_range_low", rng == "low"), ("now_volume_low", vol == "low")) if on]
+    return out or ([] if _degraded(f) else [text("now_calm_young", lang)])
 
 
 def _hist_verdict(z, f, lang: str) -> Optional[str]:
@@ -235,7 +317,7 @@ def _btc_l2(f, lang: str) -> str:
     keys = sel.salient(f)
     blocks = [[H(text("hdr_why", lang))], [H(text("b_now", lang))] + _now_lines(keys, f, lang)]
     hist = [x for x in (_hist_verdict(z, f, lang) for z in _nearest(f, NEAR_MAX)) if x]
-    if hist and "stale" not in keys:
+    if hist and not sel.stale_only(f):
         blocks.append([H(text("b_hist", lang))] + hist)
     if any(k in keys for k in ("episode", "range_extreme", "range_high", "volume_high", "level_at")):
         blocks.append([H(text("b_not", lang)), text("not_forecast", lang)])
@@ -244,9 +326,19 @@ def _btc_l2(f, lang: str) -> str:
 
 # ---- /btc L3 -------------------------------------------------------------------------------------
 def _btc_l3(f, lang: str) -> str:
+    if sel.stale_only(f):                    # late data: nothing current, not even the last hour's numbers
+        return _join([[H(text("hdr_data", lang))], _state_lines(["stale"], f, lang)])
+    part = set(_partial(f)) if _degraded(f) else set()
     h1, h24 = f.get("h1") or {}, f.get("h24") or {}
     base, days = h1.get("baseline_median") or {}, h1.get("baseline_days") or {}
     g_price = []
+    if "in_price" in part:
+        h1 = {k: v for k, v in h1.items() if k not in ("price_move_pct", "range_width_pct")}
+        h24 = {}
+    if "in_volume" in part:
+        h1 = {k: v for k, v in h1.items() if k != "volume_notional_usd"}
+    if "in_oi" in part:
+        h1 = {k: v for k, v in h1.items() if k != "oi_change_pct"}
     if h1.get("price_move_pct") is not None:
         g_price.append(text("l3_price_1h", lang, pct=spct(h1["price_move_pct"], lang)))
     if h1.get("range_width_pct") is not None and base.get("range_width_pct_median") is not None:
@@ -256,7 +348,7 @@ def _btc_l3(f, lang: str) -> str:
     if h24.get("price_complete") and h24.get("high") is not None and h24.get("low") is not None:
         g_price.append(text("l3_hilo_24h", lang, high=price(h24["high"], lang), low=price(h24["low"], lang)))
     c = f.get("corridor_24h") or {}
-    if c.get("lower") is not None and c.get("upper") is not None:
+    if c.get("lower") is not None and c.get("upper") is not None and "in_price" not in part:
         g_price.append(text("l3_corridor", lang, lower=price(c["lower"], lang), upper=price(c["upper"], lang)))
     g_flow = []
     if h1.get("volume_notional_usd") is not None and base.get("volume_notional_usd_sum") is not None:
@@ -278,7 +370,11 @@ def _btc_l3(f, lang: str) -> str:
         for line in _hist_lines(z.get("history"), lang, _side(z, f), "levels")[:1]:
             name = level_name(z["members"][0], lang)
             g_hist.append(text("l3_hist", lang, name=name[:1].upper() + name[1:], line=line.lstrip("↳ ").strip()))
-    blocks = [[H(text("hdr_data", lang))], [H(text("g_price", lang))] + g_price]
+    blocks = [[H(text("hdr_data", lang))]]
+    if part:
+        blocks.append([text("st_degraded", lang, inputs=_inputs(f, lang))])
+    if g_price:
+        blocks.append([H(text("g_price", lang))] + g_price)
     if g_flow:
         blocks.append([H(text("g_flow", lang))] + g_flow)
     if g_levels:

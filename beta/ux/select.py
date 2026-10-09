@@ -27,6 +27,19 @@ def _label(facts: Mapping[str, Any], metric: str) -> Optional[str]:
     return level_label(_cfg(), r.get("rank"), r.get("tier"))
 
 
+def low_band(facts: Mapping[str, Any], metric: str) -> bool:
+    """The 1h metric is in the existing low tail (context.tail_label «bottom»: rank <= tail_display_max,
+    tier mature). Display only: not a salience rule, so PULSY_SALIENCE_V1 is unchanged."""
+    from beta.context import tail_label
+    r = (facts.get("ranks_1h") or {}).get(metric) or {}
+    return (tail_label(_cfg(), r.get("rank"), r.get("tier")) or "").startswith("bottom")
+
+
+def stale_only(f) -> bool:
+    """Late data (shows nothing current), as opposed to degraded data (names the partial input)."""
+    return f.get("status") == S_STALE or f.get("decision_reason") == "DATA_STALE"
+
+
 def _stale(f) -> bool:
     return f.get("status") in STALE_STATUSES or f.get("decision_reason") == "DATA_STALE"
 

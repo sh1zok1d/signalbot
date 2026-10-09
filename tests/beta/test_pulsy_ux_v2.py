@@ -49,10 +49,16 @@ def _busy():
     return v
 
 
+def _degraded(reasons=("FAMILY_UNUSABLE:oi",)):
+    v = _ranked(_calm(), range_rank=0.5, volume_rank=0.6)
+    v["product_status"], v["status_reasons"] = "DATA DEGRADED", list(reasons)
+    return v
+
+
 def _all_renders():
     """Every P0 screen and level, both languages, over calm and busy states and the notifications."""
     out = []
-    for v in (_calm(), _busy(), _view("stale_none")):
+    for v in (_calm(), _busy(), _view("stale_none"), _degraded()):
         f = from_view(v)
         for lvl in SCREENS["btc"]:
             out += [("btc", lvl, lang, render("btc", lvl, lang, f)) for lang in LANGS]
@@ -210,7 +216,7 @@ HISTORICAL = (r"×", r"(обычно|usually)\W+\$?\d", r"\d+\s?(дн|days?)\b",
 def test_no_historical_number_on_l1():
     """L1 states current observations only: the move, the distance to a level, the calendar. No baseline,
     N, interval, share of history or ratio to «обычно»."""
-    for v in (_calm(), _busy(), _view("stale_none")):
+    for v in (_calm(), _busy(), _view("stale_none"), _degraded()):
         for lang in LANGS:
             body = norm(plain(render("btc", 1, lang, from_view(v))[0]))
             for pat in HISTORICAL:
@@ -323,3 +329,47 @@ def test_l1_anatomy_and_l3_groups():
     assert "812" in hist and "43%" in hist and "интервал" in hist     # N, baseline and interval on L3
     en3 = norm(plain(render("btc", 3, "en", f)[0]))
     assert "Strong selling" in en3 and "buyer-initiated" not in en3 and "data as of" not in en3
+
+
+def _l1_body(v, lang="ru"):
+    return norm(plain(render("btc", 1, lang, from_view(v))[0])).split("\n\n", 1)[1]
+
+
+def test_calm_family_states_read_differently():
+    usual = _l1_body(_ranked(_calm(), range_rank=0.5, volume_rank=0.6))
+    narrow = _l1_body(_ranked(_calm(), range_rank=0.05, volume_rank=0.6))          # compression
+    thin = _l1_body(_ranked(_calm(), range_rank=0.5, volume_rank=0.05))
+    both = _l1_body(_ranked(_calm(), range_rank=0.05, volume_rank=0.05))
+    assert usual.startswith("💤 Спокойно. За час −0,84%, диапазон и объём как обычно.")
+    assert narrow.startswith("💤 Тихо. За час −0,84%, диапазон уже обычного, объём как обычно.")
+    assert thin.startswith("💤 Тихо. За час −0,84%, диапазон как обычно, объём ниже обычного.")
+    assert both.startswith("💤 Тихо. За час −0,84%, диапазон уже обычного, объём ниже обычного.")
+    weekend = _ranked(_calm(), range_rank=0.5, volume_rank=0.05)
+    weekend["data_through"] = "2024-03-09T10:00:00+00:00"                            # a Saturday
+    assert _l1_body(weekend).startswith("💤 Выходные. За час −0,84%")
+    night = _ranked(_calm(), range_rank=0.05, volume_rank=0.05)
+    night["market"] = {"window_hours": 8, "window": {
+        "window_start": "2024-03-04T00:00:00+00:00", "window_end": "2024-03-04T08:00:00+00:00",
+        "price_move_pct": 0.3, "high": 64390.0, "low": 63980.0}}
+    assert "📅 За 8 ч (02:00–10:00 Киев): BTC +0,30%, диапазон 63 980–64 390." in _l1_body(night)
+    assert len({usual, narrow, thin, both, _l1_body(weekend), _l1_body(night)}) == 6
+    l2 = norm(plain(render("btc", 2, "ru", from_view(_ranked(_calm(), range_rank=0.05, volume_rank=0.05)))[0]))
+    assert "меньше, чем обычно" in l2 and "Торгуют меньше" in l2
+
+
+def test_stale_shows_nothing_current_and_degraded_names_the_partial_input():
+    stale = from_view(_view("stale_none"))
+    for lang in LANGS:
+        l1 = plain(render("btc", 1, lang, stale)[0])
+        assert l1.startswith("₿ BTC\n\n🔎") and "$" not in l1 and len(l1.split("\n\n")) == 2
+        l3 = plain(render("btc", 3, lang, stale)[0])
+        assert not re.search(r"%|\$", l3), l3                                  # no current number at all
+    deg = from_view(_degraded())
+    ru = norm(plain(render("btc", 1, "ru", deg)[0]))
+    assert ru.startswith("₿ BTC · $") and "🔎 Неполные данные: открытые позиции. Остальное — ниже." in ru
+    assert "💤 Спокойно. За час −0,84%, диапазон и объём как обычно." in ru              # the valid rest still shows
+    l3 = norm(plain(render("btc", 3, "ru", deg)[0]))
+    assert "Открытых позиций" not in l3 and "Диапазон за час" in l3
+    vol = norm(plain(render("btc", 1, "ru", from_view(_degraded(("FAMILY_UNUSABLE:volume",))))[0]))
+    assert "Неполные данные: объём." in vol and "объём" not in vol.split("Остальное — ниже.")[1].split("🎯")[0]
+    assert _l1_body(_view("stale_none")) != _l1_body(_degraded())
