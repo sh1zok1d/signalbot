@@ -8596,3 +8596,17 @@ WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-02..2024-12 PRICE_STRUCTURE.levels (
 OBJECTS_2025_2026_USED = none; E1 / V3 untouched
 MODEL_FROZEN = no; HELD_OUT_READ = no; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — LEVEL_RACE_FORECAST_V1 held-out read (one-shot): case B at T0 and T15; state HIST; level offset not claimed
+
+**Unit.** `LEVEL_RACE_FORECAST_V1` (atlas `LEVEL-RACE-FORECAST-V1`). Model frozen `50eeb39b` (model sha256 `454109c8…0d3a`, FREEZE_DATE 2026-10-09). Architect go 2026-10-09T09:02:49Z; run once from main `bd35820b` (clean), exit 0. Record `docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.md` / `.json` (sha256 `6c6c5739…be34`).
+- **Read.** Binance USD-M BTCUSDT 5m klines 2024-12 (warm-up) and 2025-01-01 → 2026-10-08 via the product planner (50 objects, checksum-verified); 11 objects overlapping the E1-RUN-001 holdout refused before any request; event spans touching [2026-08-16, 2026-08-26) excluded. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like.
+- **Evidence.** Scored T0 698 / T15 564, 92 weeks. Raw M1 vs B0: T0 +0.010 (−0.018..+0.038), T15 −0.000 (−0.027..+0.027) nats. Raw M1 vs G1@event: T0 +0.052 (+0.013..+0.090), T15 +0.024 (−0.014..+0.062). Case B at both. Fallback G2 fails (NEITHER CITL −18.8 / −15.7 pp); G1 gate fails; state at switch HIST at both.
+- **Not done.** No user-facing change, no journal write, no flag change; C1 not evaluated.
+
+```
+WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-10-08 (minus E1 objects) PRICE_STRUCTURE.levels held-out read (one-shot)
+OBJECTS_2025_2026_USED = 49 kline objects (+ 2024-12 warm-up); E1 objects refused; E1 / V3 untouched
+MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HIST; PRODUCT_CHANGE = none
+```
+
