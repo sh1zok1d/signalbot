@@ -715,7 +715,9 @@ When adding documentation:
 - `research/RESEARCH_RULES_REVIEW_V1.md` (**proposal, partly adopted 2026-10-09; the binding text is RESEARCH_RULES_DECISION_V1**).
 - `research/RESEARCH_RULES_DECISION_V1.md` (**owner research-rules decision 2026-10-09, binding for new units: surface classes, exact feature→outcome exposure, exposure counters and search penalty, exact-formulation closures except owner-closed lines, no causal gate, not retroactive (P3 stays a governance violation), E1 untouched**).
 - `research/EXPOSURE_COUNTERS_V1.md` (**surface / target / family exposure counters, initial compilation 2026-10-09; lower bounds flagged**).
-- `research/RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, outcome unread: time-disjoint replication of RANGE_POSITION_4H on BitMEX 2016–19 and Binance 2025–26, spot 2017–19 robustness; code `scripts/research/rp4h_time_disjoint_v1/run.py`; awaiting owner go**).
+- `research/RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1_DESIGN.md` (**WITHDRAWN before any outcome, 2026-10-09; replaced by the two units below**).
+- `research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, Unit A: RANGE_POSITION_4H temporal replication on BitMEX XBTUSD 2016-05..2019-12; the parent Bybit object and estimand kept exactly; canonical D2 missingness (zero-trade buckets are bars, one documented 288-bar gap); outcome unread**).
+- `research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN_DRAFT.md` (**DRAFT, Unit B: not frozen, not to be run before Unit A's result, a design review and a separate owner go**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

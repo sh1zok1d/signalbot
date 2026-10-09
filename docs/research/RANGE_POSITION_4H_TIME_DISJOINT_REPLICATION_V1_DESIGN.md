@@ -1,4 +1,17 @@
-# RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1 — design (frozen before any outcome)
+# RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1 — design (WITHDRAWN before any outcome)
+
+> **Withdrawn 2026-10-09 on the owner's review, before any outcome was read.** It is replaced by two separate one-shot units:
+> - `RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1` (Unit A, frozen);
+> - `RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1` (Unit B, draft pending review).
+>
+> **Defects corrected:**
+> - a joint both-epochs gate;
+> - recent-path controls proposed near the primary;
+> - BitMEX zero-trade buckets treated as missing, against the canonical source authority;
+> - a discovery-strength argument used for promotion;
+> - spot opened in the same unit;
+> - a mean-shift label.
+> The text below is kept as the withdrawn record. Its code was never executed and was removed.
 
 **Date:** 2026-10-09. **Author:** chief architect (research director).
 **Owner order:** RANGE_POSITION_4H first (2026-10-09).
