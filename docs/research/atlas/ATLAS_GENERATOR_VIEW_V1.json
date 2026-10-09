@@ -899,12 +899,17 @@
    "frontier_value": 6,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 4,
+   "prior_signature_count": 5,
    "prior_signatures": [
     {
      "function": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
      "id": "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
      "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue."
+    },
+    {
+     "function": "FORMATION_WIDTH_DECISION_VALUE_V1",
+     "id": "FORMATION-WIDTH-DECISION-VALUE-V1",
+     "mechanism": "MODE=POST_OUTCOME_CHARACTERIZATION. Decision value of UTC formation-hour width for the upper quartile of next-hour activity, beyond formation-hour realized volatility. Not a replay of the partial-Spearman verdict and not a replay of the MSE characterization."
     },
     {
      "function": "FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1",
@@ -7774,7 +7779,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "457d7ad38d4a644a587bcc6a0cbd91e90b8472de6e0db0267279b36396f1db5f",
+ "SOURCES_DIGEST": "d3ad8edfa4c07025e39e8975e945da6e3c6b74b2c7687dee2bdd6cd6566fba18",
  "SURFACES": [
   {
    "also_cols": [

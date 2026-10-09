@@ -44,6 +44,11 @@ no_bot_context:
     bot_context: NONE
     reason: "product-evidence unit: Part B NO_CHANGE (no label beyond tolerance under C1); Part A (TOM days quieter: volume -0.24, trades -0.32, range -0.24 SD, 58 months) permits an L1 line by the design note's rule, but a findings entry needs its own product go (design note §6); no line until then"
     record: "docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.md; docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md"
+  - program: FORMATION_WIDTH_DECISION_VALUE_V1 (atlas FORMATION-WIDTH-DECISION-VALUE-V1)
+    status: CHARACTERIZED_ONCE_NO_PRODUCT_LINE
+    bot_context: NONE
+    reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; PRODUCT_INTEGRATION_CANDIDATE = NO; a /research line waits for a separate owner go"
+    record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7
