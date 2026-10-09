@@ -14,7 +14,7 @@ pytestmark = pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set (loc
 NOW = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
 OWNER = 900000000001
 WELCOME_RU = (
-    "Добро пожаловать в Signalbot (закрытая бета).\n"
+    "Добро пожаловать в Pulsy (закрытая бета).\n"
     "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
     "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где максимумы и "
     "минимумы прошлого дня, недели и месяца и другие уровни (/levels), что было в похожих ситуациях раньше и что сегодня "
@@ -26,7 +26,7 @@ WELCOME_RU = (
     "Отзывы и вопросы: /feedback ваш текст"
 )
 WELCOME_EN = (
-    "Welcome to Signalbot (closed beta).\n"
+    "Welcome to Pulsy (closed beta).\n"
     "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
     "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
     "previous day's, week's and month's highs and lows and other levels are (/levels), what happened in similar situations before and "
@@ -233,7 +233,7 @@ def test_admin_reply_owner_only_wording_and_audit():
         good = await h.handle(_msg(OWNER, f"/admin_reply {fp} спасибо за отзыв", 7))
         assert f"delivered to {fp}" in good[0].html
         assert "спасибо за отзыв" not in good[0].html
-        assert good[1].html == "Ответ команды Signalbot:\nспасибо за отзыв"
+        assert good[1].html == "Ответ команды Pulsy:\nспасибо за отзыв"
         audit = await _rows(
             pool, "SELECT result, target_fingerprint, detail::text AS detail FROM beta_admin_audit "
                   "WHERE action='admin_reply' AND authorized ORDER BY audit_id")

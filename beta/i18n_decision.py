@@ -552,7 +552,7 @@ DECISION_CATALOG: dict = {
 
 DECISION_HELP = {
     "ru": (
-        "<b>Signalbot, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
+        "<b>Pulsy, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "Бот не говорит, покупать или продавать. Он показывает, насколько сейчас рискованно, где "
         "максимумы и минимумы прошлого дня, недели и месяца и другие уровни, что было в похожих ситуациях раньше и что сегодня "
         "в календаре. Рядом с каждой цифрой — сколько было случаев и как бывает обычно.\n\n"
@@ -576,7 +576,7 @@ DECISION_HELP = {
         "/stop — пауза · /delete_me — удалить ваши данные"
     ),
     "en": (
-        "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
+        "<b>Pulsy closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "The bot never says whether to buy or sell. It shows how risky the market is now, where the "
         "previous day's, week's and month's highs and lows and other levels are, what happened in similar situations before and what is in "
         "today's calendar. Every number comes with how many cases there were and what is usual.\n\n"

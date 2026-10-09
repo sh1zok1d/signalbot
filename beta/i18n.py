@@ -361,7 +361,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "joined": {"ru": "Вы в бете.", "en": "Joined"},
     "welcome": {
         "ru": (
-            "Добро пожаловать в Signalbot (закрытая бета).\n"
+            "Добро пожаловать в Pulsy (закрытая бета).\n"
             "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
             "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где максимумы и "
             "минимумы прошлого дня, недели и месяца и другие уровни (/levels), что было в похожих ситуациях раньше и что сегодня "
@@ -373,7 +373,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Отзывы и вопросы: /feedback ваш текст"
         ),
         "en": (
-            "Welcome to Signalbot (closed beta).\n"
+            "Welcome to Pulsy (closed beta).\n"
             "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
             "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
             "previous day's, week's and month's highs and lows and other levels are (/levels), what happened in similar situations before and "
@@ -516,13 +516,13 @@ _CATALOG: dict[str, dict[str, str]] = {
                    "en": "✅ The outage is over: the bot has its data again and sends messages. "
                          "If anything looks odd, write /feedback."},
     "team_reply": {
-        "ru": "Ответ команды Signalbot:\n",
-        "en": "Reply from the Signalbot team:\n",
+        "ru": "Ответ команды Pulsy:\n",
+        "en": "Reply from the Pulsy team:\n",
     },
     "privacy": {
         "ru": (
-            "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
-            "Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
+            "<b>Pulsy, закрытая бета — конфиденциальность</b>\n"
+            "Pulsy наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
             "Торговых рекомендаций бот не даёт.\n\n"
             "• Что бот показывает: коридор цены, уровни и шанс дойти до них, что бывало в похожих случаях, "
             "события календаря и оповещения.\n"
@@ -543,14 +543,14 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• После /stop данные удаляются автоматически через 30 дней.\n"
             "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
             "ваших данных.\n"
-            "• Вопросы о ваших данных — через /feedback, отвечает команда Signalbot.\n"
+            "• Вопросы о ваших данных — через /feedback, отвечает команда Pulsy.\n"
             "• Это не инвестиционный совет; бот не совершает сделки и не говорит, покупать или продавать. "
             "Исторические цифры описывают прошлое.\n\n"
             "Нажмите <b>Вступить</b>, чтобы принять условия и войти в бету."
         ),
         "en": (
-            "<b>Signalbot closed beta — privacy notice</b>\n"
-            "Signalbot watches BTC and shows unusual market states and their context.\n"
+            "<b>Pulsy closed beta — privacy notice</b>\n"
+            "Pulsy watches BTC and shows unusual market states and their context.\n"
             "The bot gives no trading advice.\n\n"
             "• What the bot shows: the price corridor, levels and the chance to reach them, what happened in "
             "similar cases, calendar events and alerts.\n"
@@ -573,7 +573,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• After /stop, your data is deleted automatically after 30 days.\n"
             "• The bot's forecast journal (what it said and what happened next) and the market records do not "
             "contain your data.\n"
-            "• Questions about your data: /feedback; the Signalbot team answers.\n"
+            "• Questions about your data: /feedback; the Pulsy team answers.\n"
             "• Nothing here is investment advice; the bot never places trades and never says whether to "
             "buy or sell. Historical numbers describe the past.\n\n"
             "Press <b>Join</b> to accept and join the beta."
@@ -581,7 +581,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "help": {
         "ru": (
-            "<b>Signalbot, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
+            "<b>Pulsy, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
             "Бот наблюдает несколько замороженных, детерминированных необычных состояний рынка "
             "и сообщает, когда одно из них наблюдается. Он не говорит, что делать со сделкой.\n\n"
             "/btc — компактное состояние BTC perpetual (спокойно, необычно сейчас, затихло, "
@@ -596,7 +596,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/stop — пауза · /delete_me — удалить ваши данные"
         ),
         "en": (
-            "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
+            "<b>Pulsy closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
             "The bot watches a few frozen, deterministic, unusual market states and tells you when one "
             "is observed. It does not tell you what to trade.\n\n"
             "/btc — compact BTC perpetual state (calm, unusual now, calmed, history building, "

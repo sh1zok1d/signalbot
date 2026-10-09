@@ -128,7 +128,7 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         privacy = next(t for w, t, _ in seen if w == A and "конфиденциальность" in t)
         assert "/delete_me" in privacy and "/stop" in privacy and "не инвестиционный совет" in privacy
         # before Join: one concise line on what the bot is (owner decision 2026-10-03)
-        assert ("Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
+        assert ("Pulsy наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
                 "Торговых рекомендаций бот не даёт.") in privacy
         await say(OWNER, f"/admin_add {B}")
         await say(B, "/start")

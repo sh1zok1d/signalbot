@@ -1573,7 +1573,7 @@ def format_details(episode: Any, transitions: Sequence[Mapping[str, Any]],
 
 
 def format_owner_alert(alerts: Sequence[Mapping[str, Any]]) -> str:
-    lines = ["<b>Signalbot beta — owner health alert</b>"]
+    lines = ["<b>Pulsy beta — owner health alert</b>"]
     for a in alerts:
         lines.append(f"• {_e(a['key'])} {_e(a.get('detail') or '')}")
     return "\n".join(lines)
