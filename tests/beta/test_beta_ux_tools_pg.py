@@ -149,7 +149,8 @@ def test_the_18_named_states_have_levels_and_visibly_different_l1():
             assert "level_card" in screens, sid
         html_text, buttons = render("btc", 1, "ru", screens["btc"])
         assert all(d.startswith("ux:") for row in buttons for _l, d in row)
-        l1.add(re.sub(r"<[^>]+>", "", html_text))
+        lines = re.sub(r"<[^>]+>", "", html_text).split("\n")[2:]       # the body: no header, no as-of line
+        l1.add(re.sub(r"[0-9][0-9 \u202f\u00a0.,:%+−-]*", "#", "\n".join(lines)))   # numbers stripped
     assert len(l1) >= 15
 
 

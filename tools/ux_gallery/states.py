@@ -33,13 +33,14 @@ def _rank(r: Optional[float]) -> dict:
 def view(price: Optional[float], t: datetime, *, rng: float = 0.5, vol: float = 0.5, episode: Optional[str] = None,
          at: Optional[str] = None, above=("PDH", "PWH"), below=("PDL", "PWL"), corridor: tuple = (-1.8, 1.8),
          events=(), status: str = "NO ACTIVE EVENT", reason: Optional[str] = None, move1h: float = 0.1,
-         oi1h: float = 0.2, kind: str = "btc", window: Optional[dict] = None) -> dict:
+         oi1h: float = 0.2, kind: str = "btc", window: Optional[dict] = None, reasons=()) -> dict:
     """View facts (`from_view` shape) for a synthetic state."""
     ok = price is not None and reason is None
     p = price or 0.0
     steps = (0.6, 1.4, 2.3)
     return {
         "version": FACTS_VERSION, "source": "view", "kind": kind, "status": status, "data_through": _iso(t),
+        "status_reasons": list(reasons),
         "decision_available": ok, "decision_reason": reason, "price": price if ok else None,
         "h1": {"complete": True, "window_start": _iso(t - timedelta(hours=1)), "window_end": _iso(t),
                "price_move_pct": move1h, "range_width_pct": 0.4 + rng, "range_ratio": 1.0 + rng,
@@ -91,7 +92,7 @@ def named_states() -> list:
 
     out = [
         ("calm", view(64210.0, t(0), rng=0.40, vol=0.35)),
-        ("compression", view(64480.0, t(3), rng=0.05, vol=0.10, corridor=(-0.9, 0.9), move1h=0.02)),
+        ("compression", view(64480.0, t(3), rng=0.05, vol=0.50, corridor=(-0.9, 0.9), move1h=0.02)),
         ("sharp drop", view(61930.0, t(6), rng=0.995, vol=0.97, move1h=-2.4, oi1h=-1.1),
          {"move": move_alert(t(6), -2.4, 63450.0), "hour": hour(t(6), move=-2.4, oi=-1.1)}),
         ("sharp rise", view(66120.0, t(9), rng=0.96, vol=0.90, move1h=2.1, oi1h=1.3),
@@ -118,7 +119,7 @@ def named_states() -> list:
         ("weekend thin trading", view(64330.0, T0 + timedelta(days=5, hours=4), rng=0.02, vol=0.01, move1h=0.01,
                                       corridor=(-0.7, 0.7))),
         ("stale data", view(None, t(45), status=S_STALE, reason="DATA_STALE")),
-        ("degraded data", view(64120.0, t(48), status=S_DEGRADED, rng=0.5)),
+        ("degraded data", view(64120.0, t(48), status=S_DEGRADED, rng=0.5, reasons=("FAMILY_UNUSABLE:oi",))),
         ("quiet night (brief)", view(64270.0, t(50), rng=0.15, vol=0.08, kind="brief",
                                      window={"window_start": _iso(t(42)), "window_end": _iso(t(50)),
                                              "price_move_pct": 0.3, "high": 64390.0, "low": 63980.0,
