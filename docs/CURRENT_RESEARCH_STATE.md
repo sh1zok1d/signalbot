@@ -1,3 +1,15 @@
+## FORMATION_WIDTH_DECISION_VALUE_V1 — one decision-value characterization — 2026-10-09
+
+`MODE = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT | outcome_read = true | evidence tier unchanged | not a confirmation`
+`READ AT = 2026-10-09T10:05:39Z | design commit b79a9e36a73c7c0dfc12a357b786b2f49d7420f2 | digest 87de6e88b061373efdfc8780d86570c9e538c9658dcc26f760b6cdcc0e8d9623`
+`LABEL = WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN | both net points positive | both Brier gains negative | both intervals include 0 | venues not pooled`
+`BINANCE = OOS 1455 | weeks 210 | change rate 0.009621993127147767 | changed 14 | correct 8 | harmful 6 | net +0.0013745704467353953 | interval [-0.0034411562284927736, +0.006237222649436389] | Brier gain -1.2538622961901123e-06 | interval [-0.001003668578568562, +0.0010193103821482337] | AUROC change -0.0016015177143796633`
+`BYBIT = OOS 1352 | weeks 201 | change rate 0.0036982248520710057 | changed 5 | correct 3 | harmful 2 | net +0.0007396449704142012 | interval [-0.0022388477701113553, +0.0037425149700598802] | Brier gain -0.00023495296074117734 | interval [-0.000889142861202315, +0.00042004189670593006] | AUROC change -0.001128979857049961`
+`PRODUCT = labels 0.80 / 0.95 / 0.99 not adopted | PRODUCT_INTEGRATION_CANDIDATE = NO | width does not enter the forecast architecture`
+`NOT OPENED = BitMEX, 2025/2026, E1, prospective forward association | rerun REFUSING_RERUN | future validation not decided`
+
+Result: `docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md`.
+
 ## FORMATION_WIDTH_DECISION_VALUE_V1 — design frozen, scores unread — 2026-10-09
 
 `MODE = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT | outcome_read = false | evidence tier unchanged`
@@ -48,6 +60,7 @@ Design: `docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md
 `GO = a separate owner go is required for the first formal checkpoint, and only once N reaches 1460 | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
 `GOVERNANCE_HOLD = ON_HOLD_PENDING_PREDICTIVE_VALUE_CHARACTERIZATION | forward scoring is not started | checkpoints, Amendment A1 budget, and the refusing evaluator are unchanged | forward association not read`
 `GOVERNANCE_HOLD_UPDATE = ON_HOLD_PENDING_DECISION_VALUE_REVIEW | the line above stays the record of the earlier pause | forward association still not read | checkpoints and Amendment A1 unchanged | evaluator still refuses`
+`DECISION_VALUE_RECORDED = yes | label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN | the hold stays until the owner reviews that characterization | amendments are not rewritten`
 
 Amendment: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md`.
 

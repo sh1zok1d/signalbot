@@ -8925,3 +8925,18 @@ WINDOWS_CONSUMED = none new; the decision-value scores are not yet read
 OUTCOME_READ = no; EVIDENCE_CLASS = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_DECISION_VALUE_V1 one decision-value characterization
+
+**Mode.** One read of the frozen decision-value comparison. Evidence class `POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT`. `outcome_read = true`. The evidence tier is unchanged. This is not a confirmation, not L3, and not a product change.
+- **Evaluator.** Design commit `b79a9e36a73c7c0dfc12a357b786b2f49d7420f2`. Digest `87de6e88b061373efdfc8780d86570c9e538c9658dcc26f760b6cdcc0e8d9623`. Read `2026-10-09T10:05:39Z`. Design SHA256 `28e5f96da131e75321086b083545a4b0e9715685c595a80094e644a840694e51`.
+- **Samples.** Binance `CORE_BTC_BINANCE_V0` analysis N 1820, OOS N 1455, OOS ISO weeks 210. Bybit `LEVEL_CROSS_VENUE_PERP_5M_V0` analysis N 1613, OOS N 1352, OOS ISO weeks 201. Venues were not pooled. Product labels `0.80`, `0.95`, and `0.99` were not adopted. Primary label is the training upper quartile `0.75` of next-hour activity.
+- **Binance.** Decision-change rate `0.009621993127147767` (14 of 1455). Correct changes `8`. Harmful changes `6`. Upgrades `4` (hit rate `0.5`). Downgrades `10` (hit rate `0.6`). Net `+0.0013745704467353953`, interval `[-0.0034411562284927736, +0.006237222649436389]`, share of bootstrap means above zero `0.647`. Brier baseline `0.12343031000351473`, candidate `0.1234315638658109`, gain `-1.2538622961901123e-06`, interval `[-0.001003668578568562, +0.0010193103821482337]`, share above zero `0.5035`. AUROC baseline `0.8463699788692205`, candidate `0.8447684611548408`, change `-0.0016015177143796633`, interval `[-0.004624017444946393, +0.0012268419825246424]`. Valid draws 2000/2000. Seed `20261112`.
+- **Bybit.** Decision-change rate `0.0036982248520710057` (5 of 1352). Correct changes `3`. Harmful changes `2`. Upgrades `2` (hit rate `0.5`). Downgrades `3` (hit rate `0.6666666666666667`). Net `+0.0007396449704142012`, interval `[-0.0022388477701113553, +0.0037425149700598802]`, share of bootstrap means above zero `0.577`. Brier baseline `0.1310349207515012`, candidate `0.13126987371224236`, gain `-0.00023495296074117734`, interval `[-0.000889142861202315, +0.00042004189670593006]`, share above zero `0.239`. AUROC baseline `0.8612559562486463`, candidate `0.8601269763915963`, change `-0.001128979857049961`, interval `[-0.00312715116574063, +0.000943636618526019]`. Valid draws 2000/2000. Seed `20261113`.
+- **Label.** `WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN`. Both net points are positive and both Brier gains are negative, so the four points are not all positive and not all at most zero. Venue signs agree within each estimand. All four intervals include zero. Descriptive quartile slices and fold signs are not route inputs. `rho >= +0.10` was not applied. Width does not enter the forecast architecture. A future dedicated validation is not decided. Rerun returns `REFUSING_RERUN`. Prospective forward association was not read. The prospective hold `ON_HOLD_PENDING_DECISION_VALUE_REVIEW` stays until the owner reviews this characterization.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 and BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast, further decision-value use of the already consumed 2020-2024 windows
+OUTCOME_READ = yes; LABEL = WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; CONFIRMATION = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
+```
