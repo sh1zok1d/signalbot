@@ -910,8 +910,13 @@ class BetaBotHandler:
         elif screen not in V2.SCREENS:
             result, text = "INVALID_ARGUMENT", "usage: /admin_preview v2 <" + "|".join(V2.SCREENS) + ">"
         else:
-            rendered = await V2.render_v2(conn, self.cfg, screen, "l1", now=now)
-            if rendered is None:
+            try:
+                rendered = await V2.render_v2(conn, self.cfg, screen, 1, now=now)
+            except Exception as exc:  # noqa: BLE001 - a P0 template gap is reported to the owner, never raised
+                rendered, result, text = None, "ERROR", f"v2 {screen}: render failed ({type(exc).__name__})"
+            if result == "ERROR":
+                pass
+            elif rendered is None:
                 result, text = "NONE", f"v2 {screen}: ещё не было"
             else:
                 text, buttons = rendered
@@ -931,7 +936,11 @@ class BetaBotHandler:
             target = V2.parse_callback(data)
             if target is None or not is_owner(self.owner, uid) or not V2.enabled(self.cfg):
                 return [answer("")]
-            rendered = await V2.render_v2(conn, self.cfg, target[0], target[1], now=self.clock())
+            try:
+                rendered = await V2.render_v2(conn, self.cfg, target[0], target[1], now=self.clock())
+            except Exception as exc:  # noqa: BLE001 - a P0 template gap: the tap does nothing
+                logger.warning("v2 preview render failed: %s", type(exc).__name__)
+                rendered = None
             message_id = (cq.get("message") or {}).get("message_id")
             if rendered is None or message_id is None:
                 return [answer("")]

@@ -6,8 +6,9 @@ Input:
 - SYNTHETIC: views from `tools/beta_user_sim` (`make_synthetic_bundle`), labelled synthetic.
 Together 15–20 market states (`--states`).
 
-Rendering is `beta.ux.render(screen, level, lang, facts)` (track A); until it lands, `beta.ux_preview.stub_render`.
+Rendering is track A's `beta.ux.render(screen, level, lang, facts)` on `from_view` / `from_alert` / `from_hour_gate`.
 Usage: python -m tools.ux_gallery.build [--export pulsy_views.json] [--out ux_gallery.html] [--states 18]
+       [--synthetic-out ux_gallery_synthetic.html]
 """
 from __future__ import annotations
 
@@ -17,53 +18,79 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from beta.ux_preview import LEVELS, renderer
+from beta.ux import SCREENS, from_alert, from_hour_gate, from_view, render
+from beta.ux_preview import card_facts
 
 LANGS = ("ru", "en")
 MAX_REAL = 10
 
 
+def _view_state(payload: dict, label: str, *, brief: bool = False) -> dict:
+    f = from_view(payload)
+    if brief:
+        return {"label": label, "screens": {"brief": f}}
+    screens = {"btc": f, "levels": f}
+    card = card_facts(f)
+    if card is not None:
+        screens["level_card"] = card
+    return {"label": label, "screens": screens}
+
+
 def real_states(doc: Optional[dict]) -> list:
+    """REAL states from the owner's export, each labelled with its snapshot time."""
     if not doc:
         return []
     out = []
     for v in doc.get("views") or []:
-        out.append({"screen": "brief" if v.get("kind") == "brief" else "btc", "facts": v.get("payload") or {},
-                    "label": f"REAL · view {v.get('kind', 'btc')} · {v.get('requested_at')}"})
+        out.append(_view_state(v.get("payload") or {}, f"REAL · view {v.get('kind', 'btc')} · {v.get('requested_at')}",
+                               brief=v.get("kind") == "brief"))
     for a in doc.get("alerts") or []:
-        out.append({"screen": "alert", "facts": {"kind": a.get("kind"), "payload": a.get("payload") or {}},
-                    "label": f"REAL · alert {a.get('kind')} · {a.get('decision_ts')}"})
+        if a.get("kind") in ("level", "move"):
+            out.append({"label": f"REAL · alert {a['kind']} · {a.get('decision_ts')}",
+                        "screens": {a["kind"]: from_alert(a["kind"], a.get("payload") or {})}})
     for p in doc.get("pushes") or []:
-        out.append({"screen": "push", "facts": {"gate": p.get("gate"), "episode": p.get("episode")},
-                    "label": f"REAL · push {p.get('event_type')} · {p.get('decision_ts')}"})
+        if p.get("gate"):
+            ep = p.get("episode") or {}
+            out.append({"label": f"REAL · push {p.get('event_type')} · {p.get('decision_ts')}",
+                        "screens": {"hour": from_hour_gate(ep.get("triggered_at"), p["gate"])}})
     return out[:MAX_REAL]
 
 
 def synthetic_states(n: int) -> list:
+    """SYNTHETIC states: views from tools/beta_user_sim (no market data)."""
     if n <= 0:
         return []
     from beta.config import BetaConfig
     from tools.beta_user_sim.synthetic import make_synthetic_bundle
-    views = [v for v in make_synthetic_bundle(BetaConfig.load(), langs=("ru",))["btc_views"]]
+    views = make_synthetic_bundle(BetaConfig.load(), langs=("ru",))["btc_views"]
     step = max(1, len(views) // n)
-    return [{"screen": "btc", "facts": v["payload"],
-             "label": f"SYNTHETIC · tools/beta_user_sim · {v['payload'].get('as_of_bucket')}"}
+    return [_view_state(v["payload"], f"SYNTHETIC · tools/beta_user_sim · {v['payload'].get('as_of_bucket')}")
             for v in views[::step][:n]]
 
 
-def _bubble(sid: str, state: dict, lang: str, render) -> str:
+def _panels(gid: str, state: dict, lang: str) -> str:
+    """Every (screen, level) of the state as a panel; a button whose `ux:<screen>:<level>` is in the state
+    switches panels in-page, any other is shown disabled. A screen the render cannot draw is named, not hidden."""
+    have = {(s, lv) for s in state["screens"] for lv in SCREENS[s]}
+    first = min(have, key=lambda k: (list(state["screens"]).index(k[0]), k[1]))
     parts = []
-    for level in LEVELS:
-        text, buttons = render(state["screen"], level, lang, state["facts"])
-        rows = "".join(
-            "<div class='row'>" + "".join(
-                f"<button onclick=\"show('{sid}-{lang}','{t}')\">{html.escape(label)}</button>"
-                if t in LEVELS else f"<button disabled>{html.escape(label)}</button>"
-                for label, t in row) + "</div>"
-            for row in (buttons or []))
-        hidden = "" if level == "l1" else " hidden"
-        parts.append(f"<div class='lvl{hidden}' data-g='{sid}-{lang}' data-l='{level}'>"
-                     f"<div class='msg'>{text}</div>{rows}</div>")
+    for screen, level in sorted(have, key=lambda k: (list(state["screens"]).index(k[0]), k[1])):
+        try:
+            text, buttons = render(screen, level, lang, state["screens"][screen])
+        except Exception as exc:  # noqa: BLE001 - a P0 template gap stays visible in the gallery
+            text, buttons = f"<i>{screen} L{level}: render failed ({html.escape(type(exc).__name__)})</i>", []
+        rows = []
+        for row in buttons or []:
+            cells = []
+            for label, data in row:
+                key = tuple(str(data).split(":")[1:3]) if str(data).startswith("ux:") else None
+                target = (key[0], int(key[1])) if key and key[1].isdigit() else None
+                cells.append(f"<button onclick=\"show('{gid}','{target[0]}-{target[1]}')\">{html.escape(label)}</button>"
+                             if target in have else f"<button disabled>{html.escape(label)}</button>")
+            rows.append("<div class='row'>" + "".join(cells) + "</div>")
+        hidden = "" if (screen, level) == first else " hidden"
+        parts.append(f"<div class='lvl{hidden}' data-g='{gid}' data-l='{screen}-{level}'>"
+                     f"<div class='scr'>{screen} · L{level}</div><div class='msg'>{text}</div>{''.join(rows)}</div>")
     return f"<div class='bubble'><div class='tag'>{lang.upper()}</div>{''.join(parts)}</div>"
 
 
@@ -76,7 +103,7 @@ h1{font-size:18px}.state{margin:24px 0;border-top:1px solid var(--muted);padding
 .label{color:var(--muted);font-size:13px;margin-bottom:8px}.grid{display:flex;flex-wrap:wrap;gap:16px}
 .col{flex:0 0 auto}.col.narrow .bubble{width:360px;max-width:100%}.col.wide .bubble{width:640px;max-width:100%}
 .bubble{background:var(--bubble);border-radius:12px;padding:10px 12px;box-shadow:0 1px 2px #0002;box-sizing:border-box}
-.tag{font-size:11px;color:var(--muted)}.msg{white-space:pre-wrap;word-wrap:break-word}
+.tag,.scr{font-size:11px;color:var(--muted)}.msg{white-space:pre-wrap;word-wrap:break-word}
 pre{white-space:pre-wrap;font-size:12px}.row{display:flex;gap:6px;margin-top:6px}
 button{flex:1;border:0;border-radius:8px;padding:8px;background:var(--btn);color:var(--accent);font:inherit;cursor:pointer}
 .hidden{display:none}</style></head><body><h1>Pulsy UX V2 gallery</h1>
@@ -87,34 +114,36 @@ e.classList.toggle('hidden',e.dataset.l!==l)})}</script></body></html>"""
 
 
 def build(states: list) -> str:
-    render = renderer()
     body = []
     for i, st in enumerate(states):
         cols = []
         for width in ("narrow", "wide"):
-            sid = f"s{i}{width[0]}"
-            cols.append(f"<div class='col {width}'>" + "".join(_bubble(sid, st, lang, render) for lang in LANGS)
-                        + "</div>")
-        body.append(f"<section class='state'><div class='label'>{html.escape(st['label'])} · screen "
-                    f"{html.escape(st['screen'])}</div><div class='grid'>{''.join(cols)}</div></section>")
+            cols.append(f"<div class='col {width}'>" + "".join(_panels(f"s{i}{width[0]}{lang}", st, lang)
+                                                               for lang in LANGS) + "</div>")
+        body.append(f"<section class='state'><div class='label'>{html.escape(st['label'])}</div>"
+                    f"<div class='grid'>{''.join(cols)}</div></section>")
     real = sum(1 for s in states if s["label"].startswith("REAL"))
-    name = f"{render.__module__}.{render.__name__}"
-    return (PAGE.replace("__RENDERER__", html.escape(name))
+    return (PAGE.replace("__RENDERER__", "beta.ux.render")
             .replace("__COUNTS__", f"{len(states)} states: {real} real, {len(states) - real} synthetic.")
             .replace("__BODY__", "\n".join(body)))
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--export", type=Path)
+    ap.add_argument("--export", type=Path, help="the owner's /admin_export_views JSON (REAL states)")
     ap.add_argument("--out", type=Path, default=Path("ux_gallery.html"))
     ap.add_argument("--states", type=int, default=18)
+    ap.add_argument("--synthetic-out", type=Path, help="also write a SYNTHETIC-only draft (internal style review)")
     a = ap.parse_args(argv)
     doc: Any = json.loads(a.export.read_text(encoding="utf-8")) if a.export else None
     real = real_states(doc)
-    states = real + synthetic_states(max(0, a.states - len(real)))
+    synthetic = synthetic_states(a.states)
+    states = real + synthetic[:max(0, a.states - len(real))]
     a.out.write_text(build(states), encoding="utf-8")
     print(f"{a.out}: {len(states)} states ({len(real)} real)")
+    if a.synthetic_out:
+        a.synthetic_out.write_text(build(synthetic), encoding="utf-8")
+        print(f"{a.synthetic_out}: {len(synthetic)} synthetic states")
     return 0
 
 

@@ -1,0 +1,970 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Pulsy UX V2 gallery</title><style>
+:root{--bg:#e6ebee;--bubble:#fff;--ink:#111;--muted:#6b7a86;--btn:#f0f4f7;--accent:#2a7ab0}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1621;--bubble:#182533;--ink:#e8edf2;--muted:#8a9aa9;--btn:#24384b;--accent:#6ab3f3}}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+h1{font-size:18px}.state{margin:24px 0;border-top:1px solid var(--muted);padding-top:12px}
+.label{color:var(--muted);font-size:13px;margin-bottom:8px}.grid{display:flex;flex-wrap:wrap;gap:16px}
+.col{flex:0 0 auto}.col.narrow .bubble{width:360px;max-width:100%}.col.wide .bubble{width:640px;max-width:100%}
+.bubble{background:var(--bubble);border-radius:12px;padding:10px 12px;box-shadow:0 1px 2px #0002;box-sizing:border-box}
+.tag,.scr{font-size:11px;color:var(--muted)}.msg{white-space:pre-wrap;word-wrap:break-word}
+pre{white-space:pre-wrap;font-size:12px}.row{display:flex;gap:6px;margin-top:6px}
+button{flex:1;border:0;border-radius:8px;padding:8px;background:var(--btn);color:var(--accent);font:inherit;cursor:pointer}
+.hidden{display:none}</style></head><body><h1>Pulsy UX V2 gallery</h1>
+<p class="label">L1 summary · L2 «Почему так?» · L3 «Данные». Renderer: beta.ux.render. 18 states: 0 real, 18 synthetic.</p>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T08:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s0nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 10:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s0nru','btc-2')">Почему так?</button><button onclick="show('s0nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s0nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s0nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s0nru','btc-3')">Данные</button><button onclick="show('s0nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s0nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,30%
+Диапазон за час: 0,38% · обычно 0,35% (медиана 30 дн.)
+Объём за час: $1,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 240, минимум 63 760</div><div class='row'><button onclick="show('s0nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s0nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s0nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s0nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 10:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s0nen','btc-2')">Why?</button><button onclick="show('s0nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s0nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s0nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s0nen','btc-3')">Data</button><button onclick="show('s0nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s0nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.30%
+1h range: 0.38% · usually 0.35% (median of 30 days)
+1h volume: $1.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,240, low 63,760</div><div class='row'><button onclick="show('s0nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s0nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s0nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s0wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 10:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s0wru','btc-2')">Почему так?</button><button onclick="show('s0wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s0wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s0wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s0wru','btc-3')">Данные</button><button onclick="show('s0wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s0wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,30%
+Диапазон за час: 0,38% · обычно 0,35% (медиана 30 дн.)
+Объём за час: $1,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 240, минимум 63 760</div><div class='row'><button onclick="show('s0wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s0wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s0wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s0wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 10:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s0wen','btc-2')">Why?</button><button onclick="show('s0wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s0wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s0wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s0wen','btc-3')">Data</button><button onclick="show('s0wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s0wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.30%
+1h range: 0.38% · usually 0.35% (median of 30 days)
+1h volume: $1.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,240, low 63,760</div><div class='row'><button onclick="show('s0wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s0wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s0wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T08:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s1nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s1nru','btc-2')">Почему так?</button><button onclick="show('s1nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s1nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s1nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s1nru','btc-3')">Данные</button><button onclick="show('s1nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s1nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,28%
+Диапазон за час: 0,28% · обычно 0,26% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s1nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s1nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s1nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s1nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s1nen','btc-2')">Why?</button><button onclick="show('s1nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s1nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s1nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s1nen','btc-3')">Data</button><button onclick="show('s1nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s1nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.28%
+1h range: 0.28% · usually 0.26% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s1nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s1nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s1nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s1wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s1wru','btc-2')">Почему так?</button><button onclick="show('s1wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s1wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s1wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s1wru','btc-3')">Данные</button><button onclick="show('s1wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s1wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,28%
+Диапазон за час: 0,28% · обычно 0,26% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s1wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s1wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s1wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s1wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s1wen','btc-2')">Why?</button><button onclick="show('s1wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s1wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s1wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s1wen','btc-3')">Data</button><button onclick="show('s1wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s1wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.28%
+1h range: 0.28% · usually 0.26% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s1wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s1wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s1wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T09:15:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s2nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:20 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s2nru','btc-2')">Почему так?</button><button onclick="show('s2nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s2nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s2nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s2nru','btc-3')">Данные</button><button onclick="show('s2nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s2nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,19%
+Диапазон за час: 0,30% · обычно 0,28% (медиана 30 дн.)
+Объём за час: $2,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s2nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s2nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s2nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s2nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:20 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s2nen','btc-2')">Why?</button><button onclick="show('s2nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s2nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s2nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s2nen','btc-3')">Data</button><button onclick="show('s2nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s2nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.19%
+1h range: 0.30% · usually 0.28% (median of 30 days)
+1h volume: $2.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s2nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s2nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s2nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s2wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:20 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s2wru','btc-2')">Почему так?</button><button onclick="show('s2wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s2wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s2wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s2wru','btc-3')">Данные</button><button onclick="show('s2wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s2wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,19%
+Диапазон за час: 0,30% · обычно 0,28% (медиана 30 дн.)
+Объём за час: $2,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s2wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s2wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s2wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s2wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:20 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s2wen','btc-2')">Why?</button><button onclick="show('s2wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s2wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s2wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s2wen','btc-3')">Data</button><button onclick="show('s2wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s2wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.19%
+1h range: 0.30% · usually 0.28% (median of 30 days)
+1h volume: $2.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s2wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s2wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s2wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T09:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s3nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:30 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s3nru','btc-2')">Почему так?</button><button onclick="show('s3nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s3nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s3nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s3nru','btc-3')">Данные</button><button onclick="show('s3nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s3nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,49%
+Диапазон за час: 0,64% · обычно 0,58% (медиана 30 дн.)
+Объём за час: $2,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s3nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s3nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s3nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s3nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:30 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s3nen','btc-2')">Why?</button><button onclick="show('s3nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s3nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s3nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s3nen','btc-3')">Data</button><button onclick="show('s3nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s3nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.49%
+1h range: 0.64% · usually 0.58% (median of 30 days)
+1h volume: $2.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s3nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s3nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s3nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s3wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 11:30 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s3wru','btc-2')">Почему так?</button><button onclick="show('s3wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s3wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s3wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s3wru','btc-3')">Данные</button><button onclick="show('s3wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s3wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,49%
+Диапазон за час: 0,64% · обычно 0,58% (медиана 30 дн.)
+Объём за час: $2,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 760</div><div class='row'><button onclick="show('s3wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s3wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s3wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s3wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 11:30 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s3wen','btc-2')">Why?</button><button onclick="show('s3wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s3wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s3wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s3wen','btc-3')">Data</button><button onclick="show('s3wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s3wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.49%
+1h range: 0.64% · usually 0.58% (median of 30 days)
+1h volume: $2.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,760</div><div class='row'><button onclick="show('s3wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s3wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s3wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T09:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s4nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 12:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s4nru','btc-2')">Почему так?</button><button onclick="show('s4nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s4nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s4nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s4nru','btc-3')">Данные</button><button onclick="show('s4nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s4nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,71%
+Диапазон за час: 0,80% · обычно 0,73% (медиана 30 дн.)
+Объём за час: $1,3 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 681</div><div class='row'><button onclick="show('s4nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s4nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s4nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s4nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 12:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s4nen','btc-2')">Why?</button><button onclick="show('s4nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s4nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s4nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s4nen','btc-3')">Data</button><button onclick="show('s4nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s4nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.71%
+1h range: 0.80% · usually 0.73% (median of 30 days)
+1h volume: $1.3B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,681</div><div class='row'><button onclick="show('s4nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s4nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s4nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s4wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 12:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s4wru','btc-2')">Почему так?</button><button onclick="show('s4wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s4wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s4wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s4wru','btc-3')">Данные</button><button onclick="show('s4wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s4wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,71%
+Диапазон за час: 0,80% · обычно 0,73% (медиана 30 дн.)
+Объём за час: $1,3 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 681</div><div class='row'><button onclick="show('s4wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s4wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s4wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s4wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 12:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s4wen','btc-2')">Why?</button><button onclick="show('s4wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s4wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s4wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s4wen','btc-3')">Data</button><button onclick="show('s4wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s4wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.71%
+1h range: 0.80% · usually 0.73% (median of 30 days)
+1h volume: $1.3B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,681</div><div class='row'><button onclick="show('s4wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s4wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s4wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T10:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s5nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 12:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s5nru','btc-2')">Почему так?</button><button onclick="show('s5nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s5nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s5nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s5nru','btc-3')">Данные</button><button onclick="show('s5nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s5nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,41%
+Диапазон за час: 0,41% · обычно 0,37% (медиана 30 дн.)
+Объём за час: $1,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 522</div><div class='row'><button onclick="show('s5nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s5nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s5nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s5nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 12:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s5nen','btc-2')">Why?</button><button onclick="show('s5nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s5nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s5nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s5nen','btc-3')">Data</button><button onclick="show('s5nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s5nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.41%
+1h range: 0.41% · usually 0.37% (median of 30 days)
+1h volume: $1.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,522</div><div class='row'><button onclick="show('s5nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s5nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s5nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s5wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 12:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s5wru','btc-2')">Почему так?</button><button onclick="show('s5wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s5wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s5wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s5wru','btc-3')">Данные</button><button onclick="show('s5wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s5wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,41%
+Диапазон за час: 0,41% · обычно 0,37% (медиана 30 дн.)
+Объём за час: $1,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 522</div><div class='row'><button onclick="show('s5wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s5wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s5wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s5wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 12:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s5wen','btc-2')">Why?</button><button onclick="show('s5wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s5wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s5wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s5wen','btc-3')">Data</button><button onclick="show('s5wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s5wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.41%
+1h range: 0.41% · usually 0.37% (median of 30 days)
+1h volume: $1.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,522</div><div class='row'><button onclick="show('s5wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s5wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s5wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T10:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s6nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s6nru','btc-2')">Почему так?</button><button onclick="show('s6nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s6nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s6nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s6nru','btc-3')">Данные</button><button onclick="show('s6nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s6nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,31%
+Диапазон за час: 0,38% · обычно 0,35% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 480</div><div class='row'><button onclick="show('s6nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s6nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s6nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s6nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s6nen','btc-2')">Why?</button><button onclick="show('s6nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s6nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s6nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s6nen','btc-3')">Data</button><button onclick="show('s6nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s6nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.31%
+1h range: 0.38% · usually 0.35% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,480</div><div class='row'><button onclick="show('s6nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s6nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s6nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s6wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s6wru','btc-2')">Почему так?</button><button onclick="show('s6wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s6wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s6wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s6wru','btc-3')">Данные</button><button onclick="show('s6wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s6wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,31%
+Диапазон за час: 0,38% · обычно 0,35% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 480</div><div class='row'><button onclick="show('s6wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s6wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s6wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s6wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s6wen','btc-2')">Why?</button><button onclick="show('s6wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s6wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s6wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s6wen','btc-3')">Data</button><button onclick="show('s6wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s6wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.31%
+1h range: 0.38% · usually 0.35% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,480</div><div class='row'><button onclick="show('s6wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s6wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s6wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T11:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s7nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:30 (Киев)
+
+Сейчас: агрессивные покупки.</div><div class='row'><button onclick="show('s7nru','btc-2')">Почему так?</button><button onclick="show('s7nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s7nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s7nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s7nru','btc-3')">Данные</button><button onclick="show('s7nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s7nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,02%
+Диапазон за час: 0,10% · обычно 0,09% (медиана 30 дн.)
+Объём за час: $2,6 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s7nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s7nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s7nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s7nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:30 (Kyiv)
+
+Now: buyer-initiated flow.</div><div class='row'><button onclick="show('s7nen','btc-2')">Why?</button><button onclick="show('s7nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s7nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s7nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s7nen','btc-3')">Data</button><button onclick="show('s7nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s7nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.02%
+1h range: 0.10% · usually 0.09% (median of 30 days)
+1h volume: $2.6B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s7nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s7nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s7nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s7wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:30 (Киев)
+
+Сейчас: агрессивные покупки.</div><div class='row'><button onclick="show('s7wru','btc-2')">Почему так?</button><button onclick="show('s7wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s7wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s7wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s7wru','btc-3')">Данные</button><button onclick="show('s7wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s7wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,02%
+Диапазон за час: 0,10% · обычно 0,09% (медиана 30 дн.)
+Объём за час: $2,6 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s7wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s7wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s7wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s7wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:30 (Kyiv)
+
+Now: buyer-initiated flow.</div><div class='row'><button onclick="show('s7wen','btc-2')">Why?</button><button onclick="show('s7wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s7wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s7wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s7wen','btc-3')">Data</button><button onclick="show('s7wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s7wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.02%
+1h range: 0.10% · usually 0.09% (median of 30 days)
+1h volume: $2.6B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s7wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s7wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s7wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T11:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s8nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:30 (Киев)
+
+Сейчас: агрессивные покупки.</div><div class='row'><button onclick="show('s8nru','btc-2')">Почему так?</button><button onclick="show('s8nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s8nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s8nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s8nru','btc-3')">Данные</button><button onclick="show('s8nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s8nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,02%
+Диапазон за час: 0,10% · обычно 0,09% (медиана 30 дн.)
+Объём за час: $2,6 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s8nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s8nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s8nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s8nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:30 (Kyiv)
+
+Now: buyer-initiated flow.</div><div class='row'><button onclick="show('s8nen','btc-2')">Why?</button><button onclick="show('s8nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s8nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s8nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s8nen','btc-3')">Data</button><button onclick="show('s8nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s8nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.02%
+1h range: 0.10% · usually 0.09% (median of 30 days)
+1h volume: $2.6B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s8nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s8nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s8nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s8wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 13:30 (Киев)
+
+Сейчас: агрессивные покупки.</div><div class='row'><button onclick="show('s8wru','btc-2')">Почему так?</button><button onclick="show('s8wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s8wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s8wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s8wru','btc-3')">Данные</button><button onclick="show('s8wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s8wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,02%
+Диапазон за час: 0,10% · обычно 0,09% (медиана 30 дн.)
+Объём за час: $2,6 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s8wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s8wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s8wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s8wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 13:30 (Kyiv)
+
+Now: buyer-initiated flow.</div><div class='row'><button onclick="show('s8wen','btc-2')">Why?</button><button onclick="show('s8wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s8wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s8wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s8wen','btc-3')">Data</button><button onclick="show('s8wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s8wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.02%
+1h range: 0.10% · usually 0.09% (median of 30 days)
+1h volume: $2.6B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s8wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s8wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s8wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T11:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s9nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 14:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s9nru','btc-2')">Почему так?</button><button onclick="show('s9nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s9nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s9nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s9nru','btc-3')">Данные</button><button onclick="show('s9nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s9nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,33%
+Диапазон за час: 0,41% · обычно 0,37% (медиана 30 дн.)
+Объём за час: $1,5 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s9nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s9nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s9nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s9nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 14:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s9nen','btc-2')">Why?</button><button onclick="show('s9nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s9nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s9nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s9nen','btc-3')">Data</button><button onclick="show('s9nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s9nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.33%
+1h range: 0.41% · usually 0.37% (median of 30 days)
+1h volume: $1.5B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s9nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s9nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s9nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s9wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 14:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s9wru','btc-2')">Почему так?</button><button onclick="show('s9wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s9wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s9wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s9wru','btc-3')">Данные</button><button onclick="show('s9wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s9wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,33%
+Диапазон за час: 0,41% · обычно 0,37% (медиана 30 дн.)
+Объём за час: $1,5 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s9wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s9wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s9wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s9wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 14:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s9wen','btc-2')">Why?</button><button onclick="show('s9wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s9wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s9wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s9wen','btc-3')">Data</button><button onclick="show('s9wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s9wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.33%
+1h range: 0.41% · usually 0.37% (median of 30 days)
+1h volume: $1.5B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s9wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s9wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s9wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T12:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s10nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 14:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s10nru','btc-2')">Почему так?</button><button onclick="show('s10nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s10nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s10nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s10nru','btc-3')">Данные</button><button onclick="show('s10nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s10nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,24%
+Диапазон за час: 0,31% · обычно 0,28% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s10nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s10nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s10nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s10nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 14:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s10nen','btc-2')">Why?</button><button onclick="show('s10nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s10nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s10nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s10nen','btc-3')">Data</button><button onclick="show('s10nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s10nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.24%
+1h range: 0.31% · usually 0.28% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s10nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s10nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s10nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s10wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 14:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s10wru','btc-2')">Почему так?</button><button onclick="show('s10wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s10wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s10wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s10wru','btc-3')">Данные</button><button onclick="show('s10wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s10wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,24%
+Диапазон за час: 0,31% · обычно 0,28% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s10wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s10wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s10wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s10wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 14:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s10wen','btc-2')">Why?</button><button onclick="show('s10wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s10wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s10wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s10wen','btc-3')">Data</button><button onclick="show('s10wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s10wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.24%
+1h range: 0.31% · usually 0.28% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s10wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s10wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s10wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T12:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s11nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s11nru','btc-2')">Почему так?</button><button onclick="show('s11nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s11nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s11nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s11nru','btc-3')">Данные</button><button onclick="show('s11nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s11nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,19%
+Диапазон за час: 0,30% · обычно 0,27% (медиана 30 дн.)
+Объём за час: $1,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s11nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s11nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s11nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s11nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s11nen','btc-2')">Why?</button><button onclick="show('s11nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s11nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s11nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s11nen','btc-3')">Data</button><button onclick="show('s11nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s11nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.19%
+1h range: 0.30% · usually 0.27% (median of 30 days)
+1h volume: $1.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s11nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s11nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s11nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s11wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s11wru','btc-2')">Почему так?</button><button onclick="show('s11wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s11wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s11wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s11wru','btc-3')">Данные</button><button onclick="show('s11wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s11wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,19%
+Диапазон за час: 0,30% · обычно 0,27% (медиана 30 дн.)
+Объём за час: $1,8 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s11wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s11wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s11wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s11wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s11wen','btc-2')">Why?</button><button onclick="show('s11wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s11wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s11wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s11wen','btc-3')">Data</button><button onclick="show('s11wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s11wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.19%
+1h range: 0.30% · usually 0.27% (median of 30 days)
+1h volume: $1.8B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s11wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s11wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s11wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T13:05:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s12nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:10 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s12nru','btc-2')">Почему так?</button><button onclick="show('s12nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s12nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s12nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s12nru','btc-3')">Данные</button><button onclick="show('s12nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s12nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,05%
+Диапазон за час: 0,30% · обычно 0,27% (медиана 30 дн.)
+Объём за час: $2,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s12nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s12nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s12nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s12nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:10 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s12nen','btc-2')">Why?</button><button onclick="show('s12nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s12nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s12nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s12nen','btc-3')">Data</button><button onclick="show('s12nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s12nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.05%
+1h range: 0.30% · usually 0.27% (median of 30 days)
+1h volume: $2.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s12nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s12nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s12nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s12wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:10 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s12wru','btc-2')">Почему так?</button><button onclick="show('s12wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s12wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s12wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s12wru','btc-3')">Данные</button><button onclick="show('s12wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s12wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,05%
+Диапазон за час: 0,30% · обычно 0,27% (медиана 30 дн.)
+Объём за час: $2,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s12wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s12wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s12wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s12wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:10 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s12wen','btc-2')">Why?</button><button onclick="show('s12wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s12wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s12wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s12wen','btc-3')">Data</button><button onclick="show('s12wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s12wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.05%
+1h range: 0.30% · usually 0.27% (median of 30 days)
+1h volume: $2.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s12wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s12wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s12wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T13:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s13nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s13nru','btc-2')">Почему так?</button><button onclick="show('s13nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s13nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s13nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s13nru','btc-3')">Данные</button><button onclick="show('s13nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s13nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,10%
+Диапазон за час: 0,39% · обычно 0,36% (медиана 30 дн.)
+Объём за час: $1,3 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s13nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s13nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s13nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s13nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s13nen','btc-2')">Why?</button><button onclick="show('s13nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s13nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s13nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s13nen','btc-3')">Data</button><button onclick="show('s13nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s13nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.10%
+1h range: 0.39% · usually 0.36% (median of 30 days)
+1h volume: $1.3B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s13nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s13nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s13nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s13wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s13wru','btc-2')">Почему так?</button><button onclick="show('s13wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s13wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s13wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s13wru','btc-3')">Данные</button><button onclick="show('s13wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s13wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,10%
+Диапазон за час: 0,39% · обычно 0,36% (медиана 30 дн.)
+Объём за час: $1,3 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s13wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s13wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s13wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s13wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s13wen','btc-2')">Why?</button><button onclick="show('s13wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s13wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s13wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s13wen','btc-3')">Data</button><button onclick="show('s13wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s13wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.10%
+1h range: 0.39% · usually 0.36% (median of 30 days)
+1h volume: $1.3B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s13wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s13wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s13wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T13:35:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s14nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:40 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s14nru','btc-2')">Почему так?</button><button onclick="show('s14nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s14nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s14nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s14nru','btc-3')">Данные</button><button onclick="show('s14nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s14nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,10%
+Диапазон за час: 0,39% · обычно 0,36% (медиана 30 дн.)
+Объём за час: $2,4 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s14nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s14nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s14nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s14nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:40 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s14nen','btc-2')">Why?</button><button onclick="show('s14nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s14nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s14nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s14nen','btc-3')">Data</button><button onclick="show('s14nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s14nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.10%
+1h range: 0.39% · usually 0.36% (median of 30 days)
+1h volume: $2.4B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s14nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s14nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s14nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s14wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 15:40 (Киев)
+
+Сейчас: резкое падение.</div><div class='row'><button onclick="show('s14wru','btc-2')">Почему так?</button><button onclick="show('s14wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s14wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s14wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Это событие детектора: условия правила выполнены сейчас, без прогноза.</div><div class='row'><button onclick="show('s14wru','btc-3')">Данные</button><button onclick="show('s14wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s14wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,10%
+Диапазон за час: 0,39% · обычно 0,36% (медиана 30 дн.)
+Объём за час: $2,4 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s14wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s14wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s14wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s14wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 15:40 (Kyiv)
+
+Now: sharp drop.</div><div class='row'><button onclick="show('s14wen','btc-2')">Why?</button><button onclick="show('s14wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s14wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s14wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+A detector event: the rule's conditions hold now; it is not a forecast.</div><div class='row'><button onclick="show('s14wen','btc-3')">Data</button><button onclick="show('s14wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s14wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.10%
+1h range: 0.39% · usually 0.36% (median of 30 days)
+1h volume: $2.4B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s14wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s14wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s14wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T13:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s15nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 16:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s15nru','btc-2')">Почему так?</button><button onclick="show('s15nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s15nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s15nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s15nru','btc-3')">Данные</button><button onclick="show('s15nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s15nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,15%
+Диапазон за час: 0,37% · обычно 0,34% (медиана 30 дн.)
+Объём за час: $1,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s15nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s15nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s15nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s15nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 16:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s15nen','btc-2')">Why?</button><button onclick="show('s15nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s15nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s15nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s15nen','btc-3')">Data</button><button onclick="show('s15nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s15nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.15%
+1h range: 0.37% · usually 0.34% (median of 30 days)
+1h volume: $1.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s15nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s15nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s15nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s15wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 16:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s15wru','btc-2')">Почему так?</button><button onclick="show('s15wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s15wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s15wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s15wru','btc-3')">Данные</button><button onclick="show('s15wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s15wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,15%
+Диапазон за час: 0,37% · обычно 0,34% (медиана 30 дн.)
+Объём за час: $1,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s15wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s15wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s15wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s15wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 16:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s15wen','btc-2')">Why?</button><button onclick="show('s15wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s15wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s15wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s15wen','btc-3')">Data</button><button onclick="show('s15wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s15wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.15%
+1h range: 0.37% · usually 0.34% (median of 30 days)
+1h volume: $1.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s15wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s15wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s15wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T14:25:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s16nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 16:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s16nru','btc-2')">Почему так?</button><button onclick="show('s16nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s16nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s16nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s16nru','btc-3')">Данные</button><button onclick="show('s16nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s16nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,06%
+Диапазон за час: 0,23% · обычно 0,21% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s16nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s16nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s16nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s16nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 16:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s16nen','btc-2')">Why?</button><button onclick="show('s16nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s16nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s16nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s16nen','btc-3')">Data</button><button onclick="show('s16nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s16nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.06%
+1h range: 0.23% · usually 0.21% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s16nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s16nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s16nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s16wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 16:30 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s16wru','btc-2')">Почему так?</button><button onclick="show('s16wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s16wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s16wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s16wru','btc-3')">Данные</button><button onclick="show('s16wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s16wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: +0,06%
+Диапазон за час: 0,23% · обычно 0,21% (медиана 30 дн.)
+Объём за час: $1,9 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s16wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s16wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s16wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s16wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 16:30 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s16wen','btc-2')">Why?</button><button onclick="show('s16wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s16wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s16wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s16wen','btc-3')">Data</button><button onclick="show('s16wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s16wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: +0.06%
+1h range: 0.23% · usually 0.21% (median of 30 days)
+1h volume: $1.9B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s16wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s16wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s16wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<section class='state'><div class='label'>SYNTHETIC · tools/beta_user_sim · 2024-03-04T14:55:00Z</div><div class='grid'><div class='col narrow'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s17nru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 17:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s17nru','btc-2')">Почему так?</button><button onclick="show('s17nru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s17nru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s17nru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s17nru','btc-3')">Данные</button><button onclick="show('s17nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s17nru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,17%
+Диапазон за час: 0,17% · обычно 0,16% (медиана 30 дн.)
+Объём за час: $2,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s17nru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s17nru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s17nru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s17nen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 17:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s17nen','btc-2')">Why?</button><button onclick="show('s17nen','btc-3')">Data</button></div><div class='row'><button onclick="show('s17nen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s17nen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s17nen','btc-3')">Data</button><button onclick="show('s17nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s17nen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.17%
+1h range: 0.17% · usually 0.16% (median of 30 days)
+1h volume: $2.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s17nen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s17nen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s17nen','btc-1')">← Back</button></div></div></div></div><div class='col wide'><div class='bubble'><div class='tag'>RU</div><div class='lvl' data-g='s17wru' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+данные на 17:00 (Киев)
+
+Сейчас ничего заметного.</div><div class='row'><button onclick="show('s17wru','btc-2')">Почему так?</button><button onclick="show('s17wru','btc-3')">Данные</button></div><div class='row'><button onclick="show('s17wru','levels-1')">Уровни</button></div></div><div class='lvl hidden' data-g='s17wru' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Почему так</b>
+
+Ни одно правило заметности не сработало: диапазон и объём обычные, цена не у уровня.</div><div class='row'><button onclick="show('s17wru','btc-3')">Данные</button><button onclick="show('s17wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s17wru' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Данные</b>
+
+Цена за час: −0,17%
+Диапазон за час: 0,17% · обычно 0,16% (медиана 30 дн.)
+Объём за час: $2,7 млрд · обычно $1,2 млрд (медиана 30 дн.)
+Открытых позиций стало больше: +0,40% за час
+За 24 ч: максимум 64 237, минимум 63 473</div><div class='row'><button onclick="show('s17wru','btc-1')">← Назад</button></div></div><div class='lvl hidden' data-g='s17wru' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>Уровни BTC</b>
+
+Уровней рядом нет.</div><div class='row'><button onclick="show('s17wru','btc-1')">← Назад</button></div></div></div><div class='bubble'><div class='tag'>EN</div><div class='lvl' data-g='s17wen' data-l='btc-1'><div class='scr'>btc · L1</div><div class='msg'><b>BTC</b>
+data as of 17:00 (Kyiv)
+
+Nothing notable right now.</div><div class='row'><button onclick="show('s17wen','btc-2')">Why?</button><button onclick="show('s17wen','btc-3')">Data</button></div><div class='row'><button onclick="show('s17wen','levels-1')">Levels</button></div></div><div class='lvl hidden' data-g='s17wen' data-l='btc-2'><div class='scr'>btc · L2</div><div class='msg'><b>Why</b>
+
+No salience rule fired: range and volume are usual, the price is not at a level.</div><div class='row'><button onclick="show('s17wen','btc-3')">Data</button><button onclick="show('s17wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s17wen' data-l='btc-3'><div class='scr'>btc · L3</div><div class='msg'><b>Data</b>
+
+Price over 1h: −0.17%
+1h range: 0.17% · usually 0.16% (median of 30 days)
+1h volume: $2.7B · usually $1.2B (median of 30 days)
+Open positions increased: +0.40% over 1h
+24h: high 64,237, low 63,473</div><div class='row'><button onclick="show('s17wen','btc-1')">← Back</button></div></div><div class='lvl hidden' data-g='s17wen' data-l='levels-1'><div class='scr'>levels · L1</div><div class='msg'><b>BTC levels</b>
+
+No levels nearby.</div><div class='row'><button onclick="show('s17wen','btc-1')">← Back</button></div></div></div></div></div></section>
+<script>function show(g,l){document.querySelectorAll('[data-g="'+g+'"]').forEach(function(e){
+e.classList.toggle('hidden',e.dataset.l!==l)})}</script></body></html>

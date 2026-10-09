@@ -93,12 +93,13 @@ def test_preview_v2_renders_live_data_to_the_owner_only_and_writes_nothing():
         out = await h.handle(_owner("/admin_preview v2 btc", 60))
         assert len(out) == 1 and out[0].chat_id == OWNER and "ПРЕВЬЮ V2" in plain(out[0].html)
         datas = [d for row in out[0].buttons for _l, d in row]
-        assert "x2:btc:l2" in datas and "x2:btc:l3" in datas
-        nav = await h.handle(_cb(OWNER, "x2:btc:l2", 61))
-        assert [o.kind for o in nav] == ["answer", "edit"] and "L2" in plain(nav[1].html)
-        stranger = await h.handle(_cb(A, "x2:btc:l3", 62))                   # a participant's tap: nothing
+        assert "x2:btc:2" in datas and all(d.startswith("x2:") for d in datas)   # track A's ux: → owner x2:
+        nav = await h.handle(_cb(OWNER, "x2:btc:2", 61))
+        assert [o.kind for o in nav] == ["answer", "edit"] and "ПРЕВЬЮ V2" in plain(nav[1].html)
+        assert plain(nav[1].html) != plain(out[0].html)
+        stranger = await h.handle(_cb(A, "x2:btc:2", 62))                    # a participant's tap: nothing
         assert [o.kind for o in stranger] == ["answer"]
-        out = await h.handle(_owner("/admin_preview v2 push", 63))           # no push decision yet
+        out = await h.handle(_owner("/admin_preview v2 hour", 63))           # no push decision yet
         assert "ещё не было" in plain(out[0].html)
         assert await _counts(pool) == before                                 # no view, display, activity, row
         await pool.close()
@@ -110,7 +111,7 @@ def test_preview_v2_is_refused_while_its_flag_is_off():
         pool, h, _msg = await _world(flag=False)
         out = await h.handle(_owner("/admin_preview v2 btc", 60))
         assert "ux_v2_preview is off" in plain(out[0].html) and not out[0].buttons
-        assert [o.kind for o in await h.handle(_cb(OWNER, "x2:btc:l2", 61))] == ["answer"]
+        assert [o.kind for o in await h.handle(_cb(OWNER, "x2:btc:2", 61))] == ["answer"]
         await pool.close()
     run(body())
 
@@ -118,13 +119,16 @@ def test_preview_v2_is_refused_while_its_flag_is_off():
 def test_gallery_is_one_self_contained_page_of_real_and_synthetic_states():
     from tools.ux_gallery.build import build, real_states, synthetic_states
     doc = {"views": [{"kind": "btc", "requested_at": "2026-10-09T10:00:00+00:00", "payload": {"x": 1}}],
-           "alerts": [{"kind": "level", "decision_ts": "2026-10-09T10:05:00+00:00", "payload": {"y": 2}}],
+           "alerts": [{"kind": "level", "decision_ts": "2026-10-09T10:05:00+00:00",
+                       "payload": {"at": "2026-10-09T10:05:00+00:00", "price": 62000.0, "level": 62010.0,
+                                   "level_kind": "PDH", "member": {"kind": "PDH"}}}],
            "pushes": []}
     states = real_states(doc) + synthetic_states(2)
     page = build(states)
     assert page.startswith("<!doctype html>") and "<script src" not in page and "<link" not in page
     assert "REAL · view btc · 2026-10-09T10:00:00+00:00" in page and "REAL · alert level" in page
     assert page.count("SYNTHETIC · tools/beta_user_sim") == 2
-    assert "data-l='l1'" in page and "data-l='l2'" in page and "data-l='l3'" in page
+    assert "data-l='btc-1'" in page and "data-l='btc-2'" in page and "data-l='btc-3'" in page
+    assert "data-l='levels-1'" in page and "data-l='level-1'" in page and "render failed" not in page
     assert ">RU<" in page and ">EN<" in page and "col narrow" in page and "col wide" in page
     assert "onclick=\"show(" in page
