@@ -123,6 +123,8 @@ The owner cancelled the 3b observation start of 2026-10-10 00:00 UTC (decision 2
 | Kind of change for the 7-day count | **PREVIEW: never starts the observation week** (ORCHESTRATION §4a). The week starts only at the deploy the owner names after UX acceptance. The preview period [this deploy, official start) is excluded from every test metric (contract §12.2); claim-journal rows written in it are kept and reported as the preview period, never pooled. The #403 cohort boundary is this deploy (contract §12.3). |
 | ОПГ-2: forecast layer | ОПГ-2 confirmed (2026-10-09 09:33Z): HIST only (L2, 2020–2024, prices only); model states inert (`MODEL_VERSION` None); #438/#439 touch no level_race code or race template string. Preview journal rows are fine: HIST L2 logs every eligible statement whether shown or not, so owner-only delivery doesn't bias it; F3's monitors and weekly report cut each class at dated layer events, so the preview is its own segment, never pooled; F2's L3 shadow journal is parked (#415). **Condition:** the preview start and end are recorded as dated layer events with exact UTC times in contract §12.2/§12.3. The start is the owner's deploy time from his report (ОПГ-1 records it there after the deploy); the end is the official-start deploy. Nothing blocks the preview. |
 
+**Pause (owner decision, 2026-10-09 ~12:34Z):** all new product work stopped (Scenario feature cancelled, UX V2 P0 gallery #445 paused unmerged); the preview stays deployed on `45213dda`; #444/#448 stay on main, not wired; the beta's direction is to be re-decided.
+
 ## 2. Misses — defects found after merge
 
 | PR | What was missed | Found by | Check that should have caught it |
