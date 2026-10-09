@@ -1,0 +1,237 @@
+{
+  "binance": {
+    "delta_mse": 0.00028872608719753256,
+    "draws": 2000,
+    "folds": [
+      {
+        "beta_baseline": [
+          0.12640583086350005,
+          0.7471883382729999
+        ],
+        "beta_candidate": [
+          0.12033784543948267,
+          0.585268440396151,
+          0.17405586872488335
+        ],
+        "delta_mse": 0.0009126895220089165,
+        "mse_baseline": 0.030561876734962128,
+        "mse_candidate": 0.02964918721295321,
+        "n_test": 364,
+        "n_train": 365,
+        "relative": 0.02986366085839288,
+        "test_end_exclusive": "2022-01-01",
+        "test_start": "2021-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.1299612854026858,
+          0.7400774291946286
+        ],
+        "beta_candidate": [
+          0.11975040028891806,
+          0.5101959830849551,
+          0.25030321633720926
+        ],
+        "delta_mse": 0.00011841551049064647,
+        "mse_baseline": 0.05404004597458843,
+        "mse_candidate": 0.053921630464097786,
+        "n_test": 363,
+        "n_train": 729,
+        "relative": 0.0021912548065989744,
+        "test_end_exclusive": "2023-01-01",
+        "test_start": "2022-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.14413038253736035,
+          0.7117392349252796
+        ],
+        "beta_candidate": [
+          0.13585026477715914,
+          0.5224929731960046,
+          0.20580649724967756
+        ],
+        "delta_mse": 0.0008921657530762267,
+        "mse_baseline": 0.04919966196378457,
+        "mse_candidate": 0.048307496210708345,
+        "n_test": 363,
+        "n_train": 1092,
+        "relative": 0.018133574855309816,
+        "test_end_exclusive": "2024-01-01",
+        "test_start": "2023-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.13364894528463922,
+          0.732702109430722
+        ],
+        "beta_candidate": [
+          0.12581012684449017,
+          0.5158431398483873,
+          0.23253660646263252
+        ],
+        "delta_mse": -0.0007642836378454892,
+        "mse_baseline": 0.04649950542679073,
+        "mse_candidate": 0.04726378906463622,
+        "n_test": 365,
+        "n_train": 1455,
+        "relative": -0.016436382082574724,
+        "test_end_exclusive": "2025-01-01",
+        "test_start": "2024-01-01"
+      }
+    ],
+    "interval": {
+      "hi": 0.0008069594899082358,
+      "interpretable": true,
+      "lo": -0.0002194528657344146,
+      "share_positive": 0.851,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "mse_baseline": 0.04506725539102009,
+    "mse_candidate": 0.044778529303822555,
+    "n_analysis": 1820,
+    "n_oos": 1455,
+    "oos_iso_weeks": 210,
+    "relative": 0.006406560255166168,
+    "relative_percent": 0.6406560255166168,
+    "rmse_baseline": 0.21229049764655056,
+    "rmse_candidate": 0.2116093790544799,
+    "seed": 20261110,
+    "spearman_baseline": 0.7026846266851142,
+    "spearman_candidate": 0.7068849157696045
+  },
+  "binance_historical_partial": 0.10245095315584887,
+  "bitmex_opened": false,
+  "bybit": {
+    "delta_mse": 0.00028549659106249197,
+    "draws": 2000,
+    "folds": [
+      {
+        "beta_baseline": [
+          0.1461106499011212,
+          0.7077787001977575
+        ],
+        "beta_candidate": [
+          0.14234258998554888,
+          0.5978682098855714,
+          0.11744661014333052
+        ],
+        "delta_mse": 0.0004802724163917721,
+        "mse_baseline": 0.0301108371638057,
+        "mse_candidate": 0.029630564747413927,
+        "n_test": 351,
+        "n_train": 261,
+        "relative": 0.015950151561015934,
+        "test_end_exclusive": "2022-01-01",
+        "test_start": "2021-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.13044479879348944,
+          0.7391104024130214
+        ],
+        "beta_candidate": [
+          0.1222644836023163,
+          0.5525263473080309,
+          0.20294468548733818
+        ],
+        "delta_mse": 2.9692976543795047e-05,
+        "mse_baseline": 0.05114146053140795,
+        "mse_candidate": 0.05111176755486416,
+        "n_test": 362,
+        "n_train": 612,
+        "relative": 0.0005806047820155516,
+        "test_end_exclusive": "2023-01-01",
+        "test_start": "2022-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.14654812458898545,
+          0.7069037508220288
+        ],
+        "beta_candidate": [
+          0.13981988572299578,
+          0.5535830569754385,
+          0.16677717157857072
+        ],
+        "delta_mse": 0.0005138152955408565,
+        "mse_baseline": 0.04713214155619246,
+        "mse_candidate": 0.046618326260651606,
+        "n_test": 331,
+        "n_train": 974,
+        "relative": 0.010901590264644972,
+        "test_end_exclusive": "2024-01-01",
+        "test_start": "2023-01-01"
+      },
+      {
+        "beta_baseline": [
+          0.13539600632513826,
+          0.7292079873497234
+        ],
+        "beta_candidate": [
+          0.12902183726620758,
+          0.5509074647483225,
+          0.19104886071926325
+        ],
+        "delta_mse": 0.00011881185918864723,
+        "mse_baseline": 0.04771876272518782,
+        "mse_candidate": 0.04759995086599917,
+        "n_test": 308,
+        "n_train": 1305,
+        "relative": 0.0024898352849776154,
+        "test_end_exclusive": "2025-01-01",
+        "test_start": "2024-01-01"
+      }
+    ],
+    "interval": {
+      "hi": 0.0007445495241849586,
+      "interpretable": true,
+      "lo": -0.00015741674029945098,
+      "share_positive": 0.8965,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "mse_baseline": 0.04392028870659988,
+    "mse_candidate": 0.043634792115537384,
+    "n_analysis": 1613,
+    "n_oos": 1352,
+    "oos_iso_weeks": 201,
+    "relative": 0.006500335026704653,
+    "relative_percent": 0.6500335026704652,
+    "rmse_baseline": 0.20957167916156963,
+    "rmse_candidate": 0.2088894255713711,
+    "seed": 20261111,
+    "spearman_baseline": 0.7022674322712014,
+    "spearman_candidate": 0.7058682258652623
+  },
+  "bybit_historical_partial": 0.09903883442772482,
+  "bybit_historical_route_unchanged": "POSITIVE_BUT_BELOW_PRACTICAL_SCALE",
+  "design_sha256": "260d944f4c3dc665d0b2e040deddc3c263548464bdb579fa07c557d949af83e6",
+  "e1_touched": false,
+  "evaluator_digest": "cc321809c98d2064b8e1797cbe17fdaf0b5cea9d7a884630a6d57f898380871c",
+  "evidence_class": "POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT",
+  "evidence_tier_raised": false,
+  "future_association_read": false,
+  "historical_practical_rho_applied": false,
+  "interpretation": {
+    "code": "POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO",
+    "evidence_tier_raised": false,
+    "future_validation_decided": false,
+    "pooling": "none",
+    "product_decision": false,
+    "sign_agreement": true,
+    "text": "Point estimates favor a gain from width on both venues. The uncertainty intervals do not both lie entirely above zero."
+  },
+  "model": "OLS on training-referenced rank scores",
+  "objects_2025_2026_used": false,
+  "outcome_read": true,
+  "pre_outcome_evaluator_commit": "29597cb6f54769f76ff14b0b768164200c3dfa3c",
+  "primary_metric": "delta_mse",
+  "product_change": false,
+  "product_integration_candidate": false,
+  "prospective_forward_read": false,
+  "read_at": "2026-10-09T09:44:11Z",
+  "secondary_metric": "oos_spearman_prediction_vs_raw_activity",
+  "unit": "FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1"
+}

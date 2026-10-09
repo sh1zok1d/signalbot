@@ -8877,3 +8877,34 @@ WINDOWS_EXPOSED = BINANCE_UM_LIVE_FORWARD VOLATILITY_STATE.range_forecast from 2
 OUTCOME_READ = no; AMENDMENT = A1; STATUS = AWAITING_START
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 design, scores unread
+
+**Mode.** `POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT`. `outcome_read = false`. The unit cannot raise an evidence tier. It is not a pristine confirmation and not a repair of the Bybit verdict.
+- **Question.** Once next-hour `ACTIVITY` is predicted from `RV_FORMATION`, how much does formation width improve honest out-of-sample squared error on Binance and on Bybit?
+- **Historical context, not a criterion.** Binance partial Spearman `+0.10245095315584887`. Bybit partial Spearman `+0.09903883442772482`. Bybit route `POSITIVE_BUT_BELOW_PRACTICAL_SCALE`. The rule `rho >= +0.10` stays on those units and is not applied to predictive loss. The Bybit point is not rounded.
+- **Surfaces.** `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`, published N 1820, 262 ISO weeks. `LEVEL_CROSS_VENUE_PERP_5M_V0` `[2020-04-01, 2025-01-01)`, published N 1613, 240 ISO weeks. Both already consumed. Not pooled. BitMEX, 2025/2026, E1, and prospective forward bars are not opened. The previous-hour span on Binance is sample identity only, not a feature.
+- **Model.** Ordinary least squares on training-referenced rank scores. Baseline `RV_FORMATION`. Candidate `RV_FORMATION + V`. Yearly expanding tests 2021, 2022, 2023, 2024. Primary `ΔMSE` on the activity rank score. Secondary pooled Spearman of prediction with raw activity, not bootstrapped. ISO-week block bootstrap of already formed paired losses, `B = 2000`, seeds `20261110` and `20261111`, two-sided quantiles `0.025` and `0.975`.
+- **Prospective.** `FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1` stays unscored. Governance hold `ON_HOLD_PENDING_PREDICTIVE_VALUE_CHARACTERIZATION`. Checkpoints and the refusing evaluator are unchanged.
+- **Design.** SHA256 `260d944f4c3dc665d0b2e040deddc3c263548464bdb579fa07c557d949af83e6`.
+
+```
+WINDOWS_CONSUMED = none new; the predictive-loss scores are not yet read
+OUTCOME_READ = no; EVIDENCE_CLASS = POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
+```
+
+## 2026-10-09 — FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 one OOS characterization
+
+**Mode.** One read of the frozen predictive-loss comparison. Evidence class `POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT`. `outcome_read = true`. The evidence tier is unchanged. This is not a confirmation and not a repair of the Bybit verdict.
+- **Evaluator.** Design commit `29597cb6f54769f76ff14b0b768164200c3dfa3c`. Digest `cc321809c98d2064b8e1797cbe17fdaf0b5cea9d7a884630a6d57f898380871c`. Read `2026-10-09T09:44:11Z`. Design SHA256 `260d944f4c3dc665d0b2e040deddc3c263548464bdb579fa07c557d949af83e6`.
+- **Samples.** Binance `CORE_BTC_BINANCE_V0` analysis N 1820, OOS N 1455, OOS ISO weeks 210. Bybit `LEVEL_CROSS_VENUE_PERP_5M_V0` analysis N 1613, OOS N 1352, OOS ISO weeks 201. Published week counts 262 and 240 matched before scoring. Venues were not pooled.
+- **Binance.** MSE baseline `0.04506725539102009`. MSE candidate `0.044778529303822555`. Absolute improvement `+0.00028872608719753256`. Relative `+0.006406560255166168` (`+0.6406560255166168` percent). Interval `[-0.0002194528657344146, +0.0008069594899082358]`. Valid draws 2000/2000. Share of bootstrap means above zero `0.851`, descriptive only. Fold relative improvements `+0.02986366085839288`, `+0.0021912548065989744`, `+0.018133574855309816`, `-0.016436382082574724`.
+- **Bybit.** MSE baseline `0.04392028870659988`. MSE candidate `0.043634792115537384`. Absolute improvement `+0.00028549659106249197`. Relative `+0.006500335026704653` (`+0.6500335026704652` percent). Interval `[-0.00015741674029945098, +0.0007445495241849586]`. Valid draws 2000/2000. Share of bootstrap means above zero `0.8965`, descriptive only. Fold relative improvements `+0.015950151561015934`, `+0.0005806047820155516`, `+0.010901590264644972`, `+0.0024898352849776154`.
+- **Label.** `POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO`. Both point estimates are positive and of similar size. Both intervals include zero. The Binance 2024 fold is negative. `rho >= +0.10` was not applied. Bybit route `POSITIVE_BUT_BELOW_PRACTICAL_SCALE` is unchanged. A future dedicated validation is not decided. Rerun returns `REFUSING_RERUN`. Prospective forward association was not read.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 and BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast, further OOS loss use of the already consumed 2020-2024 windows
+OUTCOME_READ = yes; LABEL = POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO; CONFIRMATION = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
+```
