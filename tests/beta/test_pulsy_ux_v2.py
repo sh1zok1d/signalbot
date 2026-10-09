@@ -15,7 +15,7 @@ from beta.formatter import format_1h_tab, format_24h_tab
 from beta.i18n import assert_descriptive
 from beta.ux import SCREENS, enabled, facts_equivalent, from_alert, from_hour_gate, from_view, render
 from beta.ux import select as sel
-from beta.ux.phrases import EMOJI, FORBIDDEN, PHRASES
+from beta.ux.phrases import EMOJI, FORBIDDEN, MACHINE, PHRASES
 from beta.ux.render import CALLBACK_MAX_BYTES, NARROW_NBSP, NBSP, max_chars
 
 CFG = BetaConfig.load()
@@ -49,10 +49,16 @@ def _busy():
     return v
 
 
+def _degraded(reasons=("FAMILY_UNUSABLE:oi",)):
+    v = _ranked(_calm(), range_rank=0.5, volume_rank=0.6)
+    v["product_status"], v["status_reasons"] = "DATA DEGRADED", list(reasons)
+    return v
+
+
 def _all_renders():
     """Every P0 screen and level, both languages, over calm and busy states and the notifications."""
     out = []
-    for v in (_calm(), _busy(), _view("stale_none")):
+    for v in (_calm(), _busy(), _view("stale_none"), _degraded()):
         f = from_view(v)
         for lvl in SCREENS["btc"]:
             out += [("btc", lvl, lang, render("btc", lvl, lang, f)) for lang in LANGS]
@@ -86,17 +92,22 @@ def test_rule_A_l1_is_compact():
         assert len(h) <= max_chars(screen, lvl), (screen, lvl, lang, len(h))
     f = from_view(_busy())
     assert len(sel.salient(f)) <= sel.L1_MAX
-    body = plain(render("btc", 1, "ru", f)[0]).split("\n\n")[1]
-    assert len(body.splitlines()) <= sel.L1_MAX
+    blocks = plain(render("btc", 1, "ru", f)[0]).split("\n\n")
+    # header · state line + one context sentence · «🎯 Рядом» with at most 2 levels · the calendar line
+    assert len(blocks[1].splitlines()) <= 2 and len(blocks) <= 4
+    near = [b for b in blocks if b.startswith("🎯 Рядом")]
+    assert near and len(near[0].splitlines()) <= 3
 
 
 def test_rule_B_l2_is_compact():
+    heads = {lang: [PHRASES[k][0 if lang == "ru" else 1] for k in ("b_now", "b_hist", "b_not")] for lang in LANGS}
     for v in (_calm(), _busy()):
         f = from_view(v)
         for lang in LANGS:
-            l1 = plain(render("btc", 1, lang, f)[0]).split("\n\n")[1].splitlines()
-            l2 = plain(render("btc", 2, lang, f)[0]).split("\n\n")[1].splitlines()
-            assert len(l2) == len(l1) and all(len(x) <= 140 for x in l2)
+            blocks = plain(render("btc", 2, lang, f)[0]).split("\n\n")[1:]
+            assert 1 <= len(blocks) <= 3 and blocks[0].startswith(heads[lang][0])
+            assert all(b.splitlines()[0] in heads[lang] for b in blocks)
+            assert all(len(x) <= 160 for b in blocks for x in b.splitlines()[1:])
 
 
 def test_rule_C_exact_historical_meaning():
@@ -141,12 +152,13 @@ def test_rule_D_level_names_come_from_the_data():
         text = plain(render("levels", 1, lang, f)[0])
         high, low = level_name({"kind": "PWH"}, lang), level_name({"kind": "PWL"}, lang)
         assert high != low
-        above, below = text.split("\n\n")[1], text.split("\n\n")[2]
-        assert high in above and low not in above and low in below and high not in below
+        lines = text.split("\n\n")[1].splitlines()
+        assert lines[0].startswith("↑ " + high) and lines[1].startswith("↓ " + low)
     # the name is a function of the member kind only: a swapped kind swaps the name, nothing else can
     swapped = copy.deepcopy(v)
     swapped["decision"]["levels"]["above"][0]["members"][0]["kind"] = "PWL"
-    assert level_name({"kind": "PWL"}, "ru") in plain(render("levels", 1, "ru", from_view(swapped))[0]).split("\n\n")[1]
+    assert plain(render("levels", 1, "ru", from_view(swapped))[0]).split("\n\n")[1].startswith(
+        "↑ " + level_name({"kind": "PWL"}, "ru"))
 
 
 class _Html(html.parser.HTMLParser):
@@ -166,7 +178,7 @@ def test_rule_E_telegram_format():
     for screen, lvl, lang, (h, buttons) in _all_renders():
         p = _Html()
         p.feed(h)
-        assert p.ok and not p.stack, (screen, h)
+        assert p.ok and not p.stack and "\x00" not in h, (screen, h)
         assert "\n\n\n" not in h and not h.startswith("\n") and not h.endswith("\n")
         assert not re.search(r"\d \d", h), (screen, lang, h)               # thousands: narrow NBSP only
         emoji = {c for c in h if ord(c) > 0x2600 and not c.isalpha()} - {"→", "−", "–", "·", "…", NARROW_NBSP}
@@ -197,12 +209,39 @@ def test_rule_G_every_phrase_has_a_rule_and_the_doc_lists_them():
 
 
 # ---- the other P0 checks --------------------------------------------------------------------------
+HISTORICAL = (r"×", r"(обычно|usually)\W+\$?\d", r"\d+\s?(дн|days?)\b", r"(случа|cases)", r"(интервал|interval)",
+              r"\bN\s?=", r"\d\s?% случаев", r"п\.п\.|\bpp\b")
+
+
 def test_no_historical_number_on_l1():
-    for v in (_calm(), _busy(), _view("stale_none")):
+    """L1 states current observations only: the move, the distance to a level, the calendar. No baseline,
+    N, interval, share of history or ratio to «обычно»."""
+    for v in (_calm(), _busy(), _view("stale_none"), _degraded()):
         for lang in LANGS:
-            body = plain(render("btc", 1, lang, from_view(v))[0]).split("\n\n", 1)[1]
-            assert not re.search(r"\d+[,.]?\d*\s?(%|×|дн|days|N=)", body), body
-            assert not re.search(r"(обычно|usually)\W+\$?\d", norm(body)), body   # no «обычно 0,49%»
+            body = norm(plain(render("btc", 1, lang, from_view(v))[0]))
+            for pat in HISTORICAL:
+                assert not re.search(pat, body), (pat, body)
+
+
+def test_no_machine_language_reaches_a_user():
+    for screen, lvl, lang, (h, buttons) in _all_renders():
+        txt = plain(h) + " ".join(label for row in buttons for label, _d in row)
+        for tok in MACHINE:
+            assert tok not in txt, (screen, lvl, lang, tok, txt)
+        assert not re.search(r"\b[a-z]+_[a-z_]+\b", txt), (screen, txt)       # no snake_case ids
+        assert not re.search(r"\b[A-Z]{3,}_[A-Z_]+\b", txt), (screen, txt)    # no CONSTANT_IDS
+
+
+def test_notifications_have_one_headline_one_sentence_and_a_window():
+    for screen, _l, lang, (h, buttons) in _all_renders():
+        if screen not in ("hour", "level", "move", "brief"):
+            continue
+        head, body = plain(h).split("\n\n")
+        assert re.search(r"\d", head) and head[0] in "".join(EMOJI), head          # the headline carries its number
+        lines = body.splitlines()
+        assert 1 <= len(lines) <= 3
+        assert re.search(r"\d\d:\d\d(–\d\d:\d\d)? (Киев|Kyiv)$", lines[-1]), lines
+        assert buttons and len(buttons) == 1
 
 
 def test_ru_en_pairs_complete():
@@ -221,8 +260,11 @@ def test_assert_descriptive_on_every_render():
 def test_nothing_notable_for_a_calm_state():
     f = from_view(_calm())
     assert sel.salient(f) == ["nothing"]
-    assert "Сейчас ничего заметного." in plain(render("btc", 1, "ru", f)[0])
-    assert "Nothing notable right now." in plain(render("btc", 1, "en", f)[0])
+    ru, en = plain(render("btc", 1, "ru", f)[0]), plain(render("btc", 1, "en", f)[0])
+    assert "💤 Спокойно. За час −0,84%." in norm(ru) and "💤 Calm. −0.84% over the hour." in norm(en)
+    # with mature, ordinary ranks the calm line says range and volume are as usual
+    v = _ranked(_calm(), range_rank=0.5, volume_rank=0.6)
+    assert "💤 Спокойно. За час −0,84%, диапазон и объём как обычно." in norm(plain(render("btc", 1, "ru", from_view(v))[0]))
 
 
 def test_salience_is_frozen_and_ordered():
@@ -253,7 +295,7 @@ def test_level_alert_uses_the_level_name_from_its_kind():
     f = from_alert("level", {"at": NOW.isoformat(), "level_kind": "PDH", "level": 62950.0, "side": 1,
                             "period": "day", "price": 62970.0, "history": HIST})
     ru = norm(plain(render("level", 1, "ru", f)[0]))
-    assert ru.startswith("📍 Касание уровня: максимум вчера 62 950") and "Цена 62 970" in ru
+    assert ru.startswith("🎯 BTC у уровня: максимум вчера 62 950") and "цена 62 970" in ru
 
 
 def test_level_card_takes_its_zone_from_the_view_and_degrades_without_one():
@@ -261,12 +303,73 @@ def test_level_card_takes_its_zone_from_the_view_and_degrades_without_one():
     the nearest level of either side; with none it says «Уровней рядом нет», never raises."""
     busy = from_view(_busy())                                   # has levels.at (PDL)
     ru = norm(plain(render("level_card", 1, "ru", busy)[0]))
-    assert ru.splitlines()[0] == "минимум вчера 62 490"           # the zone at the price (its edge), not the nearest
+    assert ru.splitlines()[0] == "🎯 минимум вчера 62 490"        # the zone at the price (its edge), not the nearest
     v = _view("unusual")                                       # no level at the price: the nearest one (+0.75%)
     ru = norm(plain(render("level_card", 1, "ru", from_view(v))[0]))
-    assert ru.splitlines()[0] == "максимум вчера 62 950"
+    assert ru.splitlines()[0] == "🎯 максимум вчера 62 950"
     for lang, none in (("ru", "Уровней рядом нет."), ("en", "No levels nearby.")):
         h, b = render("level_card", 1, lang, from_view(_calm()))
         assert none in plain(h) and b == [[(PHRASES["btn_back"][0 if lang == "ru" else 1], "ux:levels:1")]]
         h, _b = render("level_card", 1, lang, {})
         assert none in plain(h)
+
+
+def test_l1_anatomy_and_l3_groups():
+    f = from_view(_busy())
+    ru = norm(plain(render("btc", 1, "ru", f)[0])).split("\n\n")
+    assert ru[0] == "₿ BTC · $62 480 · 14:10 Киев"
+    assert ru[1].splitlines()[0] == "⚡ BTC −0,84% за час"
+    assert ru[2].splitlines()[0] == "🎯 Рядом" and all(x[0] in "↑↓" for x in ru[2].splitlines()[1:])
+    en = norm(plain(render("btc", 1, "en", f)[0])).split("\n\n")
+    assert en[0] == "₿ BTC · $62,480 · 14:10 Kyiv"
+    l3 = norm(plain(render("btc", 3, "ru", f)[0])).split("\n\n")
+    assert [b.splitlines()[0] for b in l3[1:]] == ["📊 Цена и диапазон", "📊 Позиции и поток", "🎯 Уровни",
+                                                    "🔎 История похожих"]
+    hist = l3[4].splitlines()[1]
+    assert "812" in hist and "43%" in hist and "интервал" in hist     # N, baseline and interval on L3
+    en3 = norm(plain(render("btc", 3, "en", f)[0]))
+    assert "Strong selling" in en3 and "buyer-initiated" not in en3 and "data as of" not in en3
+
+
+def _l1_body(v, lang="ru"):
+    return norm(plain(render("btc", 1, lang, from_view(v))[0])).split("\n\n", 1)[1]
+
+
+def test_calm_family_states_read_differently():
+    usual = _l1_body(_ranked(_calm(), range_rank=0.5, volume_rank=0.6))
+    narrow = _l1_body(_ranked(_calm(), range_rank=0.05, volume_rank=0.6))          # compression
+    thin = _l1_body(_ranked(_calm(), range_rank=0.5, volume_rank=0.05))
+    both = _l1_body(_ranked(_calm(), range_rank=0.05, volume_rank=0.05))
+    assert usual.startswith("💤 Спокойно. За час −0,84%, диапазон и объём как обычно.")
+    assert narrow.startswith("💤 Тихо. За час −0,84%, диапазон уже обычного, объём как обычно.")
+    assert thin.startswith("💤 Тихо. За час −0,84%, диапазон как обычно, объём ниже обычного.")
+    assert both.startswith("💤 Тихо. За час −0,84%, диапазон уже обычного, объём ниже обычного.")
+    weekend = _ranked(_calm(), range_rank=0.5, volume_rank=0.05)
+    weekend["data_through"] = "2024-03-09T10:00:00+00:00"                            # a Saturday
+    assert _l1_body(weekend).startswith("💤 Выходные. За час −0,84%")
+    night = _ranked(_calm(), range_rank=0.05, volume_rank=0.05)
+    night["market"] = {"window_hours": 8, "window": {
+        "window_start": "2024-03-04T00:00:00+00:00", "window_end": "2024-03-04T08:00:00+00:00",
+        "price_move_pct": 0.3, "high": 64390.0, "low": 63980.0}}
+    assert "📅 За 8 ч (02:00–10:00 Киев): BTC +0,30%, диапазон 63 980–64 390." in _l1_body(night)
+    assert len({usual, narrow, thin, both, _l1_body(weekend), _l1_body(night)}) == 6
+    l2 = norm(plain(render("btc", 2, "ru", from_view(_ranked(_calm(), range_rank=0.05, volume_rank=0.05)))[0]))
+    assert "меньше, чем обычно" in l2 and "Торгуют меньше" in l2
+
+
+def test_stale_shows_nothing_current_and_degraded_names_the_partial_input():
+    stale = from_view(_view("stale_none"))
+    for lang in LANGS:
+        l1 = plain(render("btc", 1, lang, stale)[0])
+        assert l1.startswith("₿ BTC\n\n🔎") and "$" not in l1 and len(l1.split("\n\n")) == 2
+        l3 = plain(render("btc", 3, lang, stale)[0])
+        assert not re.search(r"%|\$", l3), l3                                  # no current number at all
+    deg = from_view(_degraded())
+    ru = norm(plain(render("btc", 1, "ru", deg)[0]))
+    assert ru.startswith("₿ BTC · $") and "🔎 Неполные данные: открытые позиции. Остальное — ниже." in ru
+    assert "💤 Спокойно. За час −0,84%, диапазон и объём как обычно." in ru              # the valid rest still shows
+    l3 = norm(plain(render("btc", 3, "ru", deg)[0]))
+    assert "Открытых позиций" not in l3 and "Диапазон за час" in l3
+    vol = norm(plain(render("btc", 1, "ru", from_view(_degraded(("FAMILY_UNUSABLE:volume",))))[0]))
+    assert "Неполные данные: объём." in vol and "объём" not in vol.split("Остальное — ниже.")[1].split("🎯")[0]
+    assert _l1_body(_view("stale_none")) != _l1_body(_degraded())
