@@ -1,3 +1,29 @@
+## FUNDING_STATE_HISTORICAL_STRUCTURE_V1 — one historical characterization — 2026-10-09
+
+`MODE = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED | outcome_read = true | evidence tier unchanged | not a confirmation`
+`READ AT = 2026-10-09T11:34:47Z | design commit be9d9d511a80e5d39e99b482d07a8b808f59d756 | digest afb940c2455687ed810236a34d8178cf874f525bd50dfc88da37902ded44e9e1`
+`LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN | raw Spearman +0.055772530537571544 | interval [0.0014817922680213926, 0.11027730322243834] | partial +0.027762672485166194 | interval [-0.008055043619315706, 0.062366554178786546]`
+`SUPPORT = funding identity N 4749 | analysis N 4659 | ISO weeks 223 | warm-up drops 90 | path drops 0 | volatility-window drops 0 | years 2020-10 through 2024`
+`SHAPE = bin means not monotone | top bin highest | [0.10, 0.25) lowest | upper tail elevated | year signs not stable | negative-funding side is a later candidate only`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO | no /btc change | not a trading signal`
+`NOT OPENED = 2025/2026, E1, premium score, open interest, live data | rerun REFUSING_RERUN | MARKET-04 unchanged`
+
+Result: `docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_RESULT.md`.
+
+## FUNDING_STATE_HISTORICAL_STRUCTURE_V1 — design frozen, scores unread — 2026-10-09
+
+`MODE = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED | outcome_read = false | evidence tier unchanged`
+`QUESTION = what historical structure future long-side adverse-path risk shows as a function of funding state, and whether it remains after current 8h realized volatility`
+`SOURCE = B2-06 Vision fundingRate zips, settled last_funding_rate, N 4749, [2020-09-01T00:00:00Z, 2024-12-31T16:00:00Z] | REST bytes absent, not re-fetched | premium not materialized, not scored | CORE_BTC_BINANCE_V0 5m path | open interest not opened`
+`STATE = past-only percentile, warm-up 90 events | decision = UTC hour floor of calc_time | primary outcome = long-side max adverse log excursion over the next 8h | control = RV of the 8h ending at T`
+`INFERENCE = Spearman and partial Spearman | ISO-week block bootstrap B=2000 seed 20261114 | two-sided 95 percent | no magnitude floor | threshold 55 not applied`
+`NOT OPENED = 2025/2026, E1, premium score, open interest, live data, product, a trading rule`
+`DESIGN SHA256 = 83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c`
+
+Design: `docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_DESIGN.md`.
+
+The formation-width line below stays closed. This unit does not reopen it.
+
 ## FORMATION WIDTH line — CLOSED / NO ACTIVE SUCCESSOR — 2026-10-09
 
 `LINE = FORMATION_WIDTH_V1 | STATUS = CLOSED / NO ACTIVE SUCCESSOR | NEXT_UNIT = NONE`

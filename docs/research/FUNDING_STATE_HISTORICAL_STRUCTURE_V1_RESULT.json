@@ -1,0 +1,162 @@
+{
+  "bins": [
+    {
+      "bin": "[0, 0.10)",
+      "mean_adverse": 0.015845331534509736,
+      "n": 400,
+      "route_input": false
+    },
+    {
+      "bin": "[0.10, 0.25)",
+      "mean_adverse": 0.011305682792439436,
+      "n": 956,
+      "route_input": false
+    },
+    {
+      "bin": "[0.25, 0.75)",
+      "mean_adverse": 0.013819220521512382,
+      "n": 2694,
+      "route_input": false
+    },
+    {
+      "bin": "[0.75, 0.90)",
+      "mean_adverse": 0.017383730133809665,
+      "n": 380,
+      "route_input": false
+    },
+    {
+      "bin": "[0.90, 1]",
+      "mean_adverse": 0.023425563876680395,
+      "n": 229,
+      "route_input": false
+    }
+  ],
+  "causal_claim": false,
+  "design_sha256": "83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c",
+  "dropped": {
+    "path": 0,
+    "rv": 0,
+    "state_undefined": 90
+  },
+  "e1_touched": false,
+  "evaluator_digest": "afb940c2455687ed810236a34d8178cf874f525bd50dfc88da37902ded44e9e1",
+  "evidence_class": "RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED",
+  "evidence_tier_raised": false,
+  "funding_n": 4749,
+  "interpretation": {
+    "bins_are_route_inputs": false,
+    "causal_claim": false,
+    "code": "INCREMENTAL_ASSOCIATION_UNCERTAIN",
+    "evidence_tier_raised": false,
+    "market_04_rewritten": false,
+    "product_integration_candidate": false
+  },
+  "interval": {
+    "draws": 2000,
+    "partial": {
+      "hi": 0.062366554178786546,
+      "interpretable": true,
+      "lo": -0.008055043619315706,
+      "share_positive": 0.941,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "raw": {
+      "hi": 0.11027730322243834,
+      "interpretable": true,
+      "lo": 0.0014817922680213926,
+      "share_positive": 0.9785,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "weeks": 223
+  },
+  "market_04_rewritten": false,
+  "n": 4659,
+  "n_weeks": 223,
+  "n_zero_rate": 0,
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": true,
+  "partial": 0.027762672485166194,
+  "practical_rho_applied": false,
+  "pre_outcome_evaluator_commit": "be9d9d511a80e5d39e99b482d07a8b808f59d756",
+  "premium_scored": false,
+  "product_change": false,
+  "product_integration_candidate": false,
+  "read_at": "2026-10-09T11:34:47Z",
+  "secondary": [
+    {
+      "name": "adverse_1h",
+      "partial": 0.002748912154690174,
+      "route_input": false,
+      "spearman": 0.03957509983205247
+    },
+    {
+      "name": "adverse_4h",
+      "partial": 0.01547403632237566,
+      "route_input": false,
+      "spearman": 0.04822279765907132
+    },
+    {
+      "name": "abs_excursion_8h",
+      "partial": 0.0359041701347571,
+      "route_input": false,
+      "spearman": 0.07352234523798994
+    }
+  ],
+  "sides": [
+    {
+      "n": 4105,
+      "route_input": false,
+      "side": "positive_funding",
+      "spearman": 0.06590973227687523
+    },
+    {
+      "n": 554,
+      "route_input": false,
+      "side": "negative_funding",
+      "spearman": -0.2526984506298927
+    }
+  ],
+  "spearman": 0.055772530537571544,
+  "threshold_55_applied": false,
+  "unit": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1",
+  "years": [
+    {
+      "n": 276,
+      "partial": 0.11664688307459968,
+      "route_input": false,
+      "spearman": 0.25335378217772964,
+      "year": 2020
+    },
+    {
+      "n": 1095,
+      "partial": -0.0018202059875871543,
+      "route_input": false,
+      "spearman": -0.0011977094253379599,
+      "year": 2021
+    },
+    {
+      "n": 1095,
+      "partial": 0.037573836349442516,
+      "route_input": false,
+      "spearman": -0.0005087471178070523,
+      "year": 2022
+    },
+    {
+      "n": 1095,
+      "partial": 0.07357750007772305,
+      "route_input": false,
+      "spearman": 0.10911105690212888,
+      "year": 2023
+    },
+    {
+      "n": 1098,
+      "partial": 0.029373086948576592,
+      "route_input": false,
+      "spearman": 0.0488511824222843,
+      "year": 2024
+    }
+  ]
+}

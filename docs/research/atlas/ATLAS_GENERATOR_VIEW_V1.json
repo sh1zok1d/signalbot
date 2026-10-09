@@ -1986,15 +1986,20 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 6,
-   "generator_state": "DATA_REQUIRED",
+   "frontier_value": 5,
+   "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 2,
+   "prior_signature_count": 3,
    "prior_signatures": [
     {
      "function": "PREMIUM_FUNDING_EXTREME_DIRECTION",
      "id": "DH3-X1",
      "mechanism": "see docs/research/DH3_DESIGN.md §4"
+    },
+    {
+     "function": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1",
+     "id": "FUNDING-STATE-HISTORICAL-STRUCTURE-V1",
+     "mechanism": "MODE=RETROSPECTIVE_HISTORICAL_STRUCTURE. Settled funding rank and later long-side path stress, beyond the contemporaneous realized-volatility state. Not a direction call and not a replay of an external strategy."
     },
     {
      "function": "Confirmatory funding/basis incremental information",
@@ -2007,7 +2012,7 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2016,7 +2021,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2025,7 +2030,7 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2034,7 +2039,7 @@
   {
    "col": "OPTIONS",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -5910,26 +5915,6 @@
    "row": "VOLATILITY_STATE.range_forecast"
   },
   {
-   "col": "CROSS_VENUE",
-   "frontier_value": 8,
-   "row": "DERIVATIVES.funding_basis"
-  },
-  {
-   "col": "OPTIONS",
-   "frontier_value": 8,
-   "row": "DERIVATIVES.funding_basis"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 8,
-   "row": "DERIVATIVES.funding_basis"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 8,
-   "row": "DERIVATIVES.funding_basis"
-  },
-  {
    "col": "CROSS_ASSET",
    "frontier_value": 8,
    "row": "EVENTS.endogenous_shocks"
@@ -6133,6 +6118,26 @@
    "col": "SPOT",
    "frontier_value": 7,
    "row": "CALENDAR.sessions"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 7,
+   "row": "DERIVATIVES.funding_basis"
+  },
+  {
+   "col": "OPTIONS",
+   "frontier_value": 7,
+   "row": "DERIVATIVES.funding_basis"
+  },
+  {
+   "col": "PERP_FLOW",
+   "frontier_value": 7,
+   "row": "DERIVATIVES.funding_basis"
+  },
+  {
+   "col": "SPOT",
+   "frontier_value": 7,
+   "row": "DERIVATIVES.funding_basis"
   },
   {
    "col": "CROSS_ASSET",
@@ -7779,7 +7784,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "8ecdae78e74965e51344062035186b5adce0cd86defe2955134b22cb30f2c9c9",
+ "SOURCES_DIGEST": "091b030852339e31c2e81d07345b37b0ee02ea861dc84c0b9a9121a33fdf9680",
  "SURFACES": [
   {
    "also_cols": [

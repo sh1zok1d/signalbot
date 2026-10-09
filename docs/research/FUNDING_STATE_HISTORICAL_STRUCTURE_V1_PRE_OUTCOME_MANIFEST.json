@@ -1,0 +1,16 @@
+{
+  "design_sha256": "83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c",
+  "evaluator_digest": "afb940c2455687ed810236a34d8178cf874f525bd50dfc88da37902ded44e9e1",
+  "funding_n": 4749,
+  "min_past": 90,
+  "boot_draws": 2000,
+  "boot_seed": 20261114,
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": false,
+  "practical_rho_applied": false,
+  "premium_scored": false,
+  "product_integration_candidate": false,
+  "threshold_55_applied": false,
+  "unit": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1"
+}
