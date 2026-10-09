@@ -4532,3 +4532,27 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'ONE DISCOVERY SCAN. Claim ceiling DISCOVERY_ONLY. Close location and lower-boundary distance are the same ratio. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+  - id: RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1
+    title: Range location incremental check
+    program: RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    period: 'one Bybit read; T from 2020-04-01T01:15:00Z through 2024-12-31T20:00:00Z; analysis N 158650; 240 ISO weeks'
+    units_n: 'one feature, one horizon, one primary control pair'
+    practical_bar: 'No magnitude floor. The route is the sign of the raw association and whether the primary interval excludes zero.'
+    mechanism: 'Trailing range location of the decision close against the next signed return, after a minimal recent-price state. One cross-venue read. Not a new search.'
+    function: 'Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.'
+    blind_mechanism: 'Decision close location inside the trailing high-low window, compared with the next signed return after a small recent-price state.'
+    blind_function: 'Range location incremental check'
+    verdict: 'RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED. Bybit raw Spearman about -0.058, primary partial about -0.028 after the 4h signed return and 4h realized volatility, week-block interval below zero. About half the raw association is removed by the signed return. The 2021 primary point is about zero. Not a product line. Not a fee-aware edge.'
+    why_closed: 'The one allowed read of this frozen design was completed. A second read is refused. The boundary-feature question is a different unit.'
+    forbidden: 'a rerun; reading rejection or bars-since inside this unit; opening 2025/2026; treating the quintile table as a rule; revising the control set after the outcome; a product line'
+    reopen: 'A later unit may ask whether a boundary feature adds anything beyond range location. Not a rerun of this partial. Not a product change. Not 2025/2026.'
+    records:
+    - docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1_DESIGN.md
+    - docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.md
+    - docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.json
+    - docs/RESEARCH_LEDGER.md

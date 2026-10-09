@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 2,
+    "CLOSED_ON_SURFACE": 3,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -202,7 +202,8 @@
     "B2-03",
     "DH1-X6",
     "H03",
-    "PRE-IMPULSE-STATE-ATLAS-V1"
+    "PRE-IMPULSE-STATE-ATLAS-V1",
+    "RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -10213,14 +10214,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 219,
+  "units": 220,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 2,
-   "CLOSED_ON_SURFACE": 38,
+   "CLOSED_ON_SURFACE": 39,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15580,7 +15581,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "ba23098cc314745554f1b0bd732191d64aea08f99c6991e1674684f0b5eaccd5",
+ "SOURCES_DIGEST": "cab5e2bbec694bae92b0f0d576411bbfcfd71a34cb93b1ad9d0ea425909c5918",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16912,6 +16913,14 @@
      {
       "note": "PRE-IMPULSE-STATE-ATLAS-V1 used 15-minute close-to-close timing only, exact open match, holes left missing; further use of the already consumed file, not a confirmation of the level-reaction reads; SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
       "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 one read of high, low and close on the same pinned file; holes left missing; route RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED; analysis N 158650, 240 ISO weeks; not a rerun of the level-reaction reads and not a product line; SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+      "period": "2020-04-01T01:15Z..2024-12-31T20:00Z",
       "rows": [
        "PRICE_STRUCTURE.impulse"
       ],
@@ -21876,6 +21885,35 @@
    "units_n": "62 series; top score about 0.058 on close location inside the trailing 4h range versus the next 1h signed return; the lower-boundary distance is the same ratio",
    "verdict": "DISCOVERY SCAN COMPLETE (2026-10-09T13:38:33Z). Claim ceiling DISCOVERY_ONLY. Highest score is close location inside the trailing 4-hour range versus the next 1h signed return, Spearman about -0.058, same sign in every year. Lower-boundary distance is that same ratio. Upper-boundary distance is its complement. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "The one allowed scan of this frozen list was completed and the full ledger was kept. A second scan is refused. No cell is a confirmation."
+  },
+  {
+   "blind_function": "Range location incremental check",
+   "blind_mechanism": "Decision close location inside the trailing high-low window, compared with the next signed return after a small recent-price state.",
+   "col": "CANDLES",
+   "datasets": [
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY"
+   ],
+   "forbidden": "a rerun; reading rejection or bars-since inside this unit; opening 2025/2026; treating the quintile table as a rule; revising the control set after the outcome; a product line",
+   "function": "Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.",
+   "id": "RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1",
+   "mechanism": "Trailing range location of the decision close against the next signed return, after a minimal recent-price state. One cross-venue read. Not a new search.",
+   "period": "one Bybit read; T from 2020-04-01T01:15:00Z through 2024-12-31T20:00:00Z; analysis N 158650; 240 ISO weeks",
+   "practical_bar": "No magnitude floor. The route is the sign of the raw association and whether the primary interval excludes zero.",
+   "program": "RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1",
+   "records": [
+    "docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1_DESIGN.md",
+    "docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.md",
+    "docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.json",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "A later unit may ask whether a boundary feature adds anything beyond range location. Not a rerun of this partial. Not a product change. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Range location incremental check",
+   "units_n": "one feature, one horizon, one primary control pair",
+   "verdict": "RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED. Bybit raw Spearman about -0.058, primary partial about -0.028 after the 4h signed return and 4h realized volatility, week-block interval below zero. About half the raw association is removed by the signed return. The 2021 primary point is about zero. Not a product line. Not a fee-aware edge.",
+   "why_closed": "The one allowed read of this frozen design was completed. A second read is refused. The boundary-feature question is a different unit."
   },
   {
    "col": "CANDLES",

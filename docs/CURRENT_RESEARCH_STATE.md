@@ -1,3 +1,31 @@
+## RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 — one Bybit read — 2026-10-09
+
+`MODE = CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT | outcome_read = true | claim ceiling HISTORICAL_ONLY`
+`ROUTE = RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED`
+`SAMPLE = Bybit linear BTCUSDT 5m | SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c | T 2020-04-01T01:15:00Z through 2024-12-31T20:00:00Z | analysis N 158650 | ISO weeks 240`
+`RAW = Spearman -0.05781800690167492 | interval [-0.06485654891316102, -0.05103727227273947]`
+`PRIMARY = partial given RET_4H and RV_4H -0.02784152009582924 | interval [-0.03483702325812674, -0.02121680501364248]`
+`RET ONLY = -0.027418341298313498 | share of raw removed by RET_4H 0.5257819705729216 | RV does not move the point`
+`YEAR = raw negative in every year | primary about zero in 2021 (+0.0019259518922127197) and negative in the other four`
+`NOT OPENED = 2025/2026, Binance outcomes, rejection, bars-since, fees | rerun REFUSING_RERUN`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO`
+`DESIGN SHA256 = 8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d | evaluator bb0f5f548497d9ceec7c849d929973fac9f9aebb43e7f78785225271d5a5e07b`
+
+Result: `docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.md`.
+
+## RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 — design frozen, outcome unread — 2026-10-09
+
+`MODE = CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT | outcome_read = false | claim ceiling HISTORICAL_ONLY`
+`QUESTION = does Bybit RANGE_POSITION_4H still line up with the next 1h signed return after RET_4H and RV_4H`
+`SURFACE = LEVEL_CROSS_VENUE_PERP_5M_V0 bybit_btcusdt_linear_5m.csv.gz | SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`
+`TARGET = R_1H only | anchors = parent 15-minute phase | holes stay missing`
+`PRIMARY = partial Spearman of RP4H with R_1H given RET_4H and RV_4H | seed 20261117 | B 2000 | ISO weeks`
+`NOT OPENED = the Bybit outcome, 2025/2026, Binance outcomes, rejection, bars-since, fees`
+`DESIGN SHA256 = 8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1_DESIGN.md`.
+
 ## PRE_IMPULSE_STATE_ATLAS_V1 — independent review — 2026-10-09
 
 `MODE = REVIEW | outcome_read = false | scan claim ceiling unchanged DISCOVERY_ONLY`

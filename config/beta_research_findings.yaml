@@ -24,6 +24,12 @@
 # listed under `no_bot_context` with its record, so the omission is a recorded decision.
 version: BETA_RESEARCH_FINDINGS_V1
 no_bot_context:
+  - program: RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 (atlas RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1)
+    status: HISTORICAL_ONLY
+    bot_context: NONE
+    pending_merge: true
+    reason: "one Bybit read; route RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED; raw Spearman -0.05781800690167492; primary partial -0.02784152009582924 after RET_4H and RV_4H; 2021 primary about zero; PRODUCT_INTEGRATION_CANDIDATE = NO; no /btc line"
+    record: "docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.md"
   - program: PRE_IMPULSE_STATE_ATLAS_V1 (atlas PRE-IMPULSE-STATE-ATLAS-V1)
     status: DISCOVERY_ONLY
     bot_context: NONE

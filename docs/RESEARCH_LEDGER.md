@@ -8999,6 +8999,36 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 one Bybit read
+
+**Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT`. Claim ceiling `HISTORICAL_ONLY`. Design commit `4c6c5583ee93f4541224363e129d5b9505167fe8`. Design SHA256 `8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`. Evaluator digest `bb0f5f548497d9ceec7c849d929973fac9f9aebb43e7f78785225271d5a5e07b`. A second read returns `REFUSING_RERUN`.
+- **Sample.** Bybit linear BTCUSDT 5m, SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`. Holes `23714` left missing. Analysis N `158650`, ISO weeks `240`, `T` from `2020-04-01T01:15:00Z` through `2024-12-31T20:00:00Z`.
+- **Raw.** Spearman `-0.05781800690167492`. Interval `[-0.06485654891316102, -0.05103727227273947]`.
+- **Primary.** Partial given `RET_4H` and `RV_4H` `-0.02784152009582924`. Interval `[-0.03483702325812674, -0.02121680501364248]`.
+- **RET only.** `-0.027418341298313498`. Share of the raw association removed by `RET_4H` `0.5257819705729216`. Width partial `-0.027847842706067`.
+- **Route.** `RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED`. Raw sign negative in every year. Primary point about zero in 2021 and negative otherwise. No stability gate was applied.
+- **Not read.** Rejection, bars-since, Binance outcomes, `2025/2026`, fees. `PRODUCT_INTEGRATION_CANDIDATE = NO`.
+
+```
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY further use of the pinned 5m file for high, low, close and the 1h return; holes left missing
+OUTCOME_READ = yes; ROUTE = RANGE_POSITION_INCREMENTAL_CROSS_VENUE_SUPPORTED; CONFIRMATION_OF_A_TRADE = no
+OBJECTS_2025_2026_USED = none; BINANCE_OUTCOMES = not loaded; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 design frozen
+
+**Mode.** Outcome-blind freeze of one cross-venue successor. `outcome_read = false`. Evidence class `CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT`. Claim ceiling `HISTORICAL_ONLY`.
+- **Question.** On Bybit, does `RANGE_POSITION_4H` still associate with `R_1H` after `RET_4H` and `RV_4H`.
+- **Surface.** `bybit_btcusdt_linear_5m.csv.gz`, SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`. `T < 2025-01-01`. Holes stay missing. Binance outcomes are not loaded.
+- **Primary.** Partial Spearman, rank residuals, OLS with an intercept. Bootstrap `B = 2000`, seed `20261117`, ISO weeks. Design SHA256 `8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`.
+- **Not in this unit.** Rejection, bars-since, a second horizon, fees, a new discovery scan.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no; STATUS = DESIGN_FROZEN
+OBJECTS_2025_2026_USED = none; BINANCE_OUTCOMES = not loaded; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 independent review
 
 **Mode.** Review of the finished scan. `outcome_read = false` for this note. No feature was recomputed. The scanner was not rerun. Claim ceiling of the scan stays `DISCOVERY_ONLY`.
