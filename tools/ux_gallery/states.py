@@ -65,10 +65,11 @@ def view(price: Optional[float], t: datetime, *, rng: float = 0.5, vol: float = 
     }
 
 
-def hour(t: datetime, *, move: float, oi: float, rng: bool = True, vol: bool = True) -> dict:
+def hour(t: datetime, *, price: float, move: float, oi: float, rng: bool = True, vol: bool = True) -> dict:
+    """The unusual-hour push of a state: it closes at the state's price."""
     return {"version": FACTS_VERSION, "source": "hour", "triggered_at": _iso(t),
             "window_start": _iso(t - timedelta(hours=1)), "window_end": _iso(t), "price_move_pct": move,
-            "open": 64000.0, "close": 64000.0 * (1 + move / 100), "oi_change_pct": oi,
+            "open": round(price / (1 + move / 100), 1), "close": price, "oi_change_pct": oi,
             "taker_delta_notional_usd": None, "passed": {"price": abs(move) > 1, "range": rng, "volume": vol},
             "interpretation": None}
 
@@ -94,20 +95,20 @@ def named_states() -> list:
         ("calm", view(64210.0, t(0), rng=0.40, vol=0.35)),
         ("compression", view(64480.0, t(3), rng=0.05, vol=0.50, corridor=(-0.9, 0.9), move1h=0.02)),
         ("sharp drop", view(61930.0, t(6), rng=0.995, vol=0.97, move1h=-2.4, oi1h=-1.1),
-         {"move": move_alert(t(6), -2.4, 63450.0), "hour": hour(t(6), move=-2.4, oi=-1.1)}),
+         {"move": move_alert(t(6), -2.4, 63450.0), "hour": hour(t(6), price=61930.0, move=-2.4, oi=-1.1)}),
         ("sharp rise", view(66120.0, t(9), rng=0.96, vol=0.90, move1h=2.1, oi1h=1.3),
          {"move": move_alert(t(9), 2.1, 64760.0)}),
         ("strong selling", view(63380.0, t(12), rng=0.85, vol=0.96, episode=TAKER_FLOW_EXTREME_SELL, move1h=-0.9),
-         {"hour": hour(t(12), move=-0.9, oi=0.4, rng=False)}),
+         {"hour": hour(t(12), price=63380.0, move=-0.9, oi=0.4, rng=False)}),
         ("strong buying", view(65040.0, t(15), rng=0.86, vol=0.97, episode=TAKER_FLOW_EXTREME_BUY, move1h=1.0),
-         {"hour": hour(t(15), move=1.0, oi=0.6, rng=False)}),
+         {"hour": hour(t(15), price=65040.0, move=1.0, oi=0.6, rng=False)}),
         ("OI build-up, flat price", view(64600.0, t(18), rng=0.20, vol=0.60, episode=POSITION_BUILDUP_COMPRESSION,
                                          move1h=0.03, oi1h=3.4)),
         ("OI unwind", view(63900.0, t(21), rng=0.70, vol=0.75, episode=PRICE_OI_CONTRACTION_DOWN, move1h=-0.6,
                            oi1h=-3.8)),
         ("liquidation stress", view(62250.0, t(24), rng=0.997, vol=0.995, episode=LIQUIDATION_STRESS_LONG,
                                     move1h=-1.9, oi1h=-2.6),
-         {"hour": hour(t(24), move=-1.9, oi=-2.6)}),
+         {"hour": hour(t(24), price=62250.0, move=-1.9, oi=-2.6)}),
         ("price at a level above", view(64990.0, t(27), at="PDH", above=("PWH", "PMH"), rng=0.60),
          {"level": level_alert(t(27), "PDH", 65015.0, 64990.0)}),
         ("price at a level below", view(63210.0, t(30), at="PDL", below=("PWL", "PML"), rng=0.62),

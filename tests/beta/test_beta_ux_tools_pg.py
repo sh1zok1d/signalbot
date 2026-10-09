@@ -160,3 +160,30 @@ def test_the_preview_uses_track_as_renderer_and_no_stub():
     import beta.ux_preview as V2
     assert V2.render is beta.ux.render and V2.from_view is beta.ux.from_view
     assert not hasattr(V2, "stub_render") and V2.SCREENS is beta.ux.SCREENS
+
+
+def test_each_synthetic_state_is_on_one_scale():
+    """Price, 24h high/low, levels, corridor and every notification of a state agree (the architect's review)."""
+    from tools.ux_gallery.states import named_states
+    for sid, name, screens in named_states():
+        f = screens["btc"]
+        p = f["price"]
+        if p is None:                                                         # stale: nothing priced
+            continue
+        h24 = f["h24"]
+        assert h24["low"] <= p <= h24["high"], sid
+        lv = f["levels"]
+        for z in lv["above"] + lv["below"] + ([lv["at"]] if lv["at"] else []):
+            assert abs(z["edge"] - p) / p <= 0.10, (sid, z["edge"])
+        c = f["corridor_24h"]
+        assert c["lower"] <= p <= c["upper"], sid
+        if name == "near a corridor edge":
+            assert min(p - c["lower"], c["upper"] - p) <= 0.10 * (c["upper"] - c["lower"]) / 2, sid
+        for key in ("hour", "level", "move"):
+            n = screens.get(key)
+            if n is None:
+                continue
+            price_of = {"hour": n.get("close"), "level": n.get("price"), "move": n.get("close")}[key]
+            assert abs(price_of - p) / p <= 0.002, (sid, key, price_of, p)
+            if key == "level":
+                assert abs(n["level"] - p) / p <= 0.01, (sid, n["level"])
