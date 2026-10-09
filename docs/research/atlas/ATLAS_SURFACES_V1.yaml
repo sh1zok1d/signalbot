@@ -431,6 +431,7 @@ datasets:
     live_in_product: true
     exposure:
       - {period: from 2026-10-10, accrual not started, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 path rules only; endpoint not read; not CONSUMED"}
+      - {period: from 2026-10-10, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 closed before outcome 2026-10-09; status SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION; path rules stayed reserved after the freeze; outcome never consumed; no checkpoint; alpha spent 0; forward partial rho not computed; operational rows if any are not a scientific score"}
     records: [docs/research/AUTOGEN_G01_FEASIBILITY.md]
   # ---- cross-asset ----------------------------------------------------------------------------------
   - id: CORE_ETH_BINANCE_V0

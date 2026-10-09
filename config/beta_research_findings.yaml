@@ -47,8 +47,13 @@ no_bot_context:
   - program: FORMATION_WIDTH_DECISION_VALUE_V1 (atlas FORMATION-WIDTH-DECISION-VALUE-V1)
     status: CHARACTERIZED_ONCE_NO_PRODUCT_LINE
     bot_context: NONE
-    reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; PRODUCT_INTEGRATION_CANDIDATE = NO; a /research line waits for a separate owner go"
+    reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; the WIDTH line is closed with no product line"
     record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
+  - program: FORMATION_WIDTH_V1
+    status: CLOSED_NO_PRODUCT_LINE
+    bot_context: NONE
+    reason: "line closed; label REPRODUCIBLE_SMALL_INCREMENTAL_STATE_SIGNAL_DECISION_VALUE_NOT_DEMONSTRATED; PRODUCT_INTEGRATION_CANDIDATE = NO; WIDTH is outside the forecast layer, /btc, pushes, probability wording, activity decisions, product ranking, and the feature set; NEXT_UNIT = NONE"
+    record: "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7
