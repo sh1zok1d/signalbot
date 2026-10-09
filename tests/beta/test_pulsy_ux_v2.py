@@ -254,3 +254,19 @@ def test_level_alert_uses_the_level_name_from_its_kind():
                             "period": "day", "price": 62970.0, "history": HIST})
     ru = norm(plain(render("level", 1, "ru", f)[0]))
     assert ru.startswith("📍 Касание уровня: максимум вчера 62 950") and "Цена 62 970" in ru
+
+
+def test_level_card_takes_its_zone_from_the_view_and_degrades_without_one():
+    """Track B's finding: facts from `from_view` carry no `zone`. The card takes the level at the price, else
+    the nearest level of either side; with none it says «Уровней рядом нет», never raises."""
+    busy = from_view(_busy())                                   # has levels.at (PDL)
+    ru = norm(plain(render("level_card", 1, "ru", busy)[0]))
+    assert ru.splitlines()[0] == "минимум вчера 62 490"           # the zone at the price (its edge), not the nearest
+    v = _view("unusual")                                       # no level at the price: the nearest one (+0.75%)
+    ru = norm(plain(render("level_card", 1, "ru", from_view(v))[0]))
+    assert ru.splitlines()[0] == "максимум вчера 62 950"
+    for lang, none in (("ru", "Уровней рядом нет."), ("en", "No levels nearby.")):
+        h, b = render("level_card", 1, lang, from_view(_calm()))
+        assert none in plain(h) and b == [[(PHRASES["btn_back"][0 if lang == "ru" else 1], "ux:levels:1")]]
+        h, _b = render("level_card", 1, lang, {})
+        assert none in plain(h)

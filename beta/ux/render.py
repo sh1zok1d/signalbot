@@ -190,10 +190,25 @@ def _levels(lang: str, f) -> tuple:
     return _join(blocks), [[(text("btn_back", lang), callback("btc", 1))]]
 
 
+def card_zone(f: Mapping[str, Any]):
+    """The card's level: `zone` when given, else the view's level at the price, else the nearest level of
+    either side (by |distance|); None when there is none."""
+    if f.get("zone"):
+        return f["zone"]
+    lv = f.get("levels") or {}
+    if lv.get("at"):
+        return lv["at"]
+    near = [z for z in list(lv.get("above") or ()) + list(lv.get("below") or ()) if z and z.get("distance_pct") is not None]
+    return min(near, key=lambda z: abs(float(z["distance_pct"]))) if near else None
+
+
 def _level_card(lang: str, f) -> tuple:
-    z = f["zone"]
+    back = [[(text("btn_back", lang), callback("levels", 1))]]
+    z = card_zone(f)
+    if z is None or not z.get("members"):
+        return _join([[_hdr(text("hdr_levels", lang))], [text("lv_none", lang)]]), back
     return (_join([[_hdr(level_name(z["members"][0], lang) + " " + price(z["edge"], lang))], [card_line(z, lang)]]),
-            [[(text("btn_back", lang), callback("levels", 1))]])
+            back)
 
 
 # ---- notifications ---------------------------------------------------------------------------------
