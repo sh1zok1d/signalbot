@@ -8705,3 +8705,11 @@ WINDOWS_CONSUMED = D2_BITMEX_PRE2020_XBTUSD 2016-05-13..2019-12-31 PRICE_STRUCTU
 NOT_READ = Binance 2025/2026, spot, Bybit/Binance 2020-24 outcomes, rejection/bars-since, fees | Unit B not started
 FINDINGS_REGISTRY = not updated (owner: no product work in this step); pending owner decision
 ```
+
+## 2026-10-09 — RANGE_POSITION_4H Unit B (Binance 2025-26): exposure audit, design frozen, technical preflight (no outcome read)
+
+`EXPOSURE_AUDIT = docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md | one exact-class read (E1-RUN-001 development, 2026-08-02..08-16) -> cut at object level; adjacent reads disclosed; discovery chain read no bar of S`
+`DESIGN = frozen commit 6f4a5d32 | SHA256 b38013d06f706057ddd1232609a375509771d4f65a04451bfcf511d496ae575d | Unit A identity (shared code imported)`
+`OBJECTS = 64 (manifest SHA 5369e8dc...), all checksums verified | interval 2025-01-01..2026-10-09 minus [2026-08-02, 2026-08-26) | E1 window closed by the product guard`
+`PREFLIGHT = rows 179,136 | holes 6,912 (E1 window 2,800; E1-development slice 4,032; rest of the refused 25th 80; other 0) | eligible anchors 59,672 | ISO weeks 90 | 2025: 35,023, 2026: 24,649 | T 2025-01-01T04:15Z .. 2026-10-08T23:00Z`
+`DATA_READ = object bodies downloaded and hashed; timestamps and window spans only | OUTCOMES_READ = none | GO = pending owner`
