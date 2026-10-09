@@ -70,7 +70,41 @@ No rescue by variants after any route. The OCC line ends after this unit unless 
 
 ## 7. Exact exposure audit (before freeze)
 
-AUDIT_PLACEHOLDER
+Read-only audit of every recorded read of S (Binance USD-M BTCUSDT 2025-01-01 … 2026-10-08), the product code, the claim journal and the live matchers. It started from `RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md` and re-checked every read's code for mean-type features. Nothing was computed.
+
+**Verdict: Q = OCC_MEAN_4H → R_1H has never been read on S, and neither has an equivalent.** Checked forms:
+- close vs a trailing 2–8h SMA/TWAP/VWAP;
+- z-score or %B;
+- occupancy or frac_near;
+- midpoint slope;
+- A1.
+
+S is `QUESTION_FRESH_REPLICATION` for Q, not pristine. The outcome-blind preflight of this unit (§8) never touched R_1H.
+
+| read of S | mean-type feature | outcome | class vs Q |
+|---|---|---|---|
+| DIVERGENCE_FULL_HISTORY_V0 (six coins pooled, 2023-01 … 2026-08-11) | `HTF_EMA168_DIST_ATR` = (1h close − EMA168 of 1h closes)/ATR14 (a 7-day EMA); MACD; RSI deltas | +1R before −1R within 48h, inside divergence/support episodes | ADJACENT (same family, 42× longer window, episode-conditional, owner-closed line) |
+| Product `VWAP_D` (`beta/levels.py`) | the current UTC-day VWAP as a level | none: not in the stats, push or race level kinds | UNRELATED |
+| E1 development, V1 autopsy, product analogues, rangecast, level and distance reactions, LEVEL_RACE held-out, P3, P4, claim journal, live research states | no mean-distance feature (extrema, signed moves, ranges, flow, OI, σ) | various | UNRELATED or adjacent to the controls only |
+| RP4H Unit B (identical anchors and R_1H vector) | RP4H, RET_4H, RV_4H, width, RET_1H, RET_15M; no OCC | R_1H | ADJACENT (closest) |
+| Cursor's parallel Binance 2025–26 RP4H read (branch `cursor/range-position-4h-binance-2025-2026-temporal-replication-v1-08d8`, commit 7b55fff, not merged) | the same RP4H features; no OCC. Its object hole is only [2026-08-16, 2026-08-26), so it also read the E1-development slice | R_1H | ADJACENT for Q; newly disclosed; to be added to the exposure counters |
+| Cursor's RP4H forecast prototype (commit 58648568) | RET_4H, RV_4H, RET_1H, RET_15M, RP4H; `OWNER_GO = False` | none read yet | none |
+
+Not on S: DIRECTIONAL_STATE_SEARCH_V2, the BitMEX OCC unit, the pre-impulse atlas, the Bybit successor, MARKET-03, H02 and TWAP V1 (spot).
+
+**Disclosed adjacent exposure:**
+- Unit B exposed the RP4H term of OCC = RP4H − (close − SMA₄₇)/(H − L) in full, and the local-path secondary for RP4H.
+- Its return controls cover part of the deviation term. It never published a control's own association with R_1H.
+- E1 CB breakouts (2026-08-02 … 08-16) are a joint tail of RP4H and the deviation term, because a fresh close above the 4h high is above every prior close. There is no conditioning on the size of the deviation.
+- The designer knows both earlier OCC results (§2) and uses neither.
+
+**E1 cuts for OCC:**
+- **The E1 holdout is mandatory:** a reserved surface; the product guard applies at object level; the P4 invalidation does not release it.
+- **The E1-development cut is kept**, although OCC's exposure there is only adjacent:
+  - parity with Unit B's canonical object list and anchors;
+  - admitting the slice now would be a surface choice made after RP4H outcomes are known;
+  - it is the densest adjacent exposure.
+- The cost is 4,032 slots.
 
 ## 8. Identity audit (outcome-blind; as in the BitMEX unit)
 
