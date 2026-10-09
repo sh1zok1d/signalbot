@@ -88,17 +88,18 @@ def test_admin_preview_sends_one_type_to_the_owner_and_writes_nothing_else():
         out = await h.handle(owner_msg("/admin_preview hour", 52))
         assert "hour: ещё не было" in plain(out[0].html) and len(out) == 1
         await run_notify_once(store, _cfg(True), ON_PUSH, sender=Sender(), clock=Clock(NOW), owner_user_id=OWNER)
-        counts = """SELECT (SELECT count(*) FROM beta_claim_displays) AS displays,
-                           (SELECT count(*) FROM beta_user_activity) AS activity,
-                           (SELECT count(*) FROM beta_notification_deliveries) AS deliveries,
-                           (SELECT count(*) FROM beta_market_alerts) AS alerts,
-                           (SELECT count(*) FROM beta_btc_views) AS views"""
-        before = await _rows(pool, counts)
+        tables = [r["t"] for r in await _rows(pool, """SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public'
+                                                        AND tablename LIKE 'beta%' AND tablename <> 'beta_admin_audit'""")]
+        assert {"beta_claims", "beta_claim_displays", "beta_user_activity", "beta_btc_views"} <= set(tables)
+
+        async def counts():                                                 # every beta table but the audit
+            return {t: (await _rows(pool, f"SELECT count(*) AS n FROM {t}"))[0]["n"] for t in tables}
+        before = await counts()
         for k, kind in enumerate(("level", "brief", "weekly")):
             out = await h.handle(owner_msg(f"/admin_preview {kind}", 60 + k))
             to_owner = [o for o in out if o.chat_id == OWNER and plain(o.html).startswith("🔍 ПРЕВЬЮ")]
             assert len(to_owner) == 1 and all(o.chat_id == OWNER for o in out), kind
-        assert await _rows(pool, counts) == before                           # no journal, telemetry, outbox, view
+        assert await counts() == before                     # no claim, display, telemetry, outbox, view, report
         audit = await _rows(pool, "SELECT action, result, detail->>'type' AS t FROM beta_admin_audit "
                                   "WHERE action = 'admin_preview' ORDER BY audit_id")
         assert [a["t"] for a in audit] == [None, "level", "hour", "level", "brief", "weekly"]
