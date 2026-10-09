@@ -1589,8 +1589,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 8
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -1611,8 +1611,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
+    "saturation": 1,
+    "total": 9
    }
   },
   {
@@ -1633,8 +1633,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
@@ -1655,8 +1655,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 7
+    "saturation": 1,
+    "total": 6
    }
   },
   {
@@ -1677,13 +1677,15 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
    "col": "SPOT",
-   "counts": {},
+   "counts": {
+    "INFORMATIONALLY_WEAK": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -1691,16 +1693,18 @@
    "revisit": [],
    "row": "VOLATILITY_STATE.range_forecast",
    "row_name": "Range / volatility scale forecast",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "INFORMATIONALLY_WEAK",
+   "units": [
+    "FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1"
+   ],
    "value": {
     "confirmation_path": 2,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -1721,8 +1725,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
@@ -1743,8 +1747,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
@@ -1765,8 +1769,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
@@ -10187,12 +10191,12 @@
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 4,
    "FUTURE_NATURAL_ACCUMULATION": 2,
-   "INFORMATIONALLY_WEAK": 8,
+   "INFORMATIONALLY_WEAK": 9,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 352
+   "OPEN_FRONTIER": 351
   },
-  "units": 210,
+  "units": 211,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
@@ -10203,7 +10207,7 @@
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
-   "INFORMATIONALLY_WEAK": 25,
+   "INFORMATIONALLY_WEAK": 26,
    "LIVE_SIGNAL": 7,
    "NO_STRUCTURE": 32
   }
@@ -10780,32 +10784,6 @@
   },
   {
    "col": "PERP_FLOW",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "PERP_FLOW",
    "row": "VOLATILITY_STATE.regime_transition",
    "value": {
     "confirmation_path": 2,
@@ -11351,67 +11329,15 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "VOLATILITY_STATE.range_forecast",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
-   }
-  },
-  {
-   "col": "OPTIONS",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
+    "saturation": 1,
     "total": 9
    }
   },
@@ -12066,6 +11992,71 @@
    }
   },
   {
+   "col": "CROSS_ASSET",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
+   "col": "OPTIONS",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
    "col": "CROSS_VENUE",
    "row": "DERIVATIVES.funding_basis",
    "value": {
@@ -12549,19 +12540,6 @@
   {
    "col": "LIQUIDATIONS",
    "row": "VOLATILITY_STATE.compression",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 7
-   }
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "row": "VOLATILITY_STATE.range_forecast",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -13407,6 +13385,19 @@
   {
    "col": "LIQUIDATIONS",
    "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 6
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "VOLATILITY_STATE.range_forecast",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -15598,7 +15589,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "8c66871be0afb53bed3a9237757e59fd4a0aafd7bf4d466a59d03a2d93e30dda",
+ "SOURCES_DIGEST": "384cf7eefbc0b94114c58df735d157db2135bed052714bb62aef37b675107345",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16523,6 +16514,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1 support census only, 2026-10-09T06:08:44Z: relative width, RV_FORMATION close-span presence, and next-hour path presence; information forecast INFORMATIONALLY_WEAK_BEFORE_OUTCOME; analysis N 827, 123 ISO weeks; the next-hour endpoint was not read; not CONSUMED; not a reopen of the equal-width 4h contrast or of CORE 2020-2024",
+      "period": "2017-09-01..2019-12-31",
+      "rows": [
+       "VOLATILITY_STATE.range_forecast"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
@@ -23492,6 +23491,36 @@
    "title": "Range/volatility corridor model (1h/4h/24h) with held-out-year coverage check and live tracking",
    "units_n": "Anchors (hourly); 2024 diagnostic 8 720 / 8 660 / 8 279 anchors (1h/4h/24h); day bootstrap for interval score.",
    "verdict": "GENERIC_RANGECAST_SKILL_STATUS = DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED; product evidence; Read `corridor_coverage_holdout` (each about 0.80; 0.76–0.84 is fine); 1h coverage model / constant 79.4% / 79.5%; 4h 79.6% / 80.6%; 24h 79.0% / 78.7% (2024 diagnostic); Remaining weakness: the model under-covers the calmest fifth (69–76%)."
+  },
+  {
+   "col": "SPOT",
+   "datasets": [
+    "DH1_BINANCE_SPOT_BTCUSDT_5M_V0"
+   ],
+   "forbidden": "reading the next-hour endpoint on this window after the weak forecast; a 2025/2026 or BitMEX rescue; a reread of CORE 2020-2024; lowering 0.10; adding displacement, another hour, or another covariate; a product forecast or a trading signal",
+   "function": "One cell. V=(high-low)/P0. ACTIVITY is next-hour RV. Covariate is RV_FORMATION. Week-block bootstrap B=2000 seed 20261108 quantile 0.05. Support census 2026-10-09T06:08:44Z. Information forecast failed the frozen 80% power floor. Endpoint not computed. Evaluator refuses.",
+   "id": "FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1",
+   "mechanism": "MODE=CONFIRMATION of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour, partial Spearman with next-hour activity given formation-hour RV. Spot tape, not the USD-M perpetual. Class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION.",
+   "note": "CONFIRMATION stopped before the endpoint. Route INFORMATIONALLY_WEAK_BEFORE_OUTCOME. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Equal-width 4h resolution on this window stays a neighboring consumed contrast. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.",
+   "period": "design frozen before the endpoint; Binance spot BTCUSDT 5m 2017-09-01..2019-12-31; support census 827 analysis days, 123 ISO weeks; endpoint not read",
+   "practical_bar": "A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not authorized. The bar is not lowered.",
+   "program": "FORMATION_WIDTH_V1",
+   "records": [
+    "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_DESIGN.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.json",
+    "docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A prospective accrual of this same frozen claim, with its own design note and owner go, after a dated freeze. Not a read of this spot endpoint. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "source": "ATLAS_UNITS_V1",
+   "state": "INFORMATIONALLY_WEAK",
+   "title": "FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1",
+   "units_n": "N 827, 123 ISO weeks; effective N about 298 under the width-lag week design effect; 80% MDE about 0.145; power about 0.53 at the bar 0.10",
+   "verdict": "INFORMATIONALLY_WEAK_BEFORE_OUTCOME (2026-10-09T06:08:44Z). Count floor met (N 827, 123 weeks, both halves above 100). Power to exclude 0 at association 0.10 is about 0.53 under the predeclared width-lag design effect, below 0.80. MDE about 0.145. The next-hour endpoint was not read. No second surface. Discovery result on CORE 2020-2024 is unchanged. Not L3.",
+   "why_closed": "The pre-outcome information forecast on the one chosen spot window failed the frozen power floor. The endpoint stays unread. Opening another tape to rescue power is outside this unit."
   },
   {
    "blocker": null,
