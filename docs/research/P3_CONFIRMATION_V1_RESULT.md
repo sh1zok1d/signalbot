@@ -49,3 +49,9 @@ Rule: crowd short → long, crowd long → short; entry at close; exit at ±X or
 - As a trade rule it has no gross edge on new data, and it loses after any realistic fee.
 - Scope: this result is about one state (crowd positioning by the global long/short account ratio, DH3-P3) on one endpoint. It says nothing about other directional market states.
 - No validated directional edge has been found yet. The search for directional market states continues (owner priority `FIND_DIRECTIONAL_MARKET_STATES`, 2026-10-09; `MARKET_PHENOMENA_CATALOG_V1.md`).
+
+## Governance note (added 2026-10-09 by the catalog red team)
+- **The rule this run departed from.** `DIRECTIONAL_HYPOTHESES_DECISION_V1` set the confirmation surfaces for DH programs as 2017–2019 plus live tracking, with "no 2025/2026 object". `PRODUCT_DECISION_V2` §4 says a research claim over product features "needs a different untouched window or a prospective test".
+- **What this run did.** It used Binance 2025-01..2026-08-14. It acted on the owner's oral FORECAST FIRST directive of 2026-10-09 but had no written owner permit for that surface. The prereg disclosed that the surface was not pristine; it did not cite this rule.
+- **How to read the result.** The numbers stand as a time-disjoint check on an exposed surface. DH3-P3 has no pre-2020 data, so its only clean confirmation route is prospective.
+- **Owner action.** The owner should ratify this surface or reclassify the result. The registry status NOT_CONFIRMED rests on it.

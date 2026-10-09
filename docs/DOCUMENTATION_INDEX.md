@@ -711,6 +711,7 @@ When adding documentation:
 - `research/DH3_DESIGN.md`, `research/DH3_FEASIBILITY.{md,json}`, `research/DH3_PREREG.json`, `research/DH3_RESULT_*.json`, `research/DH3_RESULT.md` (**DH3 — five cards of three, direction and range, owner decision 2026-10-04**).
 - `research/P3_CONFIRMATION_V1_PREREG.md`, `research/P3_CONFIRMATION_V1_PARITY.json`, `research/P3_CONFIRMATION_V1_RESULT.{md,json}` (**P3 confirmation V1 — DH3-P3 one-shot on Binance 2025–2026: NOT_CONFIRMED, TRADING_FAIL; 2026-10-09**).
 - `research/MARKET_PHENOMENA_CATALOG_V1.md` (**owner priority FIND_DIRECTIONAL_MARKET_STATES, 2026-10-09: 41 directional market-state phenomena, collision audit against all prior units, top-15 research priority, first five execution units (not executed); ideation only, no outcome opened**).
+- `research/MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md` and `.json` (**independent red team of the catalog, 2026-10-09: all 41 ideas audited against primary sources. SURVIVE 1, REPAIR_NEEDED 5, DEFER_DATA 2, rejected 33; 29 catalog factual errors. Its verdicts take precedence over the catalog. No outcome read**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

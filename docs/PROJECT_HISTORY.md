@@ -542,3 +542,9 @@ At the project's sample sizes, near-absolute coverage safety and practical utili
 **What was learned.**
 - The map of past research is mostly a map of unsigned outcomes, single events and input levels.
 - Direction out of flats, decay across successive swings or touches, speed asymmetry, price response to flow, session-transition direction and temporal venue leadership were largely untested (`docs/research/MARKET_PHENOMENA_CATALOG_V1.md`).
+
+**Correction (red team, same day).** The catalog's novelty case was overstated (`MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md`).
+- Price response to flow was studied: B2-05 computed absorption outcomes on CORE 2020–24, and its forbidden formulas cover the catalog's flow-impact idea.
+- Venue leadership was proposed earlier as generator card C002, which is blocked.
+- Session-transition direction falls under recorded session bans.
+- Of 41 ideas, one survives as re-specified (signed path asymmetry), five need repair or an owner key, two wait for data and 33 are rejected.

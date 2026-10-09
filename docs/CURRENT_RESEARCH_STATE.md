@@ -3,7 +3,8 @@
 `PRIORITY = find directional market states until something reproducible is found or broad negative evidence justifies a change of course | product work not requested`
 `SCOPE_OF_P3 = P3_CONFIRMATION_V1 closes one crowd-positioning state only | project statement: no validated directional edge has been found yet`
 `CATALOG = docs/research/MARKET_PHENOMENA_CATALOG_V1.md | 41 phenomena, 14 rejected collisions | ideation and collision audit only; no outcome opened`
-`CANDIDATE_UNITS (not started; design note before outcome; batch needs an owner go) = U1 RANGE_INTERNALS_DIRECTION_V1 | U2 COUNTERMOVE_DECAY_V1 | U3 SPEED_AND_SIGNED_RESPONSE_V1 | U4 SESSION_RELEASE_V1 | U5 FLOW_TRANSFER_FUNCTION_V1 (atlas novelty ruling vs B2-05 first)`
+`RED_TEAM = docs/research/MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md (+ .json) | SURVIVE 1 (S1 re-specified as SIGNED_PATH_ASYMMETRY_24H) | REPAIR_NEEDED 5 (A1, B1, C1, T2, T3) | DEFER_DATA 2 (V1, V2) | rejected 33 | catalog U1-U5 superseded`
+`CANDIDATE_UNITS (not started; design note before outcome; batch needs an owner go) = SIGNED_PATH_ASYMMETRY_24H (ready) | US_OPEN_DRIVE (needs OWNER_DECISION vs the D12 equity-open-child and opening-range session-anchor bans) | PATH_OCCUPANCY_RESIDUAL (needs an atlas novelty ruling)`
 `PARALLEL = Cursor PRE_IMPULSE_STATE_ATLAS_V1 (broad scan); compare per catalog §10`
 
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08

@@ -4,6 +4,8 @@
 **Role:** market phenomena scout / research director (chief architect).
 **Owner priority:** `FIND_DIRECTIONAL_MARKET_STATES`.
 
+> **Errata (red team, 2026-10-09).** This catalog was audited in `MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md`. Its verdicts take precedence. That audit lists 29 factual errors here. Among them: the "explicitly listed as not killed" claims have no source, and the ERA surfaces are not unread outside levels. Of the 41 ideas, 1 survives as re-specified, 5 need repair, 2 wait for data and 33 are rejected. The text below is unchanged.
+
 **Status: ideation and collision audit only.**
 - No market outcome was opened, no data was downloaded and no candidate was tested.
 - Nothing here is evidence, a preregistration or a product proposal.

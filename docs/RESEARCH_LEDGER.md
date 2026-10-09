@@ -8629,3 +8629,26 @@ MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HI
 WINDOWS_CONSUMED = BINANCE_UM_OI_METRICS_PRODUCT 2025-01-01..2026-08-14 DERIVATIVES.leverage_crowding (one-shot); BINANCE_UM_KLINES_5M_PRODUCT 2024-11..2026-08-14 DERIVATIVES.leverage_crowding (outcomes, trading translation)
 OBJECTS_2025_2026_USED = 5m klines monthly 2025-01..2026-07 + daily 2026-08-01..14; metrics daily 2025-01-01..2026-08-14; E1-RUN-001 objects never requested; E1 / V3 untouched
 CLASS = NOT_CONFIRMED / TRADING_FAIL; RESCUE = forbidden on Binance 2020–2026 (no threshold, horizon, barrier, cost or trade-rule variant)
+
+## 2026-10-09 — MARKET_PHENOMENA_CATALOG_V1 and its red team (ideation; no outcome read) + two disclosures
+
+**Catalog** (`MARKET_PHENOMENA_CATALOG_V1.md`): 41 directional market-state ideas. **Red team** (`MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md` / `.json`): all 41 audited against primary sources.
+- **Verdicts:** SURVIVE 1 (S1 re-specified as SIGNED_PATH_ASYMMETRY_24H), REPAIR_NEEDED 5, DEFER_DATA 2, rejected 33.
+- **Data access:** neither step computed an outcome or read market data. The only exception: during the catalog collision audit, the first 2–3 rows and line counts of five pinned files were printed to check schemas.
+
+**Disclosure 1, unconditional read not recorded earlier.** While reporting P3 to the owner, the architect computed on Binance BTCUSDT perp 5m 2025-01..2026-08-14 (the P3 cache):
+- for every hourly start, the frequency of +4.495 % before −1.226 % within 48 bars (and the mirror);
+- the mean gross result with time exits;
+- the |4h return| distribution (median 0.40 %, p90 1.42 %).
+
+This is an unconditional 4h path read on a product-open surface; no state is involved.
+
+**Disclosure 2, governance deviation in P3_CONFIRMATION_V1.**
+- DH programs were to be confirmed on 2017–2019 plus live tracking, with "no 2025/2026 object" (`DIRECTIONAL_HYPOTHESES_DECISION_V1`). PRODUCT_DECISION_V2 §4 also applies.
+- The run used 2025-01..2026-08-14 under the owner's oral directive, without a written permit.
+- The owner should ratify or reclassify it. The registry status NOT_CONFIRMED rests on it.
+
+```
+WINDOWS_CONSUMED (disclosure 1) = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-08-14 unconditional 4h fixed-distance first-passage and |4h return| distribution (PRODUCT_OPEN surface)
+CATALOG / RED TEAM OUTCOMES = none
+```
