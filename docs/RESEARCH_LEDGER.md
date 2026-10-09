@@ -8841,3 +8841,22 @@ WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast 
 OUTCOME_READ = yes; ROUTE = POSITIVE_BUT_BELOW_PRACTICAL_SCALE; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not in this unit; PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 design, endpoint unread
+
+**Mode.** `PROSPECTIVE_SEQUENTIAL_VALIDATION` of the already selected ACTIVITY incremental cell. `outcome_read = false`. `future_association_read = false`. `accrued_analysis_n = 0`. `status = AWAITING_START`.
+- **Claim.** Positive partial Spearman of relative UTC-hour width with next-hour activity given `RV_FORMATION`. Scientific reference `+0.10`, unchanged. Object, hour, horizon, state, and covariate unchanged.
+- **Historical context, not a prior.** Binance discovery partial Spearman `+0.10245095315584887`. Bybit partial Spearman `+0.09903883442772482`. Bybit route `POSITIVE_BUT_BELOW_PRACTICAL_SCALE`. These numbers do not choose the grid or the alpha. The Bybit point is not rounded to `0.10`.
+- **Start.** `2026-10-10T00:00:00Z`. The design is on `2026-10-09` after that day's formation and activity hour had closed and after the Bybit read at `2026-10-09T07:56:02Z`, so `2026-10-09` is not in the sample. No market bar was used to choose the midnight. The product `2025/2026` archive is not the prospective sample. E1 is not read.
+- **Venue.** Binance USD-M BTCUSDT perpetual only. Dataset `BINANCE_UM_LIVE_FORWARD`, column `CANDLES`. Class `PROSPECTIVE_AFTER_FREEZE`. No Bybit or OKX pool. BitMEX is not opened.
+- **Checkpoints.** Analysis N `1095` (first look, expected formation date `2029-10-13`), `1825` (maturity, `2031-10-16`), `2190` (terminal, `2032-10-16`). `N = 90`, `180`, `365`, `540`, and `730` are not checkpoints. `N = 1460` is not a checkpoint because its alpha increment is too small to decide.
+- **Inference.** ISO-week block bootstrap, `B = 2000`, seed `20261109`, restarted at each look. Kim–DeMets power family, exponent `1`, alpha `0.05` on each one-sided family. Increments are the bootstrap tail probabilities. Not an always-valid sequence. The AR(1)-Kish model is a forecast only, using discovery width lag `0.5483151377537036`.
+- **Routes.** Before the first look: `PROSPECTIVE_INFORMATION_IMMATURE`. Stopping routes are frozen in the design. Lag placebo is option A, once on the stopping sample, not a route input. Stability is a calendar midpoint split, not a route input.
+- **Ceiling.** Prospective L2 association evidence after a stopping route. Not L3. Not a forecast. `PRODUCT_INTEGRATION_CANDIDATE = NO`.
+- **Evaluator.** `REFUSING_OUTCOME_BEFORE_OWNER_GO`. A separate owner go is required for the first formal checkpoint, and only once analysis N has reached `1095`.
+
+```
+WINDOWS_EXPOSED = BINANCE_UM_LIVE_FORWARD VOLATILITY_STATE.range_forecast from 2026-10-10, path rules only, accrual not started
+OUTCOME_READ = no; ROUTE = not scored; STATUS = AWAITING_START
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none
+```

@@ -4340,3 +4340,27 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'EXECUTED ONCE. Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Evaluator 52b2c9b6. Rerun REFUSING_RERUN. The support census row stays EXPOSED and the outcome line is CONSUMED. Not a time-disjoint confirmation and not a product signal.'
+  - id: FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1
+    title: FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_LIVE_FORWARD
+    period: 'forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; no outcome read; pre-start bars are not the sample'
+    units_n: 'none yet; first look at analysis N 1095; maturity at 1825; terminal at 2190'
+    practical_bar: 'Scientific reference +0.10, unchanged. A prospective pass is not the historical knife-edge on the point estimate. Magnitude supported means the spent-alpha lower bound is at least +0.10. Magnitude not supported means a mature upper bound is below +0.10.'
+    mechanism: 'MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Not a new discovery and not another historical venue. Relative width of the completed UTC midnight hour, next-hour RV, covariate RV_FORMATION.'
+    function: 'Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1095, 1825 and 2190. Kim-DeMets spending exponent 1, alpha 0.05 per one-sided family. No look between checkpoints.'
+    verdict: 'NOT_EXECUTED. Accrual AWAITING_START. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association.'
+    reopen: 'Not a rerun of Binance 2020-2024 or of Bybit. The first formal checkpoint needs its own owner go once analysis N has reached 1095. Not a look before that N. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.'
+    forbidden: 'reading the forward association before the first checkpoint; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration'
+    revisit: 'First formal checkpoint at analysis N 1095, expected formation date 2029-10-13. Nothing earlier. Later looks only at N 1825 and N 2190.'
+    records:
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SPEC.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN and AWAITING_START. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Historical discovery and Bybit outcome are context, not a prior. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'

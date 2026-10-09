@@ -425,6 +425,8 @@ datasets:
     coverage: from a future freeze
     availability: FORWARD_ONLY
     live_in_product: true
+    exposure:
+      - {period: from 2026-10-10, accrual not started, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 path rules only; endpoint not read; not CONSUMED"}
     records: [docs/research/AUTOGEN_G01_FEASIBILITY.md]
   # ---- cross-asset ----------------------------------------------------------------------------------
   - id: CORE_ETH_BINANCE_V0
