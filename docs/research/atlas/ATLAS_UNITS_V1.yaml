@@ -4266,17 +4266,18 @@ units:
     units_n: 'analysis sample 1820 days, 262 ISO weeks; relative-width p50 about 0.82 percent'
     practical_bar: 'A cell clears only if absolute Spearman is at least 0.10 and the week-block family interval excludes 0. Two endpoints, foundation and incremental given RV_FORMATION. Not a target copied from the already-read 4h correlation.'
     mechanism: 'MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +9.48 pp. Amendment A1 asks whether width adds information beyond RV of that same hour. RV of the previous hour is descriptive context and is not the route covariate.'
-    function: 'One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. outcome_read false. Amendment A1 before any future association.'
-    verdict: 'DESIGN FROZEN, amended before Y. A1 support 2026-10-09T05:08:01Z keeps analysis N 1820 and 262 ISO weeks. sample_n_changed false. The gate does not authorize Y. No route has been evaluated.'
+    function: 'One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. outcome_read false. Amendment A1 sets the incremental covariate. Amendment A2 makes specificity per endpoint. A null endpoint does not veto another.'
+    verdict: 'DESIGN FROZEN, amended before Y. A1 support keeps analysis N 1820 and 262 ISO weeks. A2 changes routing only. The gate does not authorize Y. No route has been evaluated.'
     reopen: 'A later outcome read needs a separate owner go. Not 4h recomputation of the paired-cohort Spearman. Not a route driven by RV_PREV. Not 2025/2026. Not E1. Not a product forecast.'
     records:
     - docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md
     - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md
     - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md
     - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md
     - docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md
     - docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json
     - docs/research/CONTEMPORANEOUS_STATE_CONTROL_LESSON_V1.md
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'CANDIDATE_UNTESTED. outcome_read false. Amendment A1 changes the incremental covariate to RV_FORMATION before any future association. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.'
+    note: 'CANDIDATE_UNTESTED. outcome_read false. Amendment A1 changes the incremental covariate to RV_FORMATION. Amendment A2 makes specificity per endpoint before any future association. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.'

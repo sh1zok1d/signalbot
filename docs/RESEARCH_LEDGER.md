@@ -8764,3 +8764,17 @@ WINDOWS_EXPOSED = unchanged; A1 did not open a new surface and did not consume t
 OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; SAMPLE_N_CHANGED = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 amendment A2, before any outcome
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. The original design and amendment A1 are not rewritten.
+- **Amendment.** `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md`. Original design SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. A1 SHA256 `a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e`.
+- **Change.** Specificity is per endpoint. A foundation failure on one endpoint cannot withhold `FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT` earned by the other endpoint's own chain.
+- **Unchanged.** Statistics, thresholds, bootstrap, sample, surface, and outcome definitions. Analysis N 1820. ISO weeks 262. No new census.
+- **Not computed.** Future RV, future displacement, Spearman with Y, and partial Spearman with Y.
+
+```
+WINDOWS_EXPOSED = unchanged; A2 did not open a new surface
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; SAMPLE_N_CHANGED = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```

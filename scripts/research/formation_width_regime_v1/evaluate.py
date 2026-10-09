@@ -1,6 +1,7 @@
 """Outcome entry point for FORMATION_WIDTH_REGIME_V1.
 
 Refuses before a separate owner go. This module does not load a market panel.
+A later go uses amendment_a2.assign_route.
 """
 
 from __future__ import annotations

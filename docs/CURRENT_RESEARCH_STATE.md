@@ -48,17 +48,18 @@ Result: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.md`. Census: `docs/rese
 
 Diagnosis: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md`.
 
-## FORMATION_WIDTH_REGIME_V1 — amendment A1, outcome not read — 2026-10-09
+## FORMATION_WIDTH_REGIME_V1 — amendment A2, outcome not read — 2026-10-09
 
 `MODE = DISCOVERY | outcome_read = false | future_association_read = false | PRODUCT_CHANGE = none`
 `STATE = relative width W/P0 of the completed UTC [00:00, 01:00) hour | one clock | not a boundary claim`
 `A1 = incremental covariate is RV_FORMATION of that same hour | RV_PREV is descriptive secondary and does not set the route`
+`A2 = current_state_specific is per endpoint | a null endpoint does not veto another | no statistic or sample change`
 `MAP NOT READ = next-60m RV and absolute log displacement | partial Spearman after RV_FORMATION | seed 20261107`
-`SUPPORT = analysis N 1820 | 262 ISO weeks | sample_n_changed = false | the gate does not authorize Y`
+`SUPPORT = analysis N 1820 | 262 ISO weeks | unchanged by A2 | the gate does not authorize Y`
 `NOT A RERUN OF = the paired-cohort 4h Spearman already printed in the frozen-hour diagnosis`
-`NEXT = a separate owner go for the one outcome read of this amended map | no other surface`
+`NEXT = a separate owner go for the one outcome read of this amended map | route function amendment_a2.assign_route | no other surface`
 
-Design: `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`. Amendment: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. Census: `docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md`. A1 support: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md`.
+Design: `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`. A1: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. A2: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md`. Census: `docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md`. A1 support: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md`.
 
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 

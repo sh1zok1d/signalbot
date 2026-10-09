@@ -15598,7 +15598,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "5d2d69c4d0df8197c62e45d15654f3fd196c36131a39b4bb6225aa0849956bca",
+ "SOURCES_DIGEST": "e219438bc71084e457cb4c513cc5e2c58f7df51915f263c2429eb04d0fa61c77",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -23422,10 +23422,10 @@
    "datasets": [
     "CORE_BTC_BINANCE_V0"
    ],
-   "function": "One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. outcome_read false. Amendment A1 before any future association.",
+   "function": "One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. outcome_read false. Amendment A1 sets the incremental covariate. Amendment A2 makes specificity per endpoint. A null endpoint does not veto another.",
    "id": "FORMATION-WIDTH-REGIME-V1",
    "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +9.48 pp. Amendment A1 asks whether width adds information beyond RV of that same hour. RV of the previous hour is descriptive context and is not the route covariate.",
-   "note": "CANDIDATE_UNTESTED. outcome_read false. Amendment A1 changes the incremental covariate to RV_FORMATION before any future association. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.",
+   "note": "CANDIDATE_UNTESTED. outcome_read false. Amendment A1 changes the incremental covariate to RV_FORMATION. Amendment A2 makes specificity per endpoint before any future association. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.",
    "period": "design and support census only; Binance USD-M BTCUSDT 2020-01-01..2024-12-31; outcome not read",
    "practical_bar": "A cell clears only if absolute Spearman is at least 0.10 and the week-block family interval excludes 0. Two endpoints, foundation and incremental given RV_FORMATION. Not a target copied from the already-read 4h correlation.",
    "program": "FORMATION_WIDTH_V1",
@@ -23434,6 +23434,7 @@
     "docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md",
     "docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md",
     "docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.json",
+    "docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md",
     "docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md",
     "docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json",
     "docs/research/CONTEMPORANEOUS_STATE_CONTROL_LESSON_V1.md",
@@ -23446,7 +23447,7 @@
    "state": "CANDIDATE_UNTESTED",
    "title": "FORMATION_WIDTH_REGIME_V1",
    "units_n": "analysis sample 1820 days, 262 ISO weeks; relative-width p50 about 0.82 percent",
-   "verdict": "DESIGN FROZEN, amended before Y. A1 support 2026-10-09T05:08:01Z keeps analysis N 1820 and 262 ISO weeks. sample_n_changed false. The gate does not authorize Y. No route has been evaluated."
+   "verdict": "DESIGN FROZEN, amended before Y. A1 support keeps analysis N 1820 and 262 ISO weeks. A2 changes routing only. The gate does not authorize Y. No route has been evaluated."
   },
   {
    "col": "CANDLES",
