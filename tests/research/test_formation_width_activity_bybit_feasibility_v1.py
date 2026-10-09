@@ -62,13 +62,19 @@ def test_constants_match_the_selected_claim():
     assert support.GRID_DAYS == 1737
 
 
-def test_evaluator_refuses_before_any_panel():
+def test_evaluator_scores_only_the_frozen_cell():
     source = (ROOT / "scripts/research/formation_width_activity_bybit_feasibility_v1/evaluate.py").read_text()
-    assert "load_ohlc" not in source
-    assert "realized_variation" not in source
-    assert "partial_spearman" not in source
-    with pytest.raises(SystemExit, match=K.REFUSAL_BEFORE_GO):
-        evaluate.main()
+    assert "prev_hour_return_pairs" not in source
+    assert "displacement" not in source
+    assert "future_return_pairs" in source
+    assert "formation_return_pairs" in source
+    assert evaluate.ROUTE_CONFIRMED == "CONFIRMED_INCREMENTAL_ACTIVITY_RELATION"
+    assert evaluate.QUANTILE_HI == 0.95
+    assert evaluate.MIN_VALID_FRACTION == 0.90
+    assert evaluate.MIN_LAG_PAIRS == 100
+    assert evaluate.EXPECTED_N == 1613
+    assert evaluate.EXPECTED_WEEKS == 240
+    assert evaluate.ATLAS_STATE[evaluate.ROUTE_CONFIRMED] == "LIVE_SIGNAL"
 
 
 def test_support_source_does_not_score_the_endpoint():
@@ -150,6 +156,100 @@ def test_floor_fails_closed_on_a_short_panel(monkeypatch):
     assert payload["this_unit_reads_outcome"] is False
 
 
+def test_activity_uses_the_discovery_return_index():
+    from scripts.research.formation_width_regime_v1 import amendment_a1 as A1
+
+    day_ms = support.GRID_START_MS + K.DAY_MS
+    close = np.linspace(100.0, 160.0, 800)
+    row = {
+        "day_ms": day_ms,
+        "iso_year": 2020,
+        "iso_week": 14,
+        "relative_width": 0.02,
+        "in_sample": True,
+        "first_half": True,
+    }
+    values = evaluate.values_from_rows(close, [row])
+    form = K.BARS_PER_DAY
+    activity = A1.realized_variation(A1.log_returns(close, A1.future_return_pairs(form)))
+    covariate = A1.realized_variation(A1.log_returns(close, A1.formation_return_pairs(form)))
+    assert values["activity"][0] == pytest.approx(activity)
+    assert values["rv_formation"][0] == pytest.approx(covariate)
+    assert values["v"][0] == pytest.approx(0.02)
+    assert set(A1.formation_return_pairs(form)).isdisjoint(set(A1.future_return_pairs(form)))
+
+
+def test_selected_rows_match_the_census_sample(monkeypatch):
+    _bind_short_window(monkeypatch, 4)
+    high, low, close = _panel(5)
+    collected = support.collect(high, low, close)
+    selected = evaluate.selected_rows(collected)
+    assert len(selected) == collected["counts"]["analysis_sample"]
+    assert all(row["in_sample"] for row in selected)
+
+
+def test_route_order_is_the_confirmation_order():
+    base = dict(
+        information_floor_failed=False,
+        interpretable=True,
+        rho=0.12,
+        lower=0.02,
+        stability_failed=False,
+        specific=True,
+    )
+    assert evaluate.assign_route(**base)["route"] == evaluate.ROUTE_CONFIRMED
+    assert evaluate.assign_route(**{**base, "information_floor_failed": True})["route"] == evaluate.ROUTE_WEAK
+    assert evaluate.assign_route(**{**base, "interpretable": False})["route"] == evaluate.ROUTE_NO
+    assert evaluate.assign_route(**{**base, "rho": -0.12, "lower": -0.20})["route"] == evaluate.ROUTE_NO
+    assert evaluate.assign_route(**{**base, "lower": 0.0})["route"] == evaluate.ROUTE_NO
+    assert evaluate.assign_route(**{**base, "rho": 0.09})["route"] == evaluate.ROUTE_BELOW
+    assert evaluate.assign_route(**{**base, "rho": 0.10})["route"] == evaluate.ROUTE_CONFIRMED
+    unstable = evaluate.assign_route(**{**base, "stability_failed": True, "specific": False})
+    assert unstable["route"] == evaluate.ROUTE_UNSTABLE
+    missed = evaluate.assign_route(**{**base, "specific": False})
+    assert missed["route"] == evaluate.ROUTE_NO
+    assert missed["reason"] == evaluate.REASON_SPECIFICITY
+
+
+def test_stability_and_lag_use_the_frozen_rules():
+    first = {"n": 100, "rho": 0.2}
+    second = {"n": 100, "rho": -0.1}
+    assert evaluate.stability_fails(first, second) is True
+    assert evaluate.stability_fails({"n": 100, "rho": 0.2}, {"n": 100, "rho": 0.0}) is False
+    assert evaluate.stability_fails({"n": 99, "rho": 0.2}, {"n": 100, "rho": -0.1}) is False
+    state = np.array([1.0, 3.0, 2.0, 5.0, 4.0, 6.0])
+    activity = np.array([2.0, 1.0, 4.0, 3.0, 6.0, 5.0])
+    covariate = np.array([1.0, 2.0, 3.0, 4.0, 2.5, 3.5])
+    rho, n_pairs = evaluate.lag_partial(state, activity, covariate)
+    assert n_pairs == 5
+    assert rho == pytest.approx(evaluate.partial_rho(state[1:], activity[:-1], covariate[1:]))
+    assert evaluate.specificity_passes(0.20, 0.05, 100) is True
+    assert evaluate.specificity_passes(0.20, 0.05, 99) is False
+    assert evaluate.specificity_passes(0.20, 0.20, 100) is False
+
+
+def test_bootstrap_recomputes_the_partial_cell_only():
+    week_keys = [(2020, 1), (2020, 1), (2020, 2), (2020, 2)]
+    state = np.array([1.0, 2.0, 3.0, 4.0])
+    activity = np.array([1.0, 3.0, 2.0, 4.0])
+    covariate = np.array([1.0, 4.0, 2.0, 3.0])
+    draws = evaluate.bootstrap_partial(
+        state, activity, covariate, week_keys, draws=1, seed=K.BOOT_SEED,
+    )
+    rng = np.random.default_rng(K.BOOT_SEED)
+    choice = rng.choice(2, size=2, replace=True)
+    indexes = evaluate.draw_indices(week_keys, choice)
+    assert draws[0] == pytest.approx(evaluate.partial_rho(state[indexes], activity[indexes], covariate[indexes]))
+    bounds = evaluate.decision_bounds(np.concatenate([np.linspace(-0.2, 0.4, 95), np.full(5, np.nan)]))
+    finite = np.linspace(-0.2, 0.4, 95)
+    lo, hi = np.quantile(finite, [0.05, 0.95], method="linear")
+    assert bounds["lo"] == pytest.approx(lo)
+    assert bounds["hi"] == pytest.approx(hi)
+    assert bounds["interpretable"] is True
+    thin = evaluate.decision_bounds(np.array([0.2] * 5 + [np.nan] * 95))
+    assert thin["interpretable"] is False
+
+
 def test_support_rerun_refuses_before_load(monkeypatch, tmp_path):
     target = tmp_path / "already.json"
     target.write_text("{}", encoding="utf-8")
@@ -163,6 +263,37 @@ def test_support_rerun_refuses_before_load(monkeypatch, tmp_path):
     monkeypatch.setattr(support, "load_ohlc", explode)
     with pytest.raises(SystemExit, match=K.REFUSAL_RERUN):
         support.main()
+
+
+def test_outcome_rerun_refuses_before_the_panel(monkeypatch, tmp_path):
+    monkeypatch.setattr(evaluate, "OUT_JSON", tmp_path / "result.json")
+    monkeypatch.setattr(evaluate, "OUT_MD", tmp_path / "result.md")
+    monkeypatch.setattr(evaluate, "OUT_MANIFEST", tmp_path / "manifest.json")
+    (tmp_path / "manifest.json").write_text("{}", encoding="utf-8")
+
+    def explode():
+        raise AssertionError("panel load is not allowed on a rerun")
+
+    monkeypatch.setattr(support, "load_ohlc", explode)
+    with pytest.raises(SystemExit, match=K.REFUSAL_RERUN):
+        evaluate.main()
+
+
+def test_score_sample_keeps_context_off_the_route():
+    state = np.arange(1.0, 13.0)
+    sample = {
+        "v": state,
+        "activity": state * 1.5 + np.array([0.2, -0.1] * 6),
+        "rv_formation": state * 0.3 + np.array([0.4, 0.1] * 6),
+        "week_keys": [(2020, week) for week in range(1, 13)],
+        "first_half": np.array([True] * 6 + [False] * 6),
+    }
+    scored = evaluate.score_sample(sample, draws=30, seed=11, information_floor_failed=False)
+    assert scored["outcome_read"] is True
+    assert scored["context"]["route_input"] is False
+    assert "displacement" not in scored
+    assert scored["exposure_class"] == K.EXPOSURE_CLASS
+    assert scored["primary"]["upper"] is None or isinstance(scored["primary"]["upper"], float)
 
 
 def test_official_support_file_is_outcome_blind_and_adequate():
