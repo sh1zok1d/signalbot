@@ -8877,3 +8877,19 @@ WINDOWS_EXPOSED = BINANCE_UM_LIVE_FORWARD VOLATILITY_STATE.range_forecast from 2
 OUTCOME_READ = no; AMENDMENT = A1; STATUS = AWAITING_START
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 design, scores unread
+
+**Mode.** `POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT`. `outcome_read = false`. The unit cannot raise an evidence tier. It is not a pristine confirmation and not a repair of the Bybit verdict.
+- **Question.** Once next-hour `ACTIVITY` is predicted from `RV_FORMATION`, how much does formation width improve honest out-of-sample squared error on Binance and on Bybit?
+- **Historical context, not a criterion.** Binance partial Spearman `+0.10245095315584887`. Bybit partial Spearman `+0.09903883442772482`. Bybit route `POSITIVE_BUT_BELOW_PRACTICAL_SCALE`. The rule `rho >= +0.10` stays on those units and is not applied to predictive loss. The Bybit point is not rounded.
+- **Surfaces.** `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`, published N 1820, 262 ISO weeks. `LEVEL_CROSS_VENUE_PERP_5M_V0` `[2020-04-01, 2025-01-01)`, published N 1613, 240 ISO weeks. Both already consumed. Not pooled. BitMEX, 2025/2026, E1, and prospective forward bars are not opened. The previous-hour span on Binance is sample identity only, not a feature.
+- **Model.** Ordinary least squares on training-referenced rank scores. Baseline `RV_FORMATION`. Candidate `RV_FORMATION + V`. Yearly expanding tests 2021, 2022, 2023, 2024. Primary `ΔMSE` on the activity rank score. Secondary pooled Spearman of prediction with raw activity, not bootstrapped. ISO-week block bootstrap of already formed paired losses, `B = 2000`, seeds `20261110` and `20261111`, two-sided quantiles `0.025` and `0.975`.
+- **Prospective.** `FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1` stays unscored. Governance hold `ON_HOLD_PENDING_PREDICTIVE_VALUE_CHARACTERIZATION`. Checkpoints and the refusing evaluator are unchanged.
+- **Design.** SHA256 `260d944f4c3dc665d0b2e040deddc3c263548464bdb579fa07c557d949af83e6`.
+
+```
+WINDOWS_CONSUMED = none new; the predictive-loss scores are not yet read
+OUTCOME_READ = no; EVIDENCE_CLASS = POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
+```

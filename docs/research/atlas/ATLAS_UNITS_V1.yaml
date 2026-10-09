@@ -4365,4 +4365,25 @@ units:
     - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    note: 'DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO. Forward scoring is on hold pending the predictive-value characterization; the evaluator still refuses; checkpoints are unchanged.'
+  - id: FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1
+    title: FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: CANDLES
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    period: 'design frozen before the OOS scores; Binance USD-M BTCUSDT 2020-01-01..2024-12-31 and Bybit linear BTCUSDT 2020-04-01..2024-12-31; both windows already consumed; scores not read'
+    units_n: 'published analysis N 1820 and 1613; OOS years 2021-2024 not yet scored'
+    practical_bar: 'No new yes/no bar. rho >= +0.10 remains the historical rule of the previous units and is not applied here. The question is the size of the out-of-sample loss improvement.'
+    mechanism: 'MODE=POST_OUTCOME_CHARACTERIZATION. Incremental predictive value of UTC formation-hour width for next-hour activity beyond formation-hour realized volatility. Not a replay of the Bybit partial-Spearman verdict and not a new discovery.'
+    function: 'Yearly expanding folds. OLS on training-referenced rank scores. Baseline RV_FORMATION. Candidate adds V=(high-low)/P0. Primary paired delta MSE. ISO-week block bootstrap B=2000, seeds 20261110 and 20261111, two-sided 95 percent. Scores not read.'
+    verdict: 'NOT_EXECUTED. Design frozen before the out-of-sample scores. Evidence class POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT. This registration cannot raise the evidence tier. The Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE is unchanged. Prospective forward association is not read.'
+    reopen: 'The one OOS read of this frozen design is the execution. After that read these windows stay closed for this loss comparison. A later prospective validation needs its own design and owner go. Not a model change after scores. Not BitMEX. Not 2025/2026. Not E1.'
+    records:
+    - docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN. Scores unread. Venues are not pooled. Not a confirmation. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'

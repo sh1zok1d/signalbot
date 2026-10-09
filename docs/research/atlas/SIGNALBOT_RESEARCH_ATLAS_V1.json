@@ -1568,6 +1568,7 @@
   {
    "col": "CANDLES",
    "counts": {
+    "CANDIDATE_UNTESTED": 1,
     "CLOSED_ON_SURFACE": 1,
     "EXPOSED_ONLY": 1,
     "FUTURE_NATURAL_ACCUMULATION": 1
@@ -1584,6 +1585,7 @@
    "state": "CLOSED_ON_SURFACE",
    "units": [
     "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
+    "FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1",
     "FORMATION-WIDTH-REGIME-V1",
     "PRODUCT-V2-RANGE"
    ],
@@ -1593,8 +1595,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -1615,8 +1617,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -1637,8 +1639,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -1659,8 +1661,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -1681,8 +1683,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -1707,8 +1709,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -1733,8 +1735,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -1755,8 +1757,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -1777,8 +1779,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -10204,12 +10206,12 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 350
   },
-  "units": 213,
+  "units": 214,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 33,
    "CONFIRMED": 1,
@@ -11337,19 +11339,6 @@
    }
   },
   {
-   "col": "PERP_FLOW",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "VOLATILITY_STATE.regime_transition",
    "value": {
@@ -12000,54 +11989,15 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "VOLATILITY_STATE.range_forecast",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "OPTIONS",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
@@ -12496,6 +12446,58 @@
   {
    "col": "SPOT",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_ASSET",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "OPTIONS",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "VOLATILITY_STATE.range_forecast",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
@@ -13391,19 +13393,6 @@
    }
   },
   {
-   "col": "LIQUIDATIONS",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "CALENDAR.sessions",
    "value": {
@@ -13978,6 +13967,19 @@
   {
    "col": "LIQUIDATIONS",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "VOLATILITY_STATE.range_forecast",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -15581,6 +15583,7 @@
    "row": "VOLATILITY_STATE.range_forecast",
    "units": [
     "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
+    "FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1",
     "FORMATION-WIDTH-REGIME-V1",
     "PRODUCT-V2-RANGE"
    ]
@@ -15596,7 +15599,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "28a7ce952414a7679d5e2b8ec0a38f2dc7453efb8a8d03eaf94122341fccff42",
+ "SOURCES_DIGEST": "892d1aacaf72768e5b097c99cb56ff128d1f8da5671b88f1b2f8b715428e1c8d",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -23467,7 +23470,7 @@
    "function": "Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1460 and 2920. Kim-DeMets exponent 1. Each tail spends A(t)=0.025*t. Positive relation uses the same lower bound. No look between checkpoints and none after 2920.",
    "id": "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
    "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue.",
-   "note": "DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "note": "DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO. Forward scoring is on hold pending the predictive-value characterization; the evaluator still refuses; checkpoints are unchanged.",
    "period": "forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; Amendment A1 before any outcome; pre-start bars are not the sample",
    "practical_bar": "Scientific reference +0.10, unchanged. Magnitude supported means the lower bound from the 0.025 lower tail is at least +0.10. Magnitude not supported means the mature upper bound from the 0.025 upper tail is below +0.10. The two tails share one 0.05 union bound.",
    "program": "FORMATION_WIDTH_V1",
@@ -23488,6 +23491,32 @@
    "title": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
    "units_n": "none yet; first look at analysis N 1460; maturity and terminal at 2920",
    "verdict": "NOT_EXECUTED. Accrual AWAITING_START. Amendment A1. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY"
+   ],
+   "function": "Yearly expanding folds. OLS on training-referenced rank scores. Baseline RV_FORMATION. Candidate adds V=(high-low)/P0. Primary paired delta MSE. ISO-week block bootstrap B=2000, seeds 20261110 and 20261111, two-sided 95 percent. Scores not read.",
+   "id": "FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1",
+   "mechanism": "MODE=POST_OUTCOME_CHARACTERIZATION. Incremental predictive value of UTC formation-hour width for next-hour activity beyond formation-hour realized volatility. Not a replay of the Bybit partial-Spearman verdict and not a new discovery.",
+   "note": "DESIGN_FROZEN. Scores unread. Venues are not pooled. Not a confirmation. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "design frozen before the OOS scores; Binance USD-M BTCUSDT 2020-01-01..2024-12-31 and Bybit linear BTCUSDT 2020-04-01..2024-12-31; both windows already consumed; scores not read",
+   "practical_bar": "No new yes/no bar. rho >= +0.10 remains the historical rule of the previous units and is not applied here. The question is the size of the out-of-sample loss improvement.",
+   "program": "FORMATION_WIDTH_V1",
+   "records": [
+    "docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "The one OOS read of this frozen design is the execution. After that read these windows stay closed for this loss comparison. A later prospective validation needs its own design and owner go. Not a model change after scores. Not BitMEX. Not 2025/2026. Not E1.",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1",
+   "units_n": "published analysis N 1820 and 1613; OOS years 2021-2024 not yet scored",
+   "verdict": "NOT_EXECUTED. Design frozen before the out-of-sample scores. Evidence class POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT. This registration cannot raise the evidence tier. The Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE is unchanged. Prospective forward association is not read."
   },
   {
    "col": "CANDLES",
