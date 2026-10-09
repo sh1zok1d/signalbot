@@ -4556,3 +4556,33 @@ units:
     - docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.md
     - docs/research/RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1.json
     - docs/RESEARCH_LEDGER.md
+  - id: RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1
+    title: Earlier-tape range location check
+    program: RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: 'one BitMEX read; T from 2016-05-13T16:00:00Z through 2019-12-31T23:00:00Z; analysis N 127303; 191 ISO weeks'
+    units_n: 'one feature, one horizon, one primary control pair'
+    practical_bar: 'No magnitude floor. The route is the sign of the raw association, the sign of the primary partial, and whether the primary interval lies below zero.'
+    mechanism: 'Trailing range location of the decision close against the next signed return, after the same recent-price state, on an earlier trade-price tape. One historical read. Not a new search.'
+    function: 'Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.'
+    blind_mechanism: 'Decision close location inside the trailing high-low window on an earlier trade-price tape, compared with the next signed return after the same recent-price state.'
+    blind_function: 'Earlier-tape range location check'
+    verdict: 'RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED. BitMEX raw Spearman about -0.076, primary partial about -0.047 after the 4h signed return and 4h realized volatility, week-block interval below zero. Raw and primary stay negative in each year and in both halves. Descriptively larger in magnitude than the Binance and Bybit points. Not a product line. Not a fee-aware edge.'
+    why_closed: 'The one allowed read of this frozen design was completed. A second read is refused. A later tape and a boundary feature are different units.'
+    forbidden: 'a rerun; changing the horizon or the control set after the outcome; dropping a year; reading rejection or bars-since inside this unit; treating the quintile table as a rule; a product line'
+    reopen: 'A later unit may ask the same frozen object on a later tape, or whether a boundary feature adds anything beyond range location. Not a rerun. Not a product change.'
+    records:
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.json
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_SUPPORT.md
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_SUPPORT.json
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.json
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_EVALUATOR_MANIFEST.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'ONE BITMEX READ. Route RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED. Historical only. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'

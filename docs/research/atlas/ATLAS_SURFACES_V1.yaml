@@ -98,6 +98,7 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2016-2019, rows: [VOLATILITY_STATE.tail_risk, VOLATILITY_STATE.execution_impact], status: CONSUMED, note: "D2 replication and D7 confirmatory primary; read in bulk, aggregates published"}
+      - {period: 2016-2019, rows: [PRICE_STRUCTURE.impulse], status: CONSUMED, note: "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 read last-trade high, low, close and the next 1h log return; not a D2 tail-risk rerun"}
       - {period: 2016-2019, rows: [EVENTS], status: EXPOSED, note: "NOT_PROVABLY_INDEPENDENT for event semantics (event corridor design record §6)"}
     records: [docs/research_data/D2_BITMEX_PRE2020_XBTUSD]
   - id: D7_BITMEX_ACTIVITY_V0
