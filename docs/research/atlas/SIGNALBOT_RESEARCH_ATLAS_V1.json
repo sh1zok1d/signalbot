@@ -3782,10 +3782,11 @@
   {
    "col": "POSITIONING",
    "counts": {
-    "BLOCKED_DATA": 2
+    "BLOCKED_DATA": 2,
+    "CANDIDATE_UNTESTED": 1
    },
    "frontier_eligible": true,
-   "mixed": false,
+   "mixed": true,
    "native": true,
    "region": "DERIVATIVES",
    "revisit": [],
@@ -3794,6 +3795,7 @@
    "state": "BLOCKED_DATA",
    "units": [
     "DH3-X1",
+    "FUNDING-STATE-HISTORICAL-STRUCTURE-V1",
     "MARKET-04"
    ],
    "value": {
@@ -3802,8 +3804,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 2,
-    "saturation": 0,
-    "total": 6
+    "saturation": 1,
+    "total": 5
    }
   },
   {
@@ -3824,8 +3826,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -3846,8 +3848,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -3868,8 +3870,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -3890,8 +3892,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
+    "saturation": 1,
+    "total": 7
    }
   },
   {
@@ -10204,12 +10206,12 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 350
   },
-  "units": 215,
+  "units": 216,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 2,
    "CLOSED_ON_SURFACE": 35,
    "CONFIRMED": 1,
@@ -12000,58 +12002,6 @@
    }
   },
   {
-   "col": "CROSS_VENUE",
-   "row": "DERIVATIVES.funding_basis",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
-   }
-  },
-  {
-   "col": "OPTIONS",
-   "row": "DERIVATIVES.funding_basis",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "DERIVATIVES.funding_basis",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "DERIVATIVES.funding_basis",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 2,
-    "saturation": 0,
-    "total": 8
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "EVENTS.endogenous_shocks",
    "value": {
@@ -12581,6 +12531,58 @@
     "owner_priority": 0,
     "product_relevance": 2,
     "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "DERIVATIVES.funding_basis",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 2,
+    "saturation": 1,
+    "total": 7
+   }
+  },
+  {
+   "col": "OPTIONS",
+   "row": "DERIVATIVES.funding_basis",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 2,
+    "saturation": 1,
+    "total": 7
+   }
+  },
+  {
+   "col": "PERP_FLOW",
+   "row": "DERIVATIVES.funding_basis",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 2,
+    "saturation": 1,
+    "total": 7
+   }
+  },
+  {
+   "col": "SPOT",
+   "row": "DERIVATIVES.funding_basis",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 2,
+    "saturation": 1,
     "total": 7
    }
   },
@@ -15584,7 +15586,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "8ecdae78e74965e51344062035186b5adce0cd86defe2955134b22cb30f2c9c9",
+ "SOURCES_DIGEST": "dc202d030fa0de2c7d8bbf6b564ce1059e67b2531980cab3a715181b7502eeaf",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -18719,6 +18721,33 @@
    "title": "PREMIUM_FUNDING_EXTREME_DIRECTION",
    "verdict": "CLOSED_AT_RED_TEAM",
    "why_closed": "MARKET-04H premium archive BLOCKED (PIT unproven); B2-06 funding publication latency"
+  },
+  {
+   "col": "POSITIONING",
+   "datasets": [
+    "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "function": "Past-only percentile of the settled funding rate. Primary horizon is one funding interval. Control is realized volatility ending at the decision. Rank correlation and a partial rank correlation. Week-block resampling. Scores unread.",
+   "id": "FUNDING-STATE-HISTORICAL-STRUCTURE-V1",
+   "mechanism": "MODE=RETROSPECTIVE_HISTORICAL_STRUCTURE. Settled funding rank and later long-side path stress, beyond the contemporaneous realized-volatility state. Not a direction call and not a replay of an external strategy.",
+   "note": "DESIGN FROZEN. Scores unread. Settled funding only. Premium not scored. Open interest not opened. Publication clock remains unproven. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "design frozen 2026-10-09, scores unread; Vision settled funding 2020-09-01 through 2024-12-31 16:00Z; price path through the legal CORE window",
+   "practical_bar": "No magnitude floor. An effect-size cutoff, a correlation floor, and the external percentile rule are not applied. The market determines magnitude, sign, and usefulness.",
+   "program": "FUNDING_STATE_V1",
+   "records": [
+    "docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_DESIGN.md",
+    "docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_PRE_OUTCOME_MANIFEST.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "The one historical characterization is still unread. After that read this cell closes on the surface. A later question needs a new design. Not a rerun. Not a product change. Not a rewrite of the parent availability audit.",
+   "row": "DERIVATIVES.funding_basis",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1",
+   "units_n": "funding identity N 4749; analysis N unread",
+   "verdict": "DESIGN FROZEN. Scores unread. Evidence class is retrospective historical structure and availability-limited. Not a point-in-time confirmation. The parent availability record stays as written. Product integration is not a candidate."
   },
   {
    "aliases": [

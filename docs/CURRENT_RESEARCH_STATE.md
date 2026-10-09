@@ -1,3 +1,17 @@
+## FUNDING_STATE_HISTORICAL_STRUCTURE_V1 — design frozen, scores unread — 2026-10-09
+
+`MODE = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED | outcome_read = false | evidence tier unchanged`
+`QUESTION = what historical structure future long-side adverse-path risk shows as a function of funding state, and whether it remains after current 8h realized volatility`
+`SOURCE = B2-06 Vision fundingRate zips, settled last_funding_rate, N 4749, [2020-09-01T00:00:00Z, 2024-12-31T16:00:00Z] | REST bytes absent, not re-fetched | premium not materialized, not scored | CORE_BTC_BINANCE_V0 5m path | open interest not opened`
+`STATE = past-only percentile, warm-up 90 events | decision = UTC hour floor of calc_time | primary outcome = long-side max adverse log excursion over the next 8h | control = RV of the 8h ending at T`
+`INFERENCE = Spearman and partial Spearman | ISO-week block bootstrap B=2000 seed 20261114 | two-sided 95 percent | no magnitude floor | threshold 55 not applied`
+`NOT OPENED = 2025/2026, E1, premium score, open interest, live data, product, a trading rule`
+`DESIGN SHA256 = 83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c`
+
+Design: `docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_DESIGN.md`.
+
+The formation-width line below stays closed. This unit does not reopen it.
+
 ## FORMATION WIDTH line — CLOSED / NO ACTIVE SUCCESSOR — 2026-10-09
 
 `LINE = FORMATION_WIDTH_V1 | STATUS = CLOSED / NO ACTIVE SUCCESSOR | NEXT_UNIT = NONE`

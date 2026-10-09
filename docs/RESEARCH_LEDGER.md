@@ -8958,3 +8958,22 @@ WINDOWS_CONSUMED = none new; prospective BINANCE_UM_LIVE_FORWARD outcome not con
 OUTCOME_READ = no new read; PROSPECTIVE_OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; NEXT_UNIT = NONE
 ```
+
+## 2026-10-09 — FUNDING_STATE_HISTORICAL_STRUCTURE_V1 design, scores unread
+
+**Mode.** `RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED`. `outcome_read = false`. The unit does not raise an evidence tier and does not authorize a product change.
+- **Principle.** Signalbot does not require the market to produce a preselected effect magnitude. We freeze observables, estimands, controls and anti-overfitting rules before reading outcomes. The market determines effect magnitude, sign and usefulness.
+- **Motivation.** MARKET-03 / `EmaCrossFunding` is `REPRODUCED_DIRECTION` on its own frozen interval: the funding filter reduced maximum drawdown relative to that strategy's baseline. That result is strategy-specific. It is only the reason to study the funding / premium / leverage family. Percentile `55` is not a rule here. The population is every settled funding event.
+- **MARKET-04.** The parent froze the family `FUTURE_ADVERSE_PATH_RISK` and a long-exposure downside reading, and left the formula, horizon, and baseline open. It remains `BLOCKED_OBSERVABLE / NOT_TESTED` because publication latency is unproven. This unit reuses the family and freezes the formula. It relaxes only the evidence class. It does not rewrite MARKET-04 or MARKET-04H and does not clear B2-06.
+- **Source.** Readable settled series: B2-06 Vision monthly `fundingRate` zips, field `last_funding_rate`, N `4749`, first `2020-09-01T00:00:00Z`, last `2024-12-31T16:00:00Z`, interval hours `8`, duplicates `0`, missing 8h hour-floor slots `0`, millisecond residual `0` to `47`. REST identity `MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0` is not on disk and is not re-fetched. Premium-index klines are not materialized and are not scored. Price path is `CORE_BTC_BINANCE_V0` aggregated to 5-minute bins. Open interest is not opened. `2025/2026` is not opened.
+- **State.** Past-only percentile of the settled rate, defined once `90` prior events exist. Decision time is the UTC hour floor of `calc_time`. `P0` is the close of the 5-minute bar that closes at that hour.
+- **Outcome.** Primary `ADVERSE_LONG_8H = max(0, -log(min low / P0))` on bars opening in `[T, T+8h)`. Secondary descriptions: the same object at `1h` and `4h`, and the 8h absolute log excursion. None of those is a route input.
+- **Control.** `RV_8H` from the 96 five-minute log returns that end at `T`. Incremental statistic is the partial Spearman of funding state and the 8h adverse outcome given that volatility. Route uses the incremental point and its interval only. No magnitude floor.
+- **Uncertainty.** ISO-week block bootstrap, `B = 2000`, seed `20261114`, two-sided quantiles `0.025` and `0.975`. Bins of the state are `[0, 0.10)`, `[0.10, 0.25)`, `[0.25, 0.75)`, `[0.75, 0.90)`, `[0.90, 1]`. Years and the raw-sign split are descriptive.
+- **Design.** SHA256 `83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c`.
+
+```
+WINDOWS_CONSUMED = none new; the funding-state scores are not yet read
+OUTCOME_READ = no; EVIDENCE_CLASS = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED
+OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
+```
