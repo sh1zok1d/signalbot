@@ -234,7 +234,7 @@ def test_liquidation_view_keeps_per_venue_votes_and_never_sums():
     states, rows = run([snap(liq=liq)])
     e = states[-1]["open"][LIQUIDATION_STRESS_LONG]
     view = e["anchor"]["view"]["liquidations"]["long"]
-    assert view["voting"] == ["binance", "bybit"] and view["eligible"] == ["binance", "bybit", "okx"]
+    assert view["voting"] == ["binance", "bybit"] and view["eligible"] == ["binance", "bybit"]   # OKX excluded (d)
     assert view["per_venue"] == {"binance": 5e6, "bybit": 1e6, "okx": 1e5}
     assert "sum" not in view and e["anchor"]["kind"] == cx.ANCHOR_TRIGGER
 

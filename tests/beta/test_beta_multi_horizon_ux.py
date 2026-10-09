@@ -634,6 +634,7 @@ RU_TERMS = """ТЕРМИНЫ
 Набор OI в узком диапазоне — 45 мин подряд OI растёт сильнее обычного, а цена стоит в узком диапазоне.
 Агрессивные покупки / продажи — две пятиминутки подряд Delta в верхних / нижних 5% за 30 дней.
 Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.
+Ликвидации OKX не учитываются и показаны как «н/д»: OKX присылает данные о ликвидациях с задержкой до нескольких часов.
 
 Показатели
 OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.
@@ -665,6 +666,7 @@ Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute pe
 OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.
 Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.
 Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.
+OKX liquidations are excluded and shown as n/a: OKX sends liquidation data up to several hours late.
 
 Metrics
 OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.

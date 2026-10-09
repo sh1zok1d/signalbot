@@ -124,7 +124,7 @@ def _liquidation_family(cfg, et: str, snapshot, bucket_ts: datetime, ev: Mapping
         if ex in (detail.get("eligible") or ()):
             vstate = READY
             building_spans.append(maturity_days)
-        elif why in ("FEED_NOT_DECLARED_AVAILABLE", "HEARTBEAT_UNHEALTHY"):
+        elif why in ("FEED_NOT_DECLARED_AVAILABLE", "HEARTBEAT_UNHEALTHY", "OKX_LIQUIDATIONS_EXCLUDED"):
             vstate = UNAVAILABLE
         else:
             vstate = m["state"] if m["state"] != READY else UNAVAILABLE

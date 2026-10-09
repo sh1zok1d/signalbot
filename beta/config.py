@@ -58,7 +58,7 @@ _TOP_KEYS = frozenset({
     "push_decisions_fuse_per_utc_day", "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy", "decision", "level_race",
+    "push_policy", "decision", "level_race", "liquidations",
 })
 # deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
 NOTIFY_UNIT_TIMEOUT_S = 50
@@ -234,6 +234,11 @@ class BetaConfig:
         return self.raw["rules"][family]
 
     @property
+    def okx_liquidations_enabled(self) -> bool:
+        """False: OKX liquidations are never shown and OKX never votes (decision (d))."""
+        return bool(self.raw["liquidations"]["okx_enabled"])
+
+    @property
     def symbol(self) -> str:
         return self.raw["symbol"]
 
@@ -380,6 +385,24 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_push_policy(d)
     _validate_decision(d)
     _validate_level_race(d)
+    _validate_liquidations(d)
+
+
+# OKX liquidations (decision (d), 2026-10-09, docs/BETA_OKX_LATE_ARRIVAL_IMPACT.md): OKX's liquidation
+# events reach the collector up to hours late, after their 5m bucket was materialized. While
+# `okx_enabled` is false, OKX liquidation amounts are never shown and OKX never votes in
+# LIQUIDATION_STRESS, whatever its percentile maturity: there is no automatic enable. Deliberately
+# outside the rules digest: with the flag false the rule decides exactly as before (OKX was not yet
+# mature); turning it on later is a rule change and needs its own rules version.
+_LIQUIDATIONS_KEYS = {"okx_enabled"}
+
+
+def _validate_liquidations(d: Mapping[str, Any]) -> None:
+    x = d["liquidations"]
+    if not isinstance(x, Mapping):
+        raise BetaConfigError("liquidations must be a mapping")
+    _exact_keys(x, _LIQUIDATIONS_KEYS, "liquidations")
+    _bool(x["okx_enabled"], "liquidations.okx_enabled")
 
 
 # Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).

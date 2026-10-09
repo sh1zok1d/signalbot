@@ -981,15 +981,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "desc_liq_long": {
         "ru": ("Номинал ликвидаций лонгов в верхних 5% собственной 30-дневной истории "
-               "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
+               "не менее чем на 2 биржах с живой лентой в том же 5м бакете. Ликвидации OKX не учитываются."),
         "en": ("Long-side liquidation notional in the top 5% of its own 30d history "
-               "on at least 2 exchanges with a live feed in the same 5m bucket."),
+               "on at least 2 exchanges with a live feed in the same 5m bucket. OKX liquidations are excluded."),
     },
     "desc_liq_short": {
         "ru": ("Номинал ликвидаций шортов в верхних 5% собственной 30-дневной истории "
-               "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
+               "не менее чем на 2 биржах с живой лентой в том же 5м бакете. Ликвидации OKX не учитываются."),
         "en": ("Short-side liquidation notional in the top 5% of its own 30d history "
-               "on at least 2 exchanges with a live feed in the same 5m bucket."),
+               "on at least 2 exchanges with a live feed in the same 5m bucket. OKX liquidations are excluded."),
     },
     "state_early": {"ru": "ранняя", "en": "early"},
     "state_armed": {"ru": "отмечена", "en": "armed"},
@@ -1258,6 +1258,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Набор OI в узком диапазоне — 45 мин подряд OI растёт сильнее обычного, а цена стоит в узком диапазоне.\n"
             "Агрессивные покупки / продажи — две пятиминутки подряд Delta в верхних / нижних 5% за 30 дней.\n"
             "Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.\n"
+            "Ликвидации OKX не учитываются и показаны как «н/д»: OKX присылает данные о ликвидациях с задержкой до нескольких часов.\n"
             "\n"
             "Показатели\n"
             "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. "
@@ -1295,6 +1296,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.\n"
             "Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.\n"
             "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.\n"
+            "OKX liquidations are excluded and shown as n/a: OKX sends liquidation data up to several hours late.\n"
             "\n"
             "Metrics\n"
             "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. "

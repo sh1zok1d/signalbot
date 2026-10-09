@@ -73,7 +73,7 @@ def test_okx_false_zero_history_never_lets_okx_vote():
         ev = snap["rule_evaluations"]["LIQUIDATION_STRESS_LONG"]["detail"]
         # «k из n»: OKX is out of the denominator until it has 30 days of real history
         assert ev["eligible"] == ["binance", "bybit"] and ev["voting"] == ["binance"]
-        assert ev["ineligible"]["okx"].startswith("PERCENTILE_NOT_MATURE")
+        assert ev["ineligible"]["okx"] == "OKX_LIQUIDATIONS_EXCLUDED"                 # decision (d), flag off
         assert snap["metrics"]["x:okx:long_liquidation_notional"] == 500.0          # measured since the fix
         assert snap["venues"]["okx"]["liq_mapping"] == "NEW" and snap["metrics"]["liq_mapping_version"] == 2.0
         await pool.close()
