@@ -899,8 +899,13 @@
    "frontier_value": 8,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 1,
+   "prior_signature_count": 2,
    "prior_signatures": [
+    {
+     "function": "FORMATION_WIDTH_REGIME_V1",
+     "id": "FORMATION-WIDTH-REGIME-V1",
+     "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +(omitted) pp. The previous hour of volatility is the baseline. The formation hour own volatility is not a control."
+    },
     {
      "function": "Range/volatility corridor model (1h/4h/24h) with held-out-year coverage check and live tracking",
      "id": "PRODUCT-V2-RANGE",
@@ -7755,7 +7760,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "1b35d827bf0b48bd8c505a59e57c4de28f3a3caa1b050a0a004a0cfd11b85101",
+ "SOURCES_DIGEST": "b0a2da6d0dcfe9af727b67603b009e18f12e365b388bcc915bc0688d972ed7fa",
  "SURFACES": [
   {
    "also_cols": [

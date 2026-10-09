@@ -8735,3 +8735,18 @@ EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_ROUTE_UNCHANGED = yes
 OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
 PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 design and support census
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. Not a confirmation and not a rescue of +9.48 pp.
+- **Design.** `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`, SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. Code digest `e0fb0ac0a2c33229733005eabeb44dd659dd70b2c0db80461eff1144545de971`. Census `2026-10-09T04:49:09Z`.
+- **Object.** Relative width of the completed UTC midnight hour. One horizon, the next 60m. Two unread endpoints: realized variation and directionless displacement. Incremental baseline is the previous hour's volatility, not the formation hour's own volatility.
+- **Surface.** Already consumed `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`, exposure only for this census. No 2025/2026, E1, BitMEX, or prospective tape.
+- **Support.** Calendar days 1827. Usable formations 1821. Analysis sample 1820. ISO weeks 262. Relative-width p50 0.00823, p90/p10 5.91. Lag-1 rank correlation of width 0.55. Status `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`. The gate does not authorize Y.
+- **Not computed.** Future RV, future range, displacement, signed return, and any association of width with a future path.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 VOLATILITY_STATE.range_forecast 2020-01-01..2024-12-31, formation-width availability only
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```

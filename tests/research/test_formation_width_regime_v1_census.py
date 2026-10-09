@@ -81,3 +81,25 @@ def test_second_write_refuses(tmp_path):
 def test_future_association_key_is_rejected():
     with pytest.raises(RuntimeError):
         assert_support_only({"outcome_read": False, "future_association_read": False, "activity_rho": 0.2})
+
+
+def test_official_census_is_outcome_blind_and_refuses_a_second_write():
+    import json
+    from pathlib import Path
+
+    payload = json.loads(
+        Path("docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json").read_text(encoding="utf-8")
+    )
+    assert payload["outcome_read"] is False
+    assert payload["future_association_read"] is False
+    assert payload["counts"]["analysis_sample"] == 1820
+    assert payload["analysis_iso_weeks"] == 262
+    assert payload["information_status"] == K.ADEQUATE
+    assert payload["information_authorizes_outcome"] is False
+    assert payload["design_sha256"] == (
+        "64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6"
+    )
+    assert payload["degenerate"] is False
+    with pytest.raises(SystemExit) as exc:
+        census_mod.main()
+    assert str(exc.value) == K.REFUSAL_RERUN

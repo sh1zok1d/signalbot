@@ -1568,17 +1568,19 @@
   {
    "col": "CANDLES",
    "counts": {
+    "CANDIDATE_UNTESTED": 1,
     "EXPOSED_ONLY": 1
    },
    "frontier_eligible": true,
-   "mixed": false,
+   "mixed": true,
    "native": true,
    "region": "VOLATILITY_STATE",
    "revisit": [],
    "row": "VOLATILITY_STATE.range_forecast",
    "row_name": "Range / volatility scale forecast",
-   "state": "EXPOSED_ONLY",
+   "state": "CANDIDATE_UNTESTED",
    "units": [
+    "FORMATION-WIDTH-REGIME-V1",
     "PRODUCT-V2-RANGE"
    ],
    "value": {
@@ -10180,22 +10182,22 @@
   "cells_by_state": {
    "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
-   "CANDIDATE_UNTESTED": 3,
+   "CANDIDATE_UNTESTED": 4,
    "CLOSED_ON_SURFACE": 13,
    "CONFIRMED": 1,
-   "EXPOSED_ONLY": 5,
+   "EXPOSED_ONLY": 4,
    "FUTURE_NATURAL_ACCUMULATION": 2,
    "INFORMATIONALLY_WEAK": 8,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 209,
+  "units": 210,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 31,
    "CONFIRMED": 1,
@@ -15596,7 +15598,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "1b35d827bf0b48bd8c505a59e57c4de28f3a3caa1b050a0a004a0cfd11b85101",
+ "SOURCES_DIGEST": "b0a2da6d0dcfe9af727b67603b009e18f12e365b388bcc915bc0688d972ed7fa",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15888,6 +15890,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FORMATION-WIDTH-REGIME-V1 support census only: relative width of the completed UTC midnight hour, previous-hour path presence, and next-hour path presence; no future RV, range, displacement, or association; not a reopen of PRODUCT-V2-RANGE, H01, or LEVEL-VOLATILITY-TRANSITION",
+      "period": "2020-01-01..2024-12-31",
+      "rows": [
+       "VOLATILITY_STATE.range_forecast"
+      ],
+      "status": "EXPOSED"
      },
      {
       "note": "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface",
@@ -23406,6 +23416,34 @@
    "units_n": "RAW_BURSTS 2895; declustered 880; ONE_SIDED_N 1; TWO_SIDED_N 879; matchable 1 / 169; 117 distinct event days",
    "verdict": "CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK (FEASIBILITY_STATUS = INFORMATIONALLY_WEAK; BLOCKER = MDE_TOO_LARGE); EFFECTIVE_N = 0.994; MDE_STRESS = 5.620; POWER_STRESS = 0.035; frozen cell theta 0.70 / quantile 0.999 / W 30m / TWO_SIDED_MAX 0.30; single one-sided event is in 2021",
    "why_closed": "Frozen primary cell has one admitted one-sided event in 2020-2024; original critic verdicts REJECT/REJECT/REJECT (causality, confounding, no-lookahead) stay."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "function": "One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_PREV. Week-block bootstrap, B=2000, seed 20261107. outcome_read false.",
+   "id": "FORMATION-WIDTH-REGIME-V1",
+   "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +9.48 pp. The previous hour of volatility is the baseline. The formation hour own volatility is not a control.",
+   "note": "CANDIDATE_UNTESTED. outcome_read false. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.",
+   "period": "design and support census only; Binance USD-M BTCUSDT 2020-01-01..2024-12-31; outcome not read",
+   "practical_bar": "A cell clears only if absolute Spearman is at least 0.10 and the week-block family interval excludes 0. Two endpoints, foundation and incremental. Not a target copied from the already-read 4h correlation.",
+   "program": "FORMATION_WIDTH_V1",
+   "records": [
+    "docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md",
+    "docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md",
+    "docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json",
+    "docs/research/CONTEMPORANEOUS_STATE_CONTROL_LESSON_V1.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A later outcome read needs a separate owner go. Not 4h recomputation of the paired-cohort Spearman. Not 2025/2026. Not E1. Not a product forecast.",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "FORMATION_WIDTH_REGIME_V1",
+   "units_n": "analysis sample 1820 days, 262 ISO weeks; relative-width p50 about 0.82 percent",
+   "verdict": "DESIGN FROZEN. Support census 2026-10-09T04:49:09Z is INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. The gate does not authorize Y. No route has been evaluated."
   },
   {
    "col": "CANDLES",

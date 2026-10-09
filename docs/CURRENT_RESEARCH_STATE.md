@@ -48,6 +48,17 @@ Result: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.md`. Census: `docs/rese
 
 Diagnosis: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md`.
 
+## FORMATION_WIDTH_REGIME_V1 — design frozen, outcome not read — 2026-10-09
+
+`MODE = DISCOVERY | outcome_read = false | future_association_read = false | PRODUCT_CHANGE = none`
+`STATE = relative width W/P0 of the completed UTC [00:00, 01:00) hour | one clock | not a boundary claim`
+`MAP NOT READ = next-60m RV and absolute log displacement | partial Spearman after the previous hour RV | seed 20261107`
+`SUPPORT = analysis N 1820 | 262 ISO weeks | INFORMATION_ADEQUATE_FOR_LATER_OUTCOME | the gate does not authorize Y`
+`NOT A RERUN OF = the paired-cohort 4h Spearman already printed in the frozen-hour diagnosis`
+`NEXT = a separate owner go for the one outcome read of this frozen map | no other surface`
+
+Design: `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`. Census: `docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md`.
+
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 
 `UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`
