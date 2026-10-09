@@ -58,14 +58,29 @@ Bybit sides are now correct (inverted before D1), and OKX rows exist (none befor
 | Kind of change for the 7-day count | Pre-start: schema, collector and journal changes, no Day-0 flag. The count has not started. |
 | ОПГ-2: forecast layer | Signed off by ОПГ-2 (2026-10-08 22:49Z). 3a ships the level race HIST layer (#381 table V1 file plus digest #385, one detector #383, L2 journal and HIST display #387/#388, the structural trigger #393) and the inert calibration/state module and C1 inputs (#408, #409). Every `level_race` flag is off at 3a. For 3b: no new schema (the existing claim journal is used); the HIST table V1 file must be in the deployed tree (a digest mismatch loads OFF, never a wrong number); 3b turns on only `journal_enabled`, `display_enabled` and `push_trigger = structural`, while `model_states_enabled` stays false; the #419 model freeze is not needed for 3b. Model states arrive later as the predeclared dated upgrade (FORECAST_LAYER §6a). Standing disclosure, from the model states on: «a level-specific drift of about ±10 pp is detected in about a year, not weeks; inside the beta the accuracy line next to the number is the guard». |
 
+**Deployed** by the owner on 2026-10-09 (report ~06:55Z, relayed by the architect):
+- HEAD and `BUILD_SHA` `fe8ac969`, after a local backup `btcbot_20261009T064542Z.sql.gz` (161 MB; pg_dump warned about TimescaleDB circular foreign keys; restore not tested);
+- bot restarted 06:47:08Z, collector 06:47:19Z;
+- `--beta-health` OK with `alerts=[]`; `/admin_health` `alerts=[]`, test `NOT_OPEN`, Day 0 None; OKX heartbeat age 34.7 s;
+- #368 status `ACCRUING` since 2026-10-09T00:00Z: 415/415 minutes, 0 missing, no gap from the restart.
+
+Pre-3b checks (`docs/BETA_PRE3B_DATA_CHECKS.md`, #429), first run:
+
+| Line | Result |
+|---|---|
+| `C1a_notional_identity`, `C1a_okx_scale`, `C1b_ctval` (= 0.01) | PASS |
+| `C1b_match` | FAIL: 82 matched, 51 equal. Architect's diagnosis: an artifact of the ±1 s / same-price rule (the WS channel is a subset, so a REST-only order at the same `bkPx` within 1 s pairs with a WS row). The collector stores OKX's own `ts`, so the check moves to the exact ms plus price, compared as (count, sum) per key; reproduced locally as FAIL under the old rule and PASS under the exact rule. Not yet re-run on production. |
+| `C2_rows_swapped`, `C2_tape_swapped` (288 buckets), `C2_okx_not_measured` (None in all 288), `C2_mark_side` (99.9 %, N=1586 pre-D1; 100 % post-D1) | PASS |
+| `C2_okx_no_rows`, `C2_window_old_only` | FAIL: 6 OKX rows in the window; the first OKX row is at 2026-10-08 14:04:48.875Z, before the documented 14:59Z D1 restart. Unexplained; a read-only diagnosis is with the owner (first OKX rows, collector starts 13:00–15:30Z, reflog, C1b on the exact ms). |
+
 **Between 3a and 3b:** OUT-8 block B (`docs/BETA_AUDIT_DEIDENTIFY_V1.md`, merged with #422 as `db381de9`; the blocks fetch the scripts pinned to that commit) only after the owner's go: it needs the 3a schema and must run before 3b.
 
 **Step 3b, planned:** main `3b094688` (3a + #422 scripts + #423 keyed HMAC pseudonyms) + the Day-0 config commit (`level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`), deployed at 00:00 UTC. Order: `BETA_FINGERPRINT_KEY` into `/opt/signalbot/.env` (a copy kept off the server, never in dumps) → checkout → install units → beta restart → collector restart; the bot refuses to start without the key. The 7-day observation starts at 3b. Its own RC record follows.
 
 **Pre-3b items:**
-1. OKX volume scale (`ctVal`) checked against an independent reference.
-2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked on the screens through D2's read-time correction.
-3. Block B run (or explicitly skipped) by the owner.
+1. OKX volume scale (`ctVal`) checked against an independent reference: scale and ctVal PASS; C1b re-run on the exact-ms rule pending.
+2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked through D2's read-time correction: Bybit PASS; the OKX rows before 14:59Z are unexplained (diagnosis pending).
+3. Block B run (or explicitly skipped) by the owner: pending, the owner's decision.
 
 ### Step 3b — keyed pseudonyms and the Day-0 flags, commit `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2`
 
