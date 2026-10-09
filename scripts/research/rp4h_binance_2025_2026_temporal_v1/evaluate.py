@@ -82,9 +82,41 @@ def build_sample(series: dict) -> dict:
     return out
 
 
+def support(series: dict) -> dict:
+    """Outcome-blind support: anchors whose bars i-48..i and i+12 are present (presence only for i+12; its price is
+    never used) and whose window W = i-47..i has a positive span and positive lows. No return or relation is computed."""
+    from numpy.lib.stride_tricks import sliding_window_view as swv
+    grid = place(series)
+    hi, lo, cl = grid["high"], grid["low"], grid["close"]
+    present = np.isfinite(hi) & np.isfinite(lo) & np.isfinite(cl)
+    n = present.size
+    w, h = KA.LOOKBACK, KA.HORIZON
+    i = np.arange(w, n - h)
+    keep = anchor_mask(grid["grid_open"][i])
+    i = i[keep]
+    i = i[grid["grid_open"][i] + h * K.BAR_MS < K.SURFACE_END_MS]
+    path_ok = swv(present, w + 1)[i - w].all(axis=1)              # bars i-48..i
+    target_ok = present[i + h]                                     # presence of bar i+12 only
+    i = i[path_ok & target_ok]
+    with np.errstate(invalid="ignore"):
+        span = swv(hi, w)[i - w + 1].max(axis=1) - swv(lo, w)[i - w + 1].min(axis=1)
+        low_ok = swv(lo, w)[i - w + 1].min(axis=1) > 0
+    i = i[(span > 0) & low_ok]
+    t = grid["grid_open"][i] + K.BAR_MS
+    ts = pd.to_datetime(t, unit="ms", utc=True)
+    iso = ts.isocalendar()
+    weeks = np.unique(iso.year.to_numpy(dtype=np.int64) * 100 + iso.week.to_numpy(dtype=np.int64))
+    years = {str(int(y)): int((ts.year == y).sum()) for y in sorted(set(ts.year.tolist()))}
+    return {"phase_anchors": int(anchor_mask(grid["grid_open"]).sum()), "eligible_anchors": int(i.size),
+            "iso_weeks": int(weeks.size), "anchors_by_year": years,
+            "first_t": ts[0].strftime("%Y-%m-%dT%H:%M:%SZ") if i.size else None,
+            "last_t": ts[-1].strftime("%Y-%m-%dT%H:%M:%SZ") if i.size else None}
+
+
 def preflight() -> dict:
     series = load_series()
-    return {"design_sha256": _sha256(DESIGN_PATH), "object_list_sha256": K.OBJECT_LIST_SHA256, **census(series)}
+    return {"design_sha256": _sha256(DESIGN_PATH), "object_list_sha256": K.OBJECT_LIST_SHA256,
+            "census": census(series), "support": support(series)}
 
 
 def run() -> dict:
@@ -94,6 +126,8 @@ def run() -> dict:
     c = census(series)
     assert_census(c)
     s = build_sample(series)
+    if K.EXPECTED_ANCHORS is not None and int(s["rp"].size) != K.EXPECTED_ANCHORS:
+        raise SystemExit("SUPPORT_MISMATCH")
     ts = pd.to_datetime(s["close_ms"], unit="ms", utc=True)
     iso = ts.isocalendar()
     blocks = iso.year.to_numpy(dtype=np.int64) * 100 + iso.week.to_numpy(dtype=np.int64)

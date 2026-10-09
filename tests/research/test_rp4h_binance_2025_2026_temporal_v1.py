@@ -122,3 +122,24 @@ def test_surface_constants_are_the_stated_dates():
     assert K.SURFACE_START_MS == ms(2025, 1, 1) and K.SURFACE_END_MS == ms(2026, 10, 9)
     assert K.PHASE_ORIGIN_MS == ms(2020, 1, 1)
     assert (E1_START, E1_END) == (ms(2026, 8, 16), ms(2026, 8, 25, 17, 20))
+
+
+def test_outcome_blind_support_equals_the_analysis_sample(monkeypatch):
+    rng = np.random.default_rng(11)
+    n = 4000
+    close = 60000 * np.exp(np.cumsum(rng.normal(0, 0.002, n)))
+    high = close * np.exp(np.abs(rng.normal(0, 0.001, n)))
+    low = close * np.exp(-np.abs(rng.normal(0, 0.001, n)))
+    t = K.SURFACE_START_MS + np.arange(n, dtype=np.int64) * K.BAR_MS
+    keep = np.ones(n, dtype=bool)
+    keep[[900, 2500, 2501]] = False
+    high[1500:1600] = low[1500:1600] = close[1500:1600] = 61000.0      # flat stretch: zero span windows
+    series = {"open_ms": t[keep], "high": high[keep], "low": low[keep], "close": close[keep]}
+    monkeypatch.setattr(K, "SURFACE_END_MS", int(t[-1]) + K.BAR_MS)
+    sup = EB.support(series)
+    sample = EB.build_sample(series)
+    assert sup["eligible_anchors"] == sample["rp"].size
+    # support never touches the price of the target bar: changing it leaves support unchanged
+    s2 = {k: v.copy() for k, v in series.items()}
+    s2["close"][-200:] *= 3.0
+    assert EB.support(s2)["eligible_anchors"] == sup["eligible_anchors"]
