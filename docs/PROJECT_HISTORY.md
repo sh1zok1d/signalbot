@@ -526,3 +526,19 @@ At the project's sample sizes, near-absolute coverage safety and practical utili
 `docs/ORCHESTRATION_V1.md`: the owner directs a chief architect, who directs two mini-heads — ОПГ-1 for the pre-beta product, ОПГ-2 for the forecast layer — each with its own tracks.
 
 **What was learned.** The review behind the decision found that most of the T+15m information at a level is geometry: a 15-minute end position predicts the race about as a random walk would, on real and pseudo levels alike. A forecast is honest only if it shows that geometry as «обычно» and claims for the level only what it adds.
+
+## 26. Directional market states first (2026-10-09)
+
+**Why the change.**
+- The owner cancelled the beta and set FORECAST FIRST, then asked for trade-grade direction.
+- The strongest directional lead, DH3-P3 crowd positioning, was tested once on unseen 2025–26 data (`P3_CONFIRMATION_V1`). It was NOT_CONFIRMED and failed as a trade rule after costs.
+- The architect's first reading («направленного преимущества нет») was too broad. The owner corrected it: one state failed, nothing more.
+
+**What was decided.**
+- Owner priority `FIND_DIRECTIONAL_MARKET_STATES`: search directional market states until something reproducible is found, or until broad negative evidence justifies a change of course.
+- Product recommendations are not requested.
+- The architect acts as market phenomena scout and research director. Cursor runs a broad quantitative pre-impulse atlas in parallel.
+
+**What was learned.**
+- The map of past research is mostly a map of unsigned outcomes, single events and input levels.
+- Direction out of flats, decay across successive swings or touches, speed asymmetry, price response to flow, session-transition direction and temporal venue leadership were largely untested (`docs/research/MARKET_PHENOMENA_CATALOG_V1.md`).
