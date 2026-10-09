@@ -49,6 +49,11 @@ no_bot_context:
     bot_context: NONE
     reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; the WIDTH line is closed with no product line"
     record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
+  - program: FUNDING_TAIL_RISK_OKX_REPLICATION_V1 (atlas FUNDING-TAIL-RISK-OKX-REPLICATION-V1)
+    status: CHARACTERIZED_ONCE_NO_PRODUCT_LINE
+    bot_context: NONE
+    reason: "cross-venue retrospective read; label CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN; raw extremity association positive with interval above 0; partial association after 8h realized volatility has an interval that includes 0; availability-limited, not a point-in-time confirmation; PRODUCT_INTEGRATION_CANDIDATE = NO; no /btc line and no trading signal"
+    record: "docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_RESULT.md"
   - program: FUNDING_TAIL_RISK_CROSS_VENUE_V1 (atlas FUNDING-TAIL-RISK-CROSS-VENUE-V1)
     status: BLOCKED_BEFORE_OUTCOME
     bot_context: NONE

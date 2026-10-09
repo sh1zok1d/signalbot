@@ -1,3 +1,30 @@
+## FUNDING_TAIL_RISK_OKX_REPLICATION_V1 — one historical read — 2026-10-09
+
+`MODE = CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED | outcome_read = true | evidence tier unchanged | not a confirmation`
+`READ AT = 2026-10-09T12:30:31Z | design commit 0f2c2c6d0e3ea783fcc6ee5de456bb8c8e512c65 | digest 6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9`
+`LABEL = CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN | raw Spearman +0.06664979748104755 | interval [0.025176203970000286, 0.10808444189750395] | partial +0.028873821844373516 | interval [-0.004485352423566223, 0.060993529736847574]`
+`SUPPORT = funding identity N 3329 | analysis N 3238 | ISO weeks 156 | warm-up drops 90 | schedule-exception drops 1 | path drops 0 | volatility-window drops 0 | years 2022 through 2024`
+`SHAPE = both tail means of absolute excursion sit above the center | lower-tail contrast interval above 0 | upper-tail contrast interval includes 0 | year partials all positive, 2022 near zero`
+`PARENT = INCREMENTAL_ASSOCIATION_UNCERTAIN unchanged | parent partial +0.027762672485166194 | venues not pooled`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO | no /btc change | not a trading signal`
+`NOT OPENED = 2025/2026, E1, premium, open interest, live funding | rerun REFUSING_RERUN | Bybit blocker unchanged`
+
+Result: `docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_RESULT.md`.
+
+## FUNDING_TAIL_RISK_OKX_REPLICATION_V1 — design frozen, scores unread — 2026-10-09
+
+`MODE = CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED | outcome_read = false | evidence tier unchanged`
+`QUESTION = whether OKX funding extremity is associated with later 8h path stress beyond current realized volatility`
+`FUNDING = OKX module 3 daily archive, BTC-USDT-SWAP settled funding_rate, N 3329, [2021-08-31T16:00:00Z, 2024-12-31T08:00:00Z] | SHA256 4d8a132e286dc8135138672428673ca5d9740af3f106add22d259d7e36b175f9 | source zips 43990a6613dc8dc50fcc5e35480b99109157aabf8a8e598950540a162fd65a9b`
+`PRICE = LEVEL_CROSS_VENUE_PERP_5M_V0 okx_btc_usdt_swap_5m.csv.gz | SHA256 b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8 | open-time census only so far | high/low/close not used`
+`STATE = past-only rank, warm-up 90 events | extremity = abs(rank - 0.5) | decision = UTC hour floor within 5s of 00:00/08:00/16:00 | primary outcome = parent absolute excursion over the next 8h | control = RV of the 8h ending at T`
+`INFERENCE = Spearman and partial Spearman | ISO-week block bootstrap B=2000 seed 20261115 | two-sided 95 percent | no magnitude floor | threshold 55 not applied`
+`NOT OPENED = the OKX outcome, 2025/2026, E1, premium, open interest, live funding, a Binance rerun, the Bybit blocker`
+`DESIGN SHA256 = 1e0fcce7760e829a4c28b1ee3f10626f970a9304b8f7912a4b9e73ef26c99459`
+`PRODUCT_INTEGRATION_CANDIDATE = not assigned`
+
+Design: `docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.md`.
+
 ## FUNDING_TAIL_RISK_CROSS_VENUE_V1 — blocked before any Bybit outcome — 2026-10-09
 
 `STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE | outcome_read = false | parent verdict unchanged`

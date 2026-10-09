@@ -1,0 +1,71 @@
+{
+  "bins": ["[0, 0.10)", "[0.10, 0.25)", "[0.25, 0.75)", "[0.75, 0.90)", "[0.90, 1]"],
+  "bin_edges": [0.10, 0.25, 0.75, 0.90],
+  "bootstrap": {
+    "blocks": "ISO week of T",
+    "draws": 2000,
+    "hi": 0.975,
+    "lo": 0.025,
+    "method": "numpy quantile linear",
+    "recompute": ["raw Spearman", "partial Spearman", "tail contrasts"],
+    "seed": 20261115
+  },
+  "control": "RV_8H = sqrt(sum of 96 squared 5m log close-to-close returns ending at T)",
+  "decision": {
+    "grid_hours_utc": [0, 8, 16],
+    "off_grid_rule": "kept in the past-only rank history and not scored",
+    "residual_max_ms": 5000,
+    "t": "UTC hour floor of funding_time"
+  },
+  "evidence_class": "CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED",
+  "extremity": "abs(FUNDING_RANK - 0.5)",
+  "funding": {
+    "canonical_sha256": "4d8a132e286dc8135138672428673ca5d9740af3f106add22d259d7e36b175f9",
+    "conflicts": 0,
+    "duplicate_timestamps": 0,
+    "field_rate": "funding_rate",
+    "field_time": "funding_time",
+    "files": 1110,
+    "first": "2021-08-31T16:00:00Z",
+    "first_ms": 1630425600000,
+    "instrument": "BTC-USDT-SWAP",
+    "last": "2024-12-31T08:00:00Z",
+    "last_ms": 1735632000000,
+    "n": 3329,
+    "off_grid_ms": 1671389640000,
+    "off_grid_n": 1,
+    "on_grid_n": 3328,
+    "one_second_ms": 1672300801000,
+    "semantics": "official historical settled funding_rate at funding_time",
+    "source": "OKX module 3 daily allswap-fundingrates archive",
+    "source_zips_sha256": "43990a6613dc8dc50fcc5e35480b99109157aabf8a8e598950540a162fd65a9b",
+    "surface_end_exclusive": "2025-01-01T00:00:00Z"
+  },
+  "outcome": "max(abs(log(H_max / P0)), abs(log(L_min / P0))) on bars with open in [T, T+8h)",
+  "outcome_read": false,
+  "p0": "close of the 5m bar that closes at T",
+  "parent": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1",
+  "parent_label": "INCREMENTAL_ASSOCIATION_UNCERTAIN",
+  "parent_partial": 0.027762672485166194,
+  "practical_rho_applied": false,
+  "price": {
+    "bars": 499968,
+    "file": "docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0/okx_btc_usdt_swap_5m.csv.gz",
+    "first_open": "2020-04-01T00:00:00Z",
+    "instrument": "BTC-USDT-SWAP",
+    "last_open": "2024-12-31T23:55:00Z",
+    "sha256": "b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8"
+  },
+  "primary": "partial Spearman of FUNDING_EXTREMITY with ABS_EXCURSION_8H given RV_8H",
+  "product_integration_candidate_rule": "true only if the route is CROSS_VENUE_EXTREMITY_ASSOCIATION_SUPPORTED",
+  "rank": "(1 + count(past < x) + 0.5 * count(past == x)) / (n_past + 1)",
+  "route": {
+    "includes_zero": "CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN",
+    "not_interpretable": "INFERENCE_NOT_INTERPRETABLE",
+    "not_positive": "CROSS_VENUE_EXTREMITY_ASSOCIATION_NOT_OBSERVED",
+    "point_and_lower_bound_positive": "CROSS_VENUE_EXTREMITY_ASSOCIATION_SUPPORTED"
+  },
+  "threshold_55_applied": false,
+  "unit": "FUNDING_TAIL_RISK_OKX_REPLICATION_V1",
+  "warmup_min_past": 90
+}

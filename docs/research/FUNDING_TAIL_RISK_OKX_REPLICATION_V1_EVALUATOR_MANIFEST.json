@@ -1,0 +1,23 @@
+{
+  "design_sha256": "1e0fcce7760e829a4c28b1ee3f10626f970a9304b8f7912a4b9e73ef26c99459",
+  "e1_touched": false,
+  "evaluator_digest": "6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9",
+  "evidence_class": "CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED",
+  "funding_n": 3329,
+  "interpretation": "CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN",
+  "n": 3238,
+  "n_weeks": 156,
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": true,
+  "partial": 0.028873821844373516,
+  "practical_rho_applied": false,
+  "pre_outcome_evaluator_commit": "0f2c2c6d0e3ea783fcc6ee5de456bb8c8e512c65",
+  "premium_scored": false,
+  "product_change": false,
+  "product_integration_candidate": false,
+  "read_at": "2026-10-09T12:30:31Z",
+  "spearman": 0.06664979748104755,
+  "threshold_55_applied": false,
+  "unit": "FUNDING_TAIL_RISK_OKX_REPLICATION_V1"
+}

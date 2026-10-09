@@ -1,0 +1,189 @@
+{
+  "bins": [
+    {
+      "bin": "[0, 0.10)",
+      "mean_abs_excursion": 0.026316626460178443,
+      "mean_downside": 0.016994005955688986,
+      "mean_upside": 0.016194484809174663,
+      "median_abs_excursion": 0.0205825544408591,
+      "n": 140,
+      "route_input": false
+    },
+    {
+      "bin": "[0.10, 0.25)",
+      "mean_abs_excursion": 0.019100748339424333,
+      "mean_downside": 0.011832182170002405,
+      "mean_upside": 0.012218813458518201,
+      "median_abs_excursion": 0.014882776162979294,
+      "n": 397,
+      "route_input": false
+    },
+    {
+      "bin": "[0.25, 0.75)",
+      "mean_abs_excursion": 0.017603469339081048,
+      "mean_downside": 0.011382297500561718,
+      "mean_upside": 0.010808220168295277,
+      "median_abs_excursion": 0.013731429938823137,
+      "n": 1709,
+      "route_input": false
+    },
+    {
+      "bin": "[0.75, 0.90)",
+      "mean_abs_excursion": 0.01791609285434317,
+      "mean_downside": 0.01175428334600912,
+      "mean_upside": 0.010938193191886039,
+      "median_abs_excursion": 0.013816582555434484,
+      "n": 533,
+      "route_input": false
+    },
+    {
+      "bin": "[0.90, 1]",
+      "mean_abs_excursion": 0.018805473345256504,
+      "mean_downside": 0.012237320584214818,
+      "mean_upside": 0.012035065240255242,
+      "median_abs_excursion": 0.013984122667490578,
+      "n": 459,
+      "route_input": false
+    }
+  ],
+  "bybit_status_unchanged": "BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE",
+  "causal_claim": false,
+  "contrasts": {
+    "lower": {
+      "point": 0.008713157121097395,
+      "route_input": false
+    },
+    "upper": {
+      "point": 0.0012020040061754556,
+      "route_input": false
+    }
+  },
+  "design_json_sha256": "76cb696e350b7423c73785f8deb1022f46e89b35ca0627362eee12b54dc8d39a",
+  "design_sha256": "1e0fcce7760e829a4c28b1ee3f10626f970a9304b8f7912a4b9e73ef26c99459",
+  "dropped": {
+    "path": 0,
+    "rv": 0,
+    "schedule_exception": 1,
+    "state_undefined": 90
+  },
+  "e1_touched": false,
+  "evaluator_digest": "6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9",
+  "evidence_class": "CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED",
+  "evidence_tier_raised": false,
+  "funding_n": 3329,
+  "funding_sha256": "4d8a132e286dc8135138672428673ca5d9740af3f106add22d259d7e36b175f9",
+  "interpretation": {
+    "causal_claim": false,
+    "code": "CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN",
+    "practical_rho_applied": false,
+    "product_integration_candidate": false,
+    "threshold_55_applied": false
+  },
+  "interval": {
+    "draws": 2000,
+    "lower_tail": {
+      "hi": 0.013220252969804202,
+      "interpretable": true,
+      "lo": 0.004199146516901795,
+      "share_positive": 1.0,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "partial": {
+      "hi": 0.060993529736847574,
+      "interpretable": true,
+      "lo": -0.004485352423566223,
+      "share_positive": 0.954,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "raw": {
+      "hi": 0.10808444189750395,
+      "interpretable": true,
+      "lo": 0.025176203970000286,
+      "share_positive": 0.999,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "upper_tail": {
+      "hi": 0.00335524393492153,
+      "interpretable": true,
+      "lo": -0.0009943390564229563,
+      "share_positive": 0.8575,
+      "valid_draws": 2000,
+      "valid_fraction": 1.0
+    },
+    "weeks": 156
+  },
+  "n": 3238,
+  "n_weeks": 156,
+  "n_zero_rate": 2,
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": true,
+  "parent_label_unchanged": "INCREMENTAL_ASSOCIATION_UNCERTAIN",
+  "partial": 0.028873821844373516,
+  "practical_rho_applied": false,
+  "pre_outcome_evaluator_commit": "0f2c2c6d0e3ea783fcc6ee5de456bb8c8e512c65",
+  "premium_scored": false,
+  "price_sha256": "b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8",
+  "product_change": false,
+  "product_integration_candidate": false,
+  "read_at": "2026-10-09T12:30:31Z",
+  "sides": [
+    {
+      "n": 2288,
+      "route_input": false,
+      "side": "positive_funding",
+      "spearman_extremity": 0.05389576922029213,
+      "spearman_rank": 0.05712322634468358
+    },
+    {
+      "n": 948,
+      "route_input": false,
+      "side": "negative_funding",
+      "spearman_extremity": 0.10056374704904374,
+      "spearman_rank": -0.10056374704904374
+    }
+  ],
+  "spearman": 0.06664979748104755,
+  "synthesis": {
+    "attenuation": "CONTROL_REDUCED_THE_POINT",
+    "causal_claim": false,
+    "conclusion": "B_POINT_POSITIVE_UNCERTAIN",
+    "extremity_point_positive": true,
+    "lower_tail_above_center": true,
+    "market_03": "COMPATIBLE_WITH_HISTORICAL_DRAWDOWN_REDUCTION",
+    "okx_partial": 0.028873821844373516,
+    "parent_partial": 0.027762672485166194,
+    "route_input": false,
+    "shape": "BOTH_TAILS_ABOVE_CENTER",
+    "similarity_cutoff_applied": false,
+    "upper_tail_above_center": true
+  },
+  "threshold_55_applied": false,
+  "unit": "FUNDING_TAIL_RISK_OKX_REPLICATION_V1",
+  "years": [
+    {
+      "n": 1046,
+      "partial": 0.0025807432610314334,
+      "route_input": false,
+      "spearman": 0.05531890659980287,
+      "year": 2022
+    },
+    {
+      "n": 1095,
+      "partial": 0.05997025307219011,
+      "route_input": false,
+      "spearman": 0.10486421193346844,
+      "year": 2023
+    },
+    {
+      "n": 1097,
+      "partial": 0.06367189879527216,
+      "route_input": false,
+      "spearman": 0.11145393598009805,
+      "year": 2024
+    }
+  ]
+}
