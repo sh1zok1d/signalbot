@@ -73,14 +73,19 @@ Pre-3b checks (`docs/BETA_PRE3B_DATA_CHECKS.md`, #429), first run:
 | `C2_rows_swapped`, `C2_tape_swapped` (288 buckets), `C2_okx_not_measured` (None in all 288), `C2_mark_side` (99.9 %, N=1586 pre-D1; 100 % post-D1) | PASS |
 | `C2_okx_no_rows`, `C2_window_old_only` | FAIL: 6 OKX rows in the window; the first OKX row is at 2026-10-08 14:04:48.875Z, before the documented 14:59Z D1 restart. Unexplained; a read-only diagnosis is with the owner (first OKX rows, collector starts 13:00–15:30Z, reflog, C1b on the exact ms). |
 
+Diagnosis and block B (owner, 07:23Z):
+- **C1 closed.** Re-run on the exact ms plus price: 51 keys, 50 equal. The one difference is a count, not a scale: at 04:01:48.625Z, px 82455.2, REST holds two orders (0.09 and 2.94 contracts) and the database one row, qty 0.0294 = 2.94 × 0.01, which fits the documented WS subset. Every stored row equals a REST order at the same ms and price. The check's rule becomes stored ⊆ REST (multiset).
+- **C2.** All 6 early OKX rows carry `mapping_version = 2`, and the journal shows each processed after the 14:59:21Z restart (event 14:04:48 → logged 15:01:26; event 14:20:36 → logged 15:31:34; delays of 57–71 min). OKX liquidation events can reach the collector up to about an hour late. The rest of C2 passed. Open: per-venue arrival delay (owner's read-only block) and its impact on tape materialization, which is to be decided before 3b because a later change to a metric definition restarts the 7-day count.
+- **OUT-8 block B: COMPLETE.** Backup `btcbot_20261009T071954Z` uploaded off the server; SQL from `db381de9`; `UPDATE 0/2/0`, i.e. exactly 2 `admin_reply` rows de-identified; the trigger back to enabled (`O`); deletion counter unchanged.
+
 **Between 3a and 3b:** OUT-8 block B (`docs/BETA_AUDIT_DEIDENTIFY_V1.md`, merged with #422 as `db381de9`; the blocks fetch the scripts pinned to that commit) only after the owner's go: it needs the 3a schema and must run before 3b.
 
 **Step 3b, planned:** main `3b094688` (3a + #422 scripts + #423 keyed HMAC pseudonyms) + the Day-0 config commit (`level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`), deployed at 00:00 UTC. Order: `BETA_FINGERPRINT_KEY` into `/opt/signalbot/.env` (a copy kept off the server, never in dumps) → checkout → install units → beta restart → collector restart; the bot refuses to start without the key. The 7-day observation starts at 3b. Its own RC record follows.
 
 **Pre-3b items:**
-1. OKX volume scale (`ctVal`) checked against an independent reference: scale and ctVal PASS; C1b re-run on the exact-ms rule pending.
-2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked through D2's read-time correction: Bybit PASS; the OKX rows before 14:59Z are unexplained (diagnosis pending).
-3. Block B run (or explicitly skipped) by the owner: pending, the owner's decision.
+1. OKX volume scale (`ctVal`) checked against an independent reference: **closed** (scale confirmed on the exact-ms rule).
+2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked through D2's read-time correction: Bybit and OKX tape PASS; the early OKX rows are late arrivals. **Open:** the OKX late-arrival delay and its tape impact (decision before 3b).
+3. Block B run (or explicitly skipped) by the owner: **closed** (run, 2026-10-09 07:23Z).
 
 ### Step 3b — keyed pseudonyms and the Day-0 flags, commit `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2`
 
