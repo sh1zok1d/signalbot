@@ -4286,3 +4286,28 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'EXECUTED ONCE. Route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT on the exposed discovery surface. Supporting endpoint ACTIVITY. Evaluator b1f36a56. Rerun REFUSING_RERUN. Not a confirmation and not a product forecast. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.'
+  - id: FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1
+    title: FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: SPOT
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    period: 'design frozen before the endpoint; Binance spot BTCUSDT 5m 2017-09-01..2019-12-31; support census 827 analysis days, 123 ISO weeks; endpoint not read'
+    units_n: 'N 827, 123 ISO weeks; effective N about 298 under the width-lag week design effect; 80% MDE about 0.145; power about 0.53 at the bar 0.10'
+    practical_bar: 'A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not authorized. The bar is not lowered.'
+    mechanism: 'MODE=CONFIRMATION of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour, partial Spearman with next-hour activity given formation-hour RV. Spot tape, not the USD-M perpetual. Class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION.'
+    function: 'One cell. V=(high-low)/P0. ACTIVITY is next-hour RV. Covariate is RV_FORMATION. Week-block bootstrap B=2000 seed 20261108 quantile 0.05. Support census 2026-10-09T06:08:44Z. Information forecast failed the frozen 80% power floor. Endpoint not computed. Evaluator refuses.'
+    verdict: 'INFORMATIONALLY_WEAK_BEFORE_OUTCOME (2026-10-09T06:08:44Z). Count floor met (N 827, 123 weeks, both halves above 100). Power to exclude 0 at association 0.10 is about 0.53 under the predeclared width-lag design effect, below 0.80. MDE about 0.145. The next-hour endpoint was not read. No second surface. Discovery result on CORE 2020-2024 is unchanged. Not L3.'
+    why_closed: 'The pre-outcome information forecast on the one chosen spot window failed the frozen power floor. The endpoint stays unread. Opening another tape to rescue power is outside this unit.'
+    forbidden: 'reading the next-hour endpoint on this window after the weak forecast; a 2025/2026 or BitMEX rescue; a reread of CORE 2020-2024; lowering 0.10; adding displacement, another hour, or another covariate; a product forecast or a trading signal'
+    reopen: 'A prospective accrual of this same frozen claim, with its own design note and owner go, after a dated freeze. Not a read of this spot endpoint. Not 2025/2026. Not E1. Not a reread of the discovery surface.'
+    records:
+    - docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'CONFIRMATION stopped before the endpoint. Route INFORMATIONALLY_WEAK_BEFORE_OUTCOME. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Equal-width 4h resolution on this window stays a neighboring consumed contrast. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.'

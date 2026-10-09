@@ -1,3 +1,15 @@
+## FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1 — informationally weak before the endpoint — 2026-10-09
+
+`MODE = CONFIRMATION | ROUTE = INFORMATIONALLY_WEAK_BEFORE_OUTCOME | outcome_read = false | claim_selected_pre_outcome = true`
+`CLAIM = the ACTIVITY incremental cell of FORMATION_WIDTH_REGIME_V1 | discovery partial Spearman +0.1025 | practical bar +0.10 | direction positive`
+`SURFACE = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 [2017-09-01, 2020-01-01) | class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION | not pristine`
+`SUPPORT = 2026-10-09T06:08:44Z | N 827 | ISO weeks 123 | halves 405 and 422 | width lag-1 +0.5725 | effective N 298.01 | 80% MDE 0.145 | power 0.529`
+`NOT READ = next-hour activity, raw association, partial association | 2025/2026 not used | E1 not used | no second surface`
+`EVALUATOR = REFUSING_OUTCOME_BEFORE_OWNER_GO | a later go is not authorized on this weak forecast`
+`CEILING IF A FUTURE PASS EXISTED = L2 on this spot window | not L3 | not a forecast | not an edge`
+
+Design: `docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_DESIGN.md`. Support: `docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.md`. Discovery result: `docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md`.
+
 ## OPENING_RANGE_OBJECT_V1 — one historical outcome read — 2026-10-08
 
 `ROUTE = FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | opening_wording_allowed = false | hour_adopted = null`

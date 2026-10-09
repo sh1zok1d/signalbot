@@ -896,7 +896,7 @@
   {
    "col": "CANDLES",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "PRIOR_WORK",
    "native": true,
    "prior_signature_count": 2,
@@ -917,7 +917,7 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 10,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -926,7 +926,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -935,7 +935,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 7,
+   "frontier_value": 6,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -944,7 +944,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -953,16 +953,23 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 10,
-   "generator_state": "OPEN",
+   "frontier_value": 7,
+   "generator_state": "UNDERPOWERED_NOW",
    "native": false,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1",
+     "id": "FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1",
+     "mechanism": "MODE=CONFIRMATION of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour, partial Spearman with next-hour activity given formation-hour RV. Spot tape, not the USD-M perpetual. Class (omitted)"
+    }
+   ],
    "row": "VOLATILITY_STATE.range_forecast"
   },
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -971,7 +978,7 @@
   {
    "col": "CROSS_ASSET",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -980,7 +987,7 @@
   {
    "col": "OPTIONS",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -5418,16 +5425,6 @@
   {
    "col": "PERP_FLOW",
    "frontier_value": 10,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 10,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 10,
    "row": "VOLATILITY_STATE.regime_transition"
   },
   {
@@ -5636,27 +5633,7 @@
    "row": "VOLATILITY_STATE.compression"
   },
   {
-   "col": "CROSS_ASSET",
-   "frontier_value": 9,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 9,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "OPTIONS",
-   "frontier_value": 9,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 9,
-   "row": "VOLATILITY_STATE.range_forecast"
-  },
-  {
-   "col": "POSITIONING",
+   "col": "PERP_FLOW",
    "frontier_value": 9,
    "row": "VOLATILITY_STATE.range_forecast"
   },
@@ -5911,6 +5888,31 @@
    "row": "PRICE_STRUCTURE.impulse"
   },
   {
+   "col": "CROSS_ASSET",
+   "frontier_value": 8,
+   "row": "VOLATILITY_STATE.range_forecast"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 8,
+   "row": "VOLATILITY_STATE.range_forecast"
+  },
+  {
+   "col": "OPTIONS",
+   "frontier_value": 8,
+   "row": "VOLATILITY_STATE.range_forecast"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 8,
+   "row": "VOLATILITY_STATE.range_forecast"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 8,
+   "row": "VOLATILITY_STATE.range_forecast"
+  },
+  {
    "col": "CROSS_VENUE",
    "frontier_value": 8,
    "row": "DERIVATIVES.funding_basis"
@@ -6099,11 +6101,6 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 7,
    "row": "VOLATILITY_STATE.compression"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 7,
-   "row": "VOLATILITY_STATE.range_forecast"
   },
   {
    "col": "LIQUIDATIONS",
@@ -6429,6 +6426,11 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 6,
    "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 6,
+   "row": "VOLATILITY_STATE.range_forecast"
   },
   {
    "col": "CROSS_ASSET",
@@ -7760,7 +7762,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "8c66871be0afb53bed3a9237757e59fd4a0aafd7bf4d466a59d03a2d93e30dda",
+ "SOURCES_DIGEST": "384cf7eefbc0b94114c58df735d157db2135bed052714bb62aef37b675107345",
  "SURFACES": [
   {
    "also_cols": [

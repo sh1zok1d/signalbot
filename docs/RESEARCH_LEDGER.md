@@ -8794,3 +8794,17 @@ WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 VOLATILITY_STATE.range_forecast 2020-01-0
 OUTCOME_READ = yes; ROUTE = FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT; CONFIRMATION = false
 OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1 design and outcome-blind forecast
+
+**Mode.** `CONFIRMATION` of the already selected ACTIVITY incremental cell. `outcome_read = false`. `claim_selected_pre_outcome = true`.
+- **Claim.** Positive partial Spearman of relative UTC-hour width with next-hour activity given `RV_FORMATION`, practical bar `+0.10`. Discovery result SHA256 `333f5a778bf56207c3d6f8261d528a2d3271cdc523aba1239c3f013022466669`. Design `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. A1 `a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e`. A2 `a76c0a891fedb7a907544878ef49cd136d3831fb6782d89e56a00ce96e49e07a`.
+- **Surface.** `DH1_BINANCE_SPOT_BTCUSDT_5M_V0` `[2017-09-01, 2020-01-01)`. Class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Neighbor: equal-width 4h resolution already consumed on this window. `2025/2026` Binance perpetual history is not used (`PRODUCT_DECISION_V2` §4). E1 is not used. No second surface.
+- **Support.** `2026-10-09T06:08:44Z`. Design SHA256 `95968c3fab888d69a4b6b30b748d20dbbcfcd65ee32dbc0d510d6c4fc25571bf`. Code digest `11fb019fa2299b2213c5c2a95e7630b6758edfee5a0274ce559e16abeab585e9`. Analysis N 827. ISO weeks 123. Halves 405 and 422. Width lag-1 `+0.5725` on 806 pairs. Effective N `298.01`. Fisher SE `0.0582`. 80% MDE `0.145`. Power at the bar `0.529`.
+- **Route.** `INFORMATIONALLY_WEAK_BEFORE_OUTCOME`. The endpoint was not read. The evaluator returns `REFUSING_OUTCOME_BEFORE_OWNER_GO`. A later go on this forecast is not authorized.
+
+```
+WINDOWS_EXPOSED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 VOLATILITY_STATE.range_forecast 2017-09-01..2019-12-31, path presence and width only
+OUTCOME_READ = no; ROUTE = INFORMATIONALLY_WEAK_BEFORE_OUTCOME; CONFIRMATION = not run
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```

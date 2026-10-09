@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -124,6 +126,29 @@ def test_floor_fails_closed_on_a_short_panel():
     assert payload["pre_outcome_route"] == K.ROUTE_WEAK
     assert payload["awaiting_separate_owner_go"] is False
     assert payload["information_authorizes_outcome"] is False
+
+
+def test_official_support_file_is_outcome_blind_and_weak():
+    payload = json.loads((
+        ROOT / "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.json"
+    ).read_text(encoding="utf-8"))
+    support.assert_support_only(payload)
+    assert payload["outcome_read"] is False
+    assert payload["claim_selected_pre_outcome"] is True
+    assert payload["counts"]["analysis_sample"] == 827
+    assert payload["analysis_iso_weeks"] == 123
+    assert payload["first_half_n"] == 405
+    assert payload["second_half_n"] == 422
+    assert payload["information_status"] == K.WEAK
+    assert payload["awaiting_separate_owner_go"] is False
+    assert payload["information_forecast"]["effective_n"] == pytest.approx(298.0133601492304)
+    assert payload["information_forecast"]["power_lower_bound_excludes_zero_at_practical_bar"] == pytest.approx(
+        0.5289941554479648
+    )
+    assert payload["code_digest"] == "11fb019fa2299b2213c5c2a95e7630b6758edfee5a0274ce559e16abeab585e9"
+    assert payload["design_sha256"] == hashlib.sha256(
+        (ROOT / "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_DESIGN.md").read_bytes()
+    ).hexdigest()
 
 
 def test_support_rerun_refuses_before_load(monkeypatch, tmp_path):
