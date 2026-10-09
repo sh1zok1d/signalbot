@@ -8998,3 +8998,17 @@ WINDOWS_CONSUMED = B2_06 funding half DERIVATIVES.funding_basis, newly read; COR
 OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no; PIT = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FUNDING_TAIL_RISK_CROSS_VENUE_V1 blocked before any Bybit outcome
+
+**Mode.** Outcome-blind feasibility of a same-venue Bybit check. `outcome_read = false`. Status `BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE`. The parent `FUNDING_STATE_HISTORICAL_STRUCTURE_V1` is not reread. Its label stays `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The Binance tail shape is not promoted to a confirmed effect.
+- **Price.** `LEVEL_CROSS_VENUE_PERP_5M_V0` / `bybit_btcusdt_linear_5m.csv.gz`, SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`. Open-time census: `476254` bars, first `2020-03-31T21:00:00Z`, last `2024-12-31T20:55:00Z`, missing slots `23714`. High, low, and close were not used. No bar at or after `2025-01-01`.
+- **Funding.** No local series. `GET /v5/market/funding/history` on `api.bybit.com` and `api.bytick.com` returned HTTP `403` at `2026-10-09T11:47:34Z` (CloudFront country block) before any row. `https://public.bybit.com/` lists klines, premium index, spot index, trades, and spot. It has no funding directory. Premium files were not downloaded. Trade prints were not downloaded.
+- **Not computed.** Rank, extremity, 8-hour excursion, volatility control, yearly table, bins, bootstrap. No seed was spent. No magnitude rule was applied. Threshold `55` was not applied.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc` change.
+
+```
+WINDOWS_CONSUMED = none; BYBIT price file open times exposed only, outcome not consumed
+OUTCOME_READ = no; STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE; PARENT_RERUN = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
+```

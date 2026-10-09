@@ -49,6 +49,11 @@ no_bot_context:
     bot_context: NONE
     reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; the WIDTH line is closed with no product line"
     record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
+  - program: FUNDING_TAIL_RISK_CROSS_VENUE_V1 (atlas FUNDING-TAIL-RISK-CROSS-VENUE-V1)
+    status: BLOCKED_BEFORE_OUTCOME
+    bot_context: NONE
+    reason: "Bybit settled funding was not acquired; status BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE; no path-risk score; parent label unchanged; PRODUCT_INTEGRATION_CANDIDATE = NO"
+    record: "docs/research/FUNDING_TAIL_RISK_CROSS_VENUE_V1_FEASIBILITY.md"
   - program: FUNDING_STATE_HISTORICAL_STRUCTURE_V1 (atlas FUNDING-STATE-HISTORICAL-STRUCTURE-V1)
     status: CHARACTERIZED_ONCE_NO_PRODUCT_LINE
     bot_context: NONE

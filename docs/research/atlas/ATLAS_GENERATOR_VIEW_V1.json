@@ -2021,10 +2021,17 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 7,
-   "generator_state": "OPEN",
+   "frontier_value": 5,
+   "generator_state": "DATA_REQUIRED",
    "native": false,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "FUNDING_TAIL_RISK_CROSS_VENUE_V1",
+     "id": "FUNDING-TAIL-RISK-CROSS-VENUE-V1",
+     "mechanism": "Same-venue settled funding extremity and later direction-neutral path stress. The funding series was not obtained, so no outcome was read."
+    }
+   ],
    "row": "DERIVATIVES.funding_basis"
   },
   {
@@ -6120,11 +6127,6 @@
    "row": "CALENDAR.sessions"
   },
   {
-   "col": "CROSS_VENUE",
-   "frontier_value": 7,
-   "row": "DERIVATIVES.funding_basis"
-  },
-  {
    "col": "OPTIONS",
    "frontier_value": 7,
    "row": "DERIVATIVES.funding_basis"
@@ -7784,7 +7786,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "091b030852339e31c2e81d07345b37b0ee02ea861dc84c0b9a9121a33fdf9680",
+ "SOURCES_DIGEST": "09c1df5436650896efdaf303204c2cf039772cc40eacad3ac22b561a75ef74ba",
  "SURFACES": [
   {
    "also_cols": [
