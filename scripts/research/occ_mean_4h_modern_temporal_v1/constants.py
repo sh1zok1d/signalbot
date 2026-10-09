@@ -31,6 +31,6 @@ STATUS = {
 
 # ---- pins (design SHA in the freeze commit; support pinned after the outcome-blind preflight)
 DESIGN_SHA256 = "6878c6e133c733a2142d494536b0e14afbe11862f7594b9b7a60c71e44184a56"
-DESIGN_COMMIT = "PENDING"
-EXPECTED_N = None
-EXPECTED_WEEKS = None
+DESIGN_COMMIT = "39e84dfc"
+EXPECTED_N = 59_672
+EXPECTED_WEEKS = 90

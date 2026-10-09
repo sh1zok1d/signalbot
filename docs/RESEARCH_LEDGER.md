@@ -8829,3 +8829,11 @@ WINDOWS_CONSUMED = D2_BITMEX_PRE2020_XBTUSD 2016-05-13..2019-12-31 PRICE_STRUCTU
 NOT_READ = Binance 2025/2026, spot, CORE (no recomputation), OCC variants, horizons, interactions, OI, E1 | no successor
 FINDINGS_REGISTRY = not updated (no product work)
 ```
+
+## 2026-10-09 — OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1: exposure audit, design frozen, outcome-blind preflight (no outcome read)
+
+`OWNER = "CONTINUE TRACK B": the only OCC successor; Binance USD-M 2025-26; the OCC line ends after this unit unless reopened`
+`EXPOSURE_AUDIT = OCC_MEAN_4H -> R_1H and equivalents never read on Binance 2025-26 -> QUESTION_FRESH_REPLICATION, not pristine | adjacent: Unit B, divergence EMA168 distance, E1 CB breakouts | NEW DISCLOSURE: Cursor's unmerged parallel RP4H read on Binance 2025-26 (branch cursor/range-position-4h-binance-2025-2026-temporal-replication-v1-08d8, commit 7b55fff) also read the E1-development slice [2026-08-02, 2026-08-16) -> to be counted when merged`
+`DESIGN = frozen commit 39e84dfc | SHA256 6878c6e133c733a2142d494536b0e14afbe11862f7594b9b7a60c71e44184a56 | Unit B canonical surface (64 objects, E1 window + E1-development slice never requested) | PRIMARY partial | B1`
+`PREFLIGHT = census = Unit B pins (rows 179,136; holes 6,912 = 2,800 + 4,032 + 80; other 0) | N 59,672, ISO weeks 90 | 2025 35,023, 2026 24,649 | halves 29,836 / 29,836 | identity residual 2.2e-13; R2 rank(OCC) on B1 0.215 -> not redundant`
+`OUTCOMES_READ = none | GO = pending owner`
