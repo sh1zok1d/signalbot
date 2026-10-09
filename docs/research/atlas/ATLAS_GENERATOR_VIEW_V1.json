@@ -91,7 +91,7 @@
    "frontier_value": 7,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 3,
+   "prior_signature_count": 4,
    "prior_signatures": [
     {
      "function": "Morphology components after impulse (F1)",
@@ -107,6 +107,11 @@
      "function": "Signed continuation after extreme impulse windows",
      "id": "H03",
      "mechanism": "Extreme impulse -> continuation vs exhaustion"
+    },
+    {
+     "function": "Pre-impulse directional state atlas",
+     "id": "PRE-IMPULSE-STATE-ATLAS-V1",
+     "mechanism": "A bounded past-only scan of path geometry, local boundary pressure, clock interaction and cross-venue timing against later signed return. One discovery pass. Not a confirmation."
     }
    ],
    "row": "PRICE_STRUCTURE.impulse"
@@ -7791,7 +7796,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "1e183270472bdb73617b399e59cf1aa9d89df32d02903127e4406dbd3d205139",
+ "SOURCES_DIGEST": "ba23098cc314745554f1b0bd732191d64aea08f99c6991e1674684f0b5eaccd5",
  "SURFACES": [
   {
    "also_cols": [

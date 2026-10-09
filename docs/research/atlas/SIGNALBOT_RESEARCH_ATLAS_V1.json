@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 1,
+    "CLOSED_ON_SURFACE": 2,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -201,7 +201,8 @@
    "units": [
     "B2-03",
     "DH1-X6",
-    "H03"
+    "H03",
+    "PRE-IMPULSE-STATE-ATLAS-V1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -10212,14 +10213,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 218,
+  "units": 219,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 2,
-   "CLOSED_ON_SURFACE": 37,
+   "CLOSED_ON_SURFACE": 38,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15579,7 +15580,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "1e183270472bdb73617b399e59cf1aa9d89df32d02903127e4406dbd3d205139",
+ "SOURCES_DIGEST": "ba23098cc314745554f1b0bd732191d64aea08f99c6991e1674684f0b5eaccd5",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15909,6 +15910,14 @@
       "period": "2020-10-01T00:00Z..2024-12-31T23:55Z",
       "rows": [
        "DERIVATIVES.funding_basis"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "PRE-IMPULSE-STATE-ATLAS-V1 one bounded discovery scan of past-only path states against later signed return, 2026-10-09T13:38:33Z; further use of the already exposed window; not a confirmation; no bar open at or after 2025-01-01; no E1; open interest not read",
+      "period": "2020-01-01T08:15Z..2024-12-31T23:45Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
       ],
       "status": "CONSUMED"
      },
@@ -16417,6 +16426,14 @@
        "DERIVATIVES.funding_basis"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "PRE-IMPULSE-STATE-ATLAS-V1 used 15-minute close-to-close timing only, exact open match; further use of the already consumed OKX BTC-USDT-SWAP 5m path, not a confirmation of the level-reaction reads and not OKX spot; SHA256 b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8",
+      "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "OKX_OFFICIAL_ARCHIVES",
@@ -16891,6 +16908,14 @@
        "DERIVATIVES.funding_basis"
       ],
       "status": "EXPOSED"
+     },
+     {
+      "note": "PRE-IMPULSE-STATE-ATLAS-V1 used 15-minute close-to-close timing only, exact open match, holes left missing; further use of the already consumed file, not a confirmation of the level-reaction reads; SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+      "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY",
@@ -21818,6 +21843,39 @@
    "verdict": "H03_REJECTED_SPECIFIC_CLAIM",
    "what_tested": "45 WxqxH cells, both continuation and exhaustion readings",
    "why_closed": "Nearby extreme-impulse / path-morphology -> directional continuation cards have high novelty burden"
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "forbidden": "a second scan of this list; treating a shortlisted cell as confirmed or as a current probability; dropping a logged loser; tuning the near band or the speed distance after this read; opening 2025/2026 or open interest; a product line",
+   "function": "Fifteen-minute decisions. Past-only path geometry, rolling-boundary pressure, session interaction and cross-venue timing. Later signed return at several horizons. Full search ledger. Discovery only.",
+   "id": "PRE-IMPULSE-STATE-ATLAS-V1",
+   "mechanism": "A bounded past-only scan of path geometry, local boundary pressure, clock interaction and cross-venue timing against later signed return. One discovery pass. Not a confirmation.",
+   "note": "ONE DISCOVERY SCAN. Claim ceiling DISCOVERY_ONLY. Close location and lower-boundary distance are the same ratio. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "one discovery scan 2026-10-09T13:38:33Z; T from 2020-01-01T08:15:00Z through 2024-12-31T23:45:00Z; anchor N 175359; 262 ISO weeks; 496 logged cells",
+   "practical_bar": "No magnitude floor. A correlation cutoff is not an admission rule. Magnitude is an output of the logged scan.",
+   "program": "PRE_IMPULSE_STATE_ATLAS_V1",
+   "records": [
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md",
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1.md",
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1.json",
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1_LEDGER.json",
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1.png",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A successor needs a new frozen design on a tape this scan did not use for that formula. Not a rerun. Not a product change. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Pre-impulse directional state atlas",
+   "units_n": "62 series; top score about 0.058 on close location inside the trailing 4h range versus the next 1h signed return; the lower-boundary distance is the same ratio",
+   "verdict": "DISCOVERY SCAN COMPLETE (2026-10-09T13:38:33Z). Claim ceiling DISCOVERY_ONLY. Highest score is close location inside the trailing 4-hour range versus the next 1h signed return, Spearman about -0.058, same sign in every year. Lower-boundary distance is that same ratio. Upper-boundary distance is its complement. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "The one allowed scan of this frozen list was completed and the full ledger was kept. A second scan is refused. No cell is a confirmation."
   },
   {
    "col": "CANDLES",
