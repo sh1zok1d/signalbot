@@ -8999,6 +8999,23 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 design frozen before the scan
+
+**Mode.** Outcome-blind freeze of a bounded discovery atlas. `outcome_read = false`. Evidence class `HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH`. Claim ceiling `DISCOVERY_ONLY`.
+- **Question.** Which states known at `T` separate a later upward move from a later downward move and from the ordinary tape, on horizons of 1h, 4h, and 8h. `24h` is logged and not ranked.
+- **Surface.** `CORE_BTC_BINANCE_V0`. Decision times in `[2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z)`. Anchors are 15-minute closes. Dependence unit is the ISO week of `T`. No second refractory deletion.
+- **Bybit and OKX.** Already stored linear-perpetual 5-minute closes only, exact open-time match, for the 15-minute timing features. SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c` and `b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8`. Not yet read by this unit.
+- **Not in the search.** Open interest. Level-engine levels. Funding. Spot versus perpetual basis. A ranked hour main effect. `2025/2026`. E1.
+- **Flow.** Computed in the later scan and ineligible, collision `COSMETIC_NEIGHBORHOOD_H05_B205`.
+- **Score.** Absolute Spearman times year-sign consistency times week support. No correlation floor. Design SHA256 `01b7eafb7d2231388503a0c523e1443eceba7666b774ec8d0c1dc5fb055c3a5b`.
+- **Not computed.** Features, returns, Spearman, quintiles, bootstrap. Seed `20261116` is reserved and not spent.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no; STATUS = DESIGN_FROZEN
+OBJECTS_2025_2026_USED = none; E1 = not touched; OI = not opened; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — FUNDING_TAIL_RISK_OKX_REPLICATION_V1 one historical read
 
 **Mode.** One official outcome read after the frozen design. `outcome_read = true`. Evidence class `CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED`. Label `CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN`. Read `2026-10-09T12:30:31Z`. Design commit `0f2c2c6d0e3ea783fcc6ee5de456bb8c8e512c65`. Evaluator digest `6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9`. A second run returns `REFUSING_RERUN`.

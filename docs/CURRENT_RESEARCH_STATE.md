@@ -1,3 +1,15 @@
+## PRE_IMPULSE_STATE_ATLAS_V1 — design frozen, discovery unread — 2026-10-09
+
+`MODE = HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH | outcome_read = false | claim ceiling DISCOVERY_ONLY`
+`QUESTION = which past-only states at a 15-minute decision separate a later up move from a later down move and from the ordinary tape`
+`SURFACE = CORE_BTC_BINANCE_V0 | T in [2020-01-01T00:00:00Z, 2025-01-01T00:00:00Z) | 15-minute closes | ISO-week blocks`
+`HORIZONS = 1h, 4h, 8h ranked; 24h logged and not ranked | target = log(P[T+H]/P[T]) | no impulse cutoff`
+`NOT OPENED = the scan itself, 2025/2026, E1, open interest, level-engine levels, funding, spot/perp basis`
+`DESIGN SHA256 = 01b7eafb7d2231388503a0c523e1443eceba7666b774ec8d0c1dc5fb055c3a5b`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md`.
+
 ## FUNDING_TAIL_RISK_OKX_REPLICATION_V1 — one historical read — 2026-10-09
 
 `MODE = CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED | outcome_read = true | evidence tier unchanged | not a confirmation`

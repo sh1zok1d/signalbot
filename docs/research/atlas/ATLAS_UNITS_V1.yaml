@@ -4503,3 +4503,26 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'CHARACTERIZED ONCE. Label CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN. Raw interval above 0. Partial interval includes 0. Not a confirmation. Evaluator 0f2c2c6d. Rerun REFUSING_RERUN. Publication clock remains unproven. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+
+  - id: PRE-IMPULSE-STATE-ATLAS-V1
+    title: Pre-impulse directional state atlas
+    program: PRE_IMPULSE_STATE_ATLAS_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: 'design frozen 2026-10-09; discovery unread; decision times before 2025-01-01'
+    units_n: 'feature list frozen; analysis N not yet formed'
+    practical_bar: 'No magnitude floor. A correlation cutoff is not an admission rule. Magnitude is an output of the logged scan.'
+    mechanism: 'A bounded past-only scan of path geometry, local boundary pressure, clock interaction and cross-venue timing against later signed return. One discovery pass. Not a confirmation.'
+    function: 'Fifteen-minute decisions. Past-only path geometry, rolling-boundary pressure, session interaction and cross-venue timing. Later signed return at several horizons. Full search ledger. Discovery only.'
+    verdict: 'DESIGN FROZEN (2026-10-09). Discovery unread. Claim ceiling DISCOVERY_ONLY. No product line.'
+    reopen: 'The one scan of this frozen list is still allowed. After that scan the cell is closed on the surface. A successor needs a new design. Not a product change. Not 2025/2026.'
+    records:
+    - docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN FROZEN. Discovery unread. Claim ceiling DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'

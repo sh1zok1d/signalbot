@@ -187,6 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
+    "CANDIDATE_UNTESTED": 1,
     "CLOSED_ON_SURFACE": 1,
     "NO_STRUCTURE": 1
    },
@@ -201,7 +202,8 @@
    "units": [
     "B2-03",
     "DH1-X6",
-    "H03"
+    "H03",
+    "PRE-IMPULSE-STATE-ATLAS-V1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -10212,12 +10214,12 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 218,
+  "units": 219,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 2,
    "CLOSED_ON_SURFACE": 37,
    "CONFIRMED": 1,
@@ -15579,7 +15581,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "1e183270472bdb73617b399e59cf1aa9d89df32d02903127e4406dbd3d205139",
+ "SOURCES_DIGEST": "f2b40a9383b4cb9c7edfe044052b585ed48044d1ef5b1378d462f25473fa8bd6",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -21818,6 +21820,33 @@
    "verdict": "H03_REJECTED_SPECIFIC_CLAIM",
    "what_tested": "45 WxqxH cells, both continuation and exhaustion readings",
    "why_closed": "Nearby extreme-impulse / path-morphology -> directional continuation cards have high novelty burden"
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "function": "Fifteen-minute decisions. Past-only path geometry, rolling-boundary pressure, session interaction and cross-venue timing. Later signed return at several horizons. Full search ledger. Discovery only.",
+   "id": "PRE-IMPULSE-STATE-ATLAS-V1",
+   "mechanism": "A bounded past-only scan of path geometry, local boundary pressure, clock interaction and cross-venue timing against later signed return. One discovery pass. Not a confirmation.",
+   "note": "DESIGN FROZEN. Discovery unread. Claim ceiling DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "design frozen 2026-10-09; discovery unread; decision times before 2025-01-01",
+   "practical_bar": "No magnitude floor. A correlation cutoff is not an admission rule. Magnitude is an output of the logged scan.",
+   "program": "PRE_IMPULSE_STATE_ATLAS_V1",
+   "records": [
+    "docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "The one scan of this frozen list is still allowed. After that scan the cell is closed on the surface. A successor needs a new design. Not a product change. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "Pre-impulse directional state atlas",
+   "units_n": "feature list frozen; analysis N not yet formed",
+   "verdict": "DESIGN FROZEN (2026-10-09). Discovery unread. Claim ceiling DISCOVERY_ONLY. No product line."
   },
   {
    "col": "CANDLES",
