@@ -712,6 +712,7 @@ When adding documentation:
 - `research/P3_CONFIRMATION_V1_PREREG.md`, `research/P3_CONFIRMATION_V1_PARITY.json`, `research/P3_CONFIRMATION_V1_RESULT.{md,json}` (**P3 confirmation V1 — DH3-P3 one-shot on Binance 2025–2026: NOT_CONFIRMED, TRADING_FAIL; 2026-10-09**).
 - `research/MARKET_PHENOMENA_CATALOG_V1.md` (**owner priority FIND_DIRECTIONAL_MARKET_STATES, 2026-10-09: 41 directional market-state phenomena, collision audit against all prior units, top-15 research priority, first five execution units (not executed); ideation only, no outcome opened**).
 - `research/MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md` and `.json` (**independent red team of the catalog, 2026-10-09: all 41 ideas audited against primary sources. SURVIVE 1, REPAIR_NEEDED 5, DEFER_DATA 2, rejected 33; 29 catalog factual errors. Its verdicts take precedence over the catalog. No outcome read**).
+- `research/RESEARCH_RULES_REVIEW_V1.md` (**PROPOSAL, not in force: review of the research rules on the owner's request, 2026-10-09 — relation-level instead of dataset-level exposure, narrower family closures, no causal gate for predictive tests, program-level multiplicity, E1 holdout decision; owner to adopt**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.
