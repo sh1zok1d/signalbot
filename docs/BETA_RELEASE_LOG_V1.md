@@ -67,6 +67,21 @@ Bybit sides are now correct (inverted before D1), and OKX rows exist (none befor
 2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked on the screens through D2's read-time correction.
 3. Block B run (or explicitly skipped) by the owner.
 
+### Step 3b — keyed pseudonyms and the Day-0 flags, commit `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2`
+
+| Field | Value |
+|---|---|
+| Step / date | 3b, cut 2026-10-08 23:29Z (main after #428). Deployed only after 3a is deployed and verified, block B done or skipped, and the pre-3b checks C1/C2 closed; deploy at **00:00 UTC**. |
+| Exact commit | `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2` |
+| Contents since 3a (`fe8ac969`) | #422 (OUT-8 de-identification scripts and doc, prepare-only), #423 (keyed HMAC-SHA-256 pseudonyms; deletion de-identifies keyed and legacy audit rows), #427 (block A/B pinned to `db381de9`), #428 (Day-0 flags). |
+| Migrations (beta / Stage-1) and restart order | No new schema. **Before anything:** `BETA_FINGERPRINT_KEY` (`openssl rand -hex 32`) into `/opt/signalbot/.env`, a copy in the owner's password manager, never in dumps or chats. Then checkout the SHA → `install_beta_units.sh` → restart `signalbot-beta-bot` → `sudo systemctl restart signalbot.service`. The bot, the notifier and every `--beta-*` command refuse to start without a valid key (CONFIG_ERROR, exit 2). Checks: `--beta-health` OK; `/admin_health` test state `NOT_OPEN`; a level touch, if one happens, reads «вошла в зону …» with the T0 race line; `/levels` shows the T15 line. |
+| Flags and values | `level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`; `model_states_enabled = false`. Unchanged: `access.tiers_enforced = false`, `access.u3_offer` empty, `briefing.withdrawal.day0_kyiv` null. |
+| Release-candidate suite on this SHA | Actions run 37859774589 (ci.yml, suite=rc, on this exact SHA): **success**, 2026-10-08 23:30–23:38Z. |
+| Known limitations | Old audit fingerprints (unkeyed) no longer match new ones; `/admin_reply` works only with fingerprints printed after 3b. The SQL audit guard checks the legacy form only; the keyed form is checked in Python before de-identification. The legacy level-touch trigger is the fallback (contract §12.1). |
+| Rollback | Checkout `fe8ac969` (3a), reinstall units, restart beta then collector; the key may stay in `.env` (3a ignores it). The flags go off with the rollback; the claim journal keeps its rows. Rolling back after the start is a dated event. |
+| Kind of change for the 7-day count | **Starts the count**: the deploy that turns on every Day-0 flag (`ORCHESTRATION_V1` §4a). Any later collector, schema, push-gating, metric-definition or journal change, or a flag turned on, restarts it. The #403 `L3_LEVEL_TOUCH_24H` cohort boundary is dated by this deploy (contract §12.3). |
+| ОПГ-2: forecast layer | ОПГ-2's 3a sign-off covers 3b: only `journal_enabled`, `display_enabled` and `push_trigger = structural` turn on; `model_states_enabled` stays false; the HIST table V1 file must be in the deployed tree (a digest mismatch loads OFF); the #419 model freeze is not needed. *One-line 3b confirmation requested from ОПГ-2.* |
+
 ## 2. Misses — defects found after merge
 
 | PR | What was missed | Found by | Check that should have caught it |
