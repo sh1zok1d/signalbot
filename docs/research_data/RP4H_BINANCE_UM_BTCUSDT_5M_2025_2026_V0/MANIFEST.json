@@ -1,0 +1,334 @@
+{
+ "DATASET_ID": "RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0",
+ "PURPOSE": "Object manifest for RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 (Unit B); pinned before any object body was downloaded",
+ "SOURCE": "https://data.binance.vision/ (USD-M futures klines BTCUSDT 5m); sha256 from each object's published .CHECKSUM",
+ "INTERVAL": "bar opens 2025-01-01T00:00:00Z .. 2026-10-08T23:55:00Z (end exclusive 2026-10-09T00:00:00Z)",
+ "OBJECTS": [
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-01.zip",
+   "sha256": "0c99422d64fa3cc58564cf77969fc5a96d6f44783c79ecfcf94b103753bf7570"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-02.zip",
+   "sha256": "fdd6fb92b75bae5c02dd583b5be44ca6673d1807ce4b0c08160d3c5cf7677a46"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-03.zip",
+   "sha256": "46f83773b9cec38a09be429727a5a300ccca6d11c8e8ca5fa9545fad6eda131f"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-04.zip",
+   "sha256": "9eda69fd858e9ced7e72cfbb75bffe34458763c37c8ee73910e572b4baba21ed"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-05.zip",
+   "sha256": "073da284f178e72777abbfbcf79faa99fcf77bd69c4a678938abbf6cd7d14f5b"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-06.zip",
+   "sha256": "da39c04e24a90c87406b9030e1aaf376655ad59d4bc0496f38e4162a9babf514"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-07.zip",
+   "sha256": "2cea4750d51d9c064d674ec8d0d8d1f39448960284272fdc74698562c873bf0f"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-08.zip",
+   "sha256": "7f78f6f88ae1946f8bd8312a37d1d74b24e24d6b13bc37d2909ad7c8c0c7e9ae"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-09.zip",
+   "sha256": "dbfb8bc2f9343107c7a702acd6919d77060a8f7ea4b25359c71e5fc018a85209"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-10.zip",
+   "sha256": "fab262ca4318f8f65164ae33a020458439adc6f7bc2e59bbfce1886118d05a48"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-11.zip",
+   "sha256": "2759d4be0fe68cc2be3d4d91940fcd95abc69f0c31f25d0b6cb5e0629c625d2d"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-12.zip",
+   "sha256": "0e923a3d2ac4f6711d8c841220f4e5d2e479c1bdb40b41515eb250e16808304f"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-01.zip",
+   "sha256": "c092f3b26036f203bb5b11c28958574aa8501315ed26dd0f8c017051b9fb3abf"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-02.zip",
+   "sha256": "8be83befce2cd9bf0959c872d91108debd03e1b51a451bac3a56b8ddca196bb4"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-03.zip",
+   "sha256": "0302ccef9b3e5e38c35bc8667a1e890138c9136e89145688220eea99b748200e"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-04.zip",
+   "sha256": "e2934467bdb6a000124948f4c8fef176e2066520a6b2e5a0522450fed51396f7"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-05.zip",
+   "sha256": "b1a73378796bb62084c32ca5865903beeaf87d521d950d5e7776343f682dea93"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-06.zip",
+   "sha256": "782c555963c852ca768335de21d5743147e5d50bff449600f8fceb9ebe5273de"
+  },
+  {
+   "key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip",
+   "sha256": "ec750f7aa69c8f842fa1464a90ad4aa92452cfa767df9e8d70dc484e466c8fc3"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-01.zip",
+   "sha256": "d07b32bbaa249ad07540bc73b808c1f45a74a36445e8512ea1f57abe22fdb49c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-02.zip",
+   "sha256": "3f850c16896eba7daf9e83b616b6df519e1149efd47b3b42624d06d8076d4b39"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-03.zip",
+   "sha256": "b5e7fab121b19840a3ccfbb62e064336fa64cc611c3ce58da171c967b495bb8c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-04.zip",
+   "sha256": "a89e2a13d7604fb55f14859071363daa7b2b754dc9a0503643ddf36d9c9bd323"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-05.zip",
+   "sha256": "bda279fb494c6534255ad23b93a2e30018aac4b2ec8a6658489130588a9eb2f6"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-06.zip",
+   "sha256": "64067df14037319d68c4a7d6bfe037b9cb632a49dfd39b0ab3eda387118cf2e2"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-07.zip",
+   "sha256": "4eecd95d52cf51335d2ab44ad5a3b085269e9340c0f160e7ad5088fbe14898fc"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-08.zip",
+   "sha256": "ba7a4e9679ba8aa565cea7cf8159c2b076f7a65766728d4b48f23d1b2514cc28"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-09.zip",
+   "sha256": "400e2f0244bdd67ac64bfde0eecd94a09b313ce01d5afedb2a51f89f35f8ed18"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-10.zip",
+   "sha256": "8184e5264d3bcda36847f79548d116590d03bbf4e85ce0b069f6a3b73ed7c14a"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-11.zip",
+   "sha256": "65b94ec61951197b77762e688afa9913d19f9e1e08c93add1d0c7f0173dd48f3"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-12.zip",
+   "sha256": "8582cebd03e59051a36e780e277a294408f4528fd868a1048df2cb762c4b61ef"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-13.zip",
+   "sha256": "54ad0f9b43fc43102dd4d95a1964d9af055eab8f3b62263af7b132c7f6fe649e"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-14.zip",
+   "sha256": "2e170fc298efc41c49c63a698b3d092beaf5212da77b81b8b631487a4a618a7c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-15.zip",
+   "sha256": "04613f05d81f97c9b1c9c156f3f8a592d4015c330baae062b8c784701877f3bc"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-26.zip",
+   "sha256": "08a0bbfdddb52ac0d99e93f25d91e94c8251ba73b5c3465a7068209a5f25b15c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-27.zip",
+   "sha256": "1ad16ed0ab6b4b7c86f35c58a4153a5a042c714873a819adb10ff4cc3da6fae2"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-28.zip",
+   "sha256": "2b3af9b3a8a5ec161724d2af10948d7b578ec5db3be1a423f985e3aed49c1911"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-29.zip",
+   "sha256": "9e50c86802628a470f20ca6dd9e7203a968a7d6b8cfb9944326fac6eae17d476"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-30.zip",
+   "sha256": "e491a57d5f5cb40bd41f73d320b15e4ef69f52ab58097d135753b4d0384ef0ef"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-31.zip",
+   "sha256": "7d056a4c6317ec0903ba027f9ae58473baca2a0f32a9e0f941f07ada166086ae"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-01.zip",
+   "sha256": "242d3a4fef81bc16e22f11e90c4b9dcc80ae14111b6735e673f62e5a89750045"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-02.zip",
+   "sha256": "4a0092a8bc19d6a00baba1c7aac6ad5203870bf1ca25d34c94fe1c8ec555c078"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-03.zip",
+   "sha256": "e23b09115f78574a94590b081bc45175b9e5809f780af631569cb1424a7e3fe1"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-04.zip",
+   "sha256": "43d2836aee770dbe669d7096485582bff1bd9ea18940388762630a0dfe334454"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-05.zip",
+   "sha256": "094cbe0432ac783c2b9655b5cb4348387884e4e44706d4fff80afa787864a598"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-06.zip",
+   "sha256": "957c11deb7ecbe902303d529c50fc77fa0a743e6f50283beadd2dbe5bdf22c42"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-07.zip",
+   "sha256": "b1b41c822c483d9ae8ad8c0f9a80e7da48c5600c496d81114d07fbdcda37f36d"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-08.zip",
+   "sha256": "6287a71b9bd62ed22547366b15c7de7712730789fa59aede1a2b2859c0d1e990"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-09.zip",
+   "sha256": "9487829c4b6fc255e875c474a30885d4da9bcb426ac0c7cbbfe1398f81fca21b"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-10.zip",
+   "sha256": "de130ce8b91024a3c8c07214e69cf6c26411c24f67bb75a7565888f32515fdb4"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-11.zip",
+   "sha256": "d9e054fd43af58c9af48ace7535ed90673d140db75c1cc3cc1240265ac2dd509"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-12.zip",
+   "sha256": "aca908c71d9491dd413ec47ba87a7543f9d06e7a1be8dcc72606071359e04ade"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-13.zip",
+   "sha256": "1d2367b148157ea87adb38e56a596af41d45d96f9faa9faf615569f98a7e990d"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-14.zip",
+   "sha256": "8b0fee08a61a8d3ffafb2cc6653cc8393a419666ed8ac558574e15f142a0875b"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-15.zip",
+   "sha256": "3cfe0ca88c38ec154dd9086b6b53a40a2d7e064e5acdd5819e6488bfe372c8b7"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-16.zip",
+   "sha256": "1c67b7b7edc70e25461cfc88ec239acbbd4875b6643603d433a32f4187a88e91"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-17.zip",
+   "sha256": "8de02da639dbc9a247e67d33f7881abb490ee9f79cd52d9c9c9f74526e7b15a0"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-18.zip",
+   "sha256": "ce1766518fa21db8f388f7c8a2aff134d80b95bcdd20427311ba3540d9329597"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-19.zip",
+   "sha256": "5a70980de40c648b0a7e666f8f7f77f2e32e26cdcc25814b005a552e6991e6de"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-20.zip",
+   "sha256": "a6b777688b23119ff641af9abd60c2e300328cfa0c7adcf6e00252c3bf2dae50"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-21.zip",
+   "sha256": "b4e5c29b8c0b1a8916b8745b9f312aca5d82818c1f9c964f29a5d3bcd3919959"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-22.zip",
+   "sha256": "bf0333cf08625c244df6164c4b5cb1fb4339e252319da7f23f505e69e87149ab"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-23.zip",
+   "sha256": "6b618db997a43be524a73a6ffddf2bc872c220b57c6549c509c62a70904a0e7c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-24.zip",
+   "sha256": "483ee86f145ba177c113a78687ab483411143eb0727fb8d28eb0b0a4775d15a7"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-25.zip",
+   "sha256": "b718d632d94f74b800433e426398bfaa6f5ae0d42018c7329e625f503d8ab5d5"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-26.zip",
+   "sha256": "e2210364f9a497dbbfa3f442c555fb63c78919d830f546203f9c26e90681275e"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-27.zip",
+   "sha256": "73ef7fb161d6424e360dad93071b2419cf4a1d4a662faaf500895fac1127050f"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-28.zip",
+   "sha256": "5c183bd20b341126dc9dd575599146a9db6b25f519311d54646262e3168f8942"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-29.zip",
+   "sha256": "37f79c4f217f41f70d45b80810e9ed47f14a8db25cc448c9f2ff4cc961fa041c"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-30.zip",
+   "sha256": "07fe062df71b841bbc022c0ecd8d0496ac53bb5099c82ab9df199ee1374b1afe"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-01.zip",
+   "sha256": "10cd0734819af381d7cd032c84ba4a9a080a57bba1f97e8e71d45a16f27b067e"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip",
+   "sha256": "2a492563746eba6c3689b90c00a081bfce3ceab86a06493e80f22c4d55e8c7ea"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-03.zip",
+   "sha256": "fccefc7f641f37118ba60b6890590da2600db284383815e157ae51f9d743f630"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-04.zip",
+   "sha256": "c97345f772ec5dd965c0d87c2b32c17a7652ba3820a8eaa99371f83c79f2e487"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-05.zip",
+   "sha256": "53154ab4fc649a2fe3bf13357fea7b3d2aede3ce47fff2f5dcbc4f6c7c1c1294"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-06.zip",
+   "sha256": "dea89e33c0ea6df7b9ccb3ff6e0a087cc2c8ebcde55b3bde4c41694399899117"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-07.zip",
+   "sha256": "2d622f67e9a9d5eba0449c01b79191877a6e4494bc4f7206c5f59d4b917858b0"
+  },
+  {
+   "key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-08.zip",
+   "sha256": "9963f007248198e8dc3d975e7d1bfe80eff702eb130babf0efc2dfe3ea8859fe"
+  }
+ ],
+ "REFUSED_BY_E1_GUARD": [
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-16.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-17.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-18.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-19.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-20.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-21.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-22.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-23.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-24.zip",
+  "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-25.zip"
+ ],
+ "E1_GUARD": "beta.history_data.url_refusal / PROTECTED_WINDOWS: [2026-08-16T00:00Z, 2026-08-25T17:20Z); an object overlapping it is refused before any request (monthly 2026-08 never planned; daily 2026-08-16..2026-08-25 refused, the 25th whole)",
+ "OBJECT_LIST_SHA256": "e7a4f7b426031a43581f3176ee21348753979178fdcfb072e3a7368a436809ed"
+}
