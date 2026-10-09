@@ -8,7 +8,7 @@
 
 The observation week starts only at the deploy the owner names after accepting the UX (`ORCHESTRATION_V1.md` §4a). Everything in the preview period is excluded from the test's metrics (`BETA_MEASUREMENT_CONTRACT_V1.md` §12.2).
 
-**Code base.** The list below is checked against `bd35820b` (main after #434) and `config/beta_v0.yaml` there. The preview flag `access.preview_owner_only` and the command `/admin_preview [type]` come from track B (#439). The deploy SHA (`<SHA>`) is filled in by ОПГ-1 after the merges.
+**Code base.** The list below is checked against `bd35820b` (main after #434) and `config/beta_v0.yaml` there. The preview flag `access.preview_owner_only` and the command `/admin_preview [type]` come from track B (#439). The deploy SHA is `45213dda2039784faf96f057feb743f17aed059e` (ОПГ-1, after the merges).
 
 ## (a) What is ON and what is OFF
 
@@ -140,7 +140,7 @@ Decided at the official start, not in the preview:
 1. `/stop` — пауза: автоматические сообщения прекращаются, бот спросит причину (кнопки). Вернуться: `/start` → «Вступить».
 2. `/delete_me` — **необратимо** удаляет тестового участника и все его данные. Только с тестового аккаунта и только в самом конце.
 
-## (c) Preview deploy steps (VPS, the owner; ОПГ-1 fills in `<SHA>`)
+## (c) Preview deploy steps (VPS, the owner; deploy SHA `45213dda`)
 Run them as the `signalbot` user from `/opt/signalbot` with the venv python, in this order:
 
 1. **Backup:** `sudo /opt/signalbot/deploy/backup.sh` and check that the new file is in `backups/`.
@@ -156,24 +156,25 @@ Run them as the `signalbot` user from `/opt/signalbot` with the venv python, in 
    sudo grep -c '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env   # must print 1
    ```
    Copy the key into the owner's password manager (`sudo grep '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env`, read it once on screen, never paste it into a chat). Never into a dump or a backup.
-3. **The preview flag:** at `<SHA>`, `config/beta_v0.yaml` carries `access.preview_owner_only: true` (#439). Check it with `grep -n preview_owner_only config/beta_v0.yaml` after the checkout.
-4. **Code:** `git fetch origin && git checkout <SHA>`. There is no new Python dependency.
+3. **The preview flag:** at `45213dda2039784faf96f057feb743f17aed059e`, `config/beta_v0.yaml` carries `access.preview_owner_only: true` (#439). Check it with `grep -n preview_owner_only config/beta_v0.yaml` after the checkout.
+4. **Code:** `git fetch origin && git checkout 45213dda2039784faf96f057feb743f17aed059e`. There is no new Python dependency.
 5. **Units:** `sudo deploy/install_beta_units.sh`. It copies the units, runs `daemon-reload` and writes `BUILD_SHA`; it enables nothing.
 6. **Beta restart:** `sudo systemctl restart signalbot-beta-bot.service`. The notifier, detector and outcome timers pick up the new code on their next run.
 7. **Health:** `.venv/bin/python main.py --beta-health --beta-json` should show `alerts: []`, or only known warm-up alerts.
-8. **Collector restart:** `sudo systemctl restart signalbot.service`.
+No collector restart: `fe8ac969..45213dda` touches no collector or Stage-1 code (ОПГ-1, verified), and a restart would leave a #368 gap.
 
 **Checks.**
 - `--beta-health` stays clean.
 - `/admin_health` shows `alerts []`, the switches, `test NOT_OPEN` and `Day 0 None`.
 - `/admin_status` shows `push effective True`, and `d7 effective False` until the owner's `/admin_d7_on` in the route.
-- `cat /opt/signalbot/BUILD_SHA` prints `<SHA>`.
-- An OKX heartbeat row arrives within a minute.
+- `cat /opt/signalbot/BUILD_SHA` prints `45213dda2039784faf96f057feb743f17aed059e`.
+- OKX heartbeat rows keep arriving (the collector is not restarted).
 - `/btc` answers. One `/admin_preview <тип>` reaches the owner, and **nothing reaches the test account** unasked.
 
 **Rollback** to `fe8ac969` (the deploy before the preview):
 1. `git checkout fe8ac969 && sudo deploy/install_beta_units.sh`.
 2. `sudo systemctl restart signalbot-beta-bot.service`.
-3. `sudo systemctl restart signalbot.service`.
+
+The rollback is beta-only: the collector is not restarted.
 
 The schema changes are additive, and the old code ignores the new tables and columns. Keep `BETA_FINGERPRINT_KEY` in `.env` (the old code ignores it). Fingerprints printed under the preview stay keyed.

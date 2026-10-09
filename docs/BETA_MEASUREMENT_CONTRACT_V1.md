@@ -351,6 +351,7 @@ Nothing else in the product changes during the test (`PRODUCT_FIRST_DECISION_V1`
 | Event | Date (UTC) | Metrics split at the date |
 |---|---|---|
 | **Preview period** `[preview deploy, official start)` (owner, 2026-10-09; `docs/BETA_PREVIEW_V1.md`) | *the preview deploy's UTC time, then the official start's, both filled in when they run* | Excluded from **every** metric of the test and from the observation week (`ORCHESTRATION_V1.md` §4a), not split. Claim-journal rows written in it are kept: the level-race line needs its rows. They are reported as the preview period and never pooled with test rows. |
+| **Preview start** (owner-confirmed): the Telegram process restarted on `45213dda`. **Not Day 0.** The preview period ends at the official-start deploy. | 2026-10-09T10:40:04Z | the start of the preview period above; nothing split |
 | Forecast layer: model states (`L3_HISTORY_BACKED` / `L3_LIVE` / `FALLBACK`) replace `HIST` | *to be announced* | every metric of the test (U1a, U1b, U2, U3 inputs) and every forecast-layer accuracy line |
 | Forecast layer: each later correction | *to be announced, one row each* | every metric of the test and the layer's accuracy lines |
 | D2: the liquidation fix (OKX / Bybit mapping, `mapping_version`) reaches production | *filled in after the deploy* | every metric in which `LIQUIDATION_STRESS`, the «вынос лонгов / шортов» lines or the liquidation votes take part |
