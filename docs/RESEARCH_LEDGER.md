@@ -8745,3 +8745,46 @@ NOT_READ = spot, BitMEX/Bybit/Binance 2020-24 outcomes, rejection/bars-since, fe
 FINDINGS_REGISTRY = not updated (owner: research records only in this step); pending owner decision
 NOTE = Cursor branch cursor/range-position-4h-bitmex-temporal-replication-v1-08d8 holds a parallel BitMEX read of the same question (same N and points; its own bootstrap code) under the same result filename as Unit A; reconcile at merge
 ```
+
+## 2026-10-09 — DIRECTIONAL_STATE_SEARCH_V2: one bounded discovery cycle on CORE 2020–24
+
+**Unit.**
+- **Design and code:** design `docs/research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md`, frozen at commit `99205a3a` (SHA256 `a361ff35fdb30cd051d7c6f6de1d4b9c70a5329f3250933963396a3d31b52c52`). Pre-outcome ledger SHA256 `5ae1a8048666f339da62b9a07703a5858a0ca76bef367d6481f6dc55de2698e6`. Code at `9d547033`, evaluator digest `2c0dbd8f…0570`. Owner instruction 2026-10-09.
+- **Result:** `DIRECTIONAL_STATE_SEARCH_V2_RESULT.json` / `.md` (sha256 `25e67a162515678cb1a89d91d3fdd8b8404346d6ea82a75b08e5bc62b0193389` / `e47fb3fdac2b24aeb33dbefad8a097051b8d6d4feacc4c565ed1a149a60de75d`); ledger after the run `637b2ac2…347d`. A second call exits `REFUSING_RERUN`.
+- **Interpretation:** `DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md`.
+
+**Read.**
+- **Surface:** CORE BTCUSDT perpetual 1m → 5m, 2020-01-01 .. 2024-12-31; 175,292 anchors (15m RP4H phase), 262 ISO weeks; session objects 1,258 NYSE days.
+- **Target:** R_1H only. **Baseline:** B0 = RP4H, RET_4H, RV_4H.
+- **Parity:** the recorded close_pos_4h → R_1H cell was reproduced exactly (N 175,356, ρ −0.057773446228651).
+
+**Inventory.** Eight families audited before outcome; six active, nine primary objects. FAILED_PROGRESS and OI_RESPONSE were blocked (owner-closed lines).
+
+**Evidence (incremental = partial Spearman given B0 + family nuisance; week-block 95 %):**
+
+| id | state | incremental | z | years |
+|---|---|---|---|---|
+| F2a | OCC_MEAN_4H | **+0.0202 [+0.0130, +0.0277]** | **+5.31** | 4/5 |
+| F6b | SESSION_HANDOFF | −0.0556 [−0.1096, −0.0023] | −1.95 | 5/5 |
+| F6a | US_OPEN_DRIVE | −0.0297 [−0.0891, +0.0294] | −0.97 | 3/5 |
+| F1b | UPFRAC_24H | +0.0058 [−0.0019, +0.0150] | +1.34 | 4/5 |
+| F1a | SPA_24H | +0.0024 [−0.0066, +0.0111] | +0.54 | 4/5 |
+| F3a | REJ_DECAY_24H | +0.0031 [−0.0176, +0.0233] | +0.29 | 3/5 |
+| F7a | FLOW_RESPONSE_CHANGE_4H | −0.0025 [−0.0102, +0.0051] | −0.63 | 3/5 |
+| F7b | SIDE_ASYM_CHANGE_4H | +0.0020 [−0.0061, +0.0105] | +0.49 | 3/5 |
+| F4a | CMD_UP_24H | +0.0005 [−0.0079, +0.0086] | +0.13 | 2/5 |
+
+- **Search bar (rules §4):** |z| ≥ 3.848 over m = 840; only F2a clears it. **TOP 3 by the frozen rule = {F2a}.**
+- **F2a:** does not modify the RP4H effect (interaction −0.0045 [−0.0111, +0.0023]).
+  - **Competing reading (not tested; outcome-blind collinearity only):** the last-hour reversal; partial(OCC, RET_1H | B0) = −0.42.
+- **Explained away by B0 + RET_24H/RV_24H:** F1a, F1b, F4a (raw −0.016 … −0.022, incremental ≈ 0).
+- **Nulls:** F3a, F7a (and its λ-level sensitivity), F7b.
+- **Session objects:** no clock separation from the placebo (F6a −0.000, F6b −0.044, both intervals include 0).
+
+```
+STATUS = DISCOVERY_ONLY (ADAPTIVE_HISTORICAL_DISCOVERY); no claim beyond L1 for F2a; no claim for the rest
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-01-01..2024-12-31 x R_1H: 27 cells (9 objects raw+incremental, 1 variant x2, 1 sensitivity, 2 placebo, 2 placebo differences, 2 stage-2 interactions)
+NOT_READ = Binance 2025/2026, OI, funding, spot, BitMEX, Bybit, books; no successor, no replication, no product
+PROPOSED (needs owner GO) = OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 on BitMEX XBTUSD 5m 2016-05..2019-12, with the B0 + RET_1H + RET_15M partial declared before the outcome
+FINDINGS_REGISTRY = not updated (owner: no product work)
+```

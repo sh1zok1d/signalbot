@@ -4259,3 +4259,31 @@ units:
     - scripts/research/rp4h_binance_2025_2026_temporal_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     note: 'Sibling RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1. Parents PRE-IMPULSE-STATE-ATLAS-V1 and RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 live on Cursor branches (pending merge).'
+  - id: DIRECTIONAL-STATE-SEARCH-V2
+    title: Bounded directional state search beyond range position
+    program: DIRECTIONAL_STATE_SEARCH_V2
+    row: PRICE_STRUCTURE.path_shape
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'one bounded discovery cycle; CORE 2020-01-01 .. 2024-12-31; 175292 anchors (15m RP4H phase), 262 ISO weeks; session objects 1258 NYSE days'
+    units_n: 'six active families, nine primary objects, one variant, one sensitivity, two placebo clocks, two stage-2 interactions (27 cells); two families blocked before outcome'
+    practical_bar: 'No magnitude floor. Search-exposure bar of rules §4 (|z| >= 3.848 over m = 840); TOP-3 rule frozen before the outcome.'
+    mechanism: 'New past-only states (signed path asymmetry, path occupancy, rejection decay, countermove decay, US open drive, session handoff, change in price response to aggressive flow) against the next 1h signed return beyond RANGE_POSITION_4H, RET_4H and RV_4H.'
+    function: 'Fifteen-minute decisions on CORE 5m; partial rank association beyond the baseline with an ISO-week block bootstrap; one shot.'
+    blind_mechanism: 'Several path-shape, occupancy, clock and flow-response states compared with the next signed return after a small price-state baseline.'
+    blind_function: 'Bounded directional state search'
+    verdict: 'DISCOVERY_ONLY. OCC_MEAN_4H incremental +0.0202 [+0.0130, +0.0277], z 5.31, 4/5 years, the only object clearing the bar (TOP 3 = {OCC_MEAN_4H}); competing last-hour reversal reading not tested. SPA_24H, UPFRAC_24H and CMD_UP_24H explained away by RET_24H/RET_4H/RP4H; REJ_DECAY_24H, FLOW_RESPONSE_CHANGE_4H and SIDE_ASYM_CHANGE_4H null; US_OPEN_DRIVE and SESSION_HANDOFF not separated from placebo clocks (SESSION_HANDOFF -0.056 below the bar). FAILED_PROGRESS and OI_RESPONSE blocked (owner-closed lines).'
+    why_closed: 'The one allowed cycle of this frozen design (commit 99205a3a, SHA a361ff35) was completed; a second run is refused (REFUSING_RERUN). The program does not expand after results.'
+    forbidden: 'a rerun; a neighbouring variant, threshold, window, horizon or control of any of the nine states on CORE; retuning OCC_MEAN_4H on CORE; reading SESSION_HANDOFF subsets; reopening FAILED_PROGRESS or OI_RESPONSE without an owner ruling; a product line'
+    reopen: 'OCC_MEAN_4H only through a separate question-fresh replication design (BitMEX 2016-19 first) with the local-path control declared before the outcome, after an owner go.'
+    records:
+    - docs/research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md
+    - docs/research/DIRECTIONAL_STATE_SEARCH_V2_LEDGER.json
+    - docs/research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.md
+    - docs/research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.json
+    - docs/research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md
+    - scripts/research/directional_state_search_v2/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    note: 'Baseline RANGE_POSITION_4H units: RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1, RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1; discovery parent PRE-IMPULSE-STATE-ATLAS-V1 on a Cursor branch (pending merge).'

@@ -978,6 +978,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
+    "CLOSED_ON_SURFACE": 1,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -990,6 +991,7 @@
    "state": "NO_STRUCTURE",
    "units": [
     "D3",
+    "DIRECTIONAL-STATE-SEARCH-V2",
     "GV0R01-C003",
     "GV0R01-C025"
    ],
@@ -10190,14 +10192,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 209,
+  "units": 210,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 32,
+   "CLOSED_ON_SURFACE": 33,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15594,7 +15596,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "2624725e0ad0328ed09c915161b4bfca2febffe42387757950dcaf2f3bcdd2c5",
+ "SOURCES_DIGEST": "a789373286f40ca06b1e98da49d2f591c12a5f10849888299774a5d01f3e68a6",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15879,6 +15881,18 @@
        "CALENDAR.month_boundary"
       ],
       "status": "EXPOSED"
+     },
+     {
+      "note": "DIRECTIONAL_STATE_SEARCH_V2 one bounded discovery cycle (2026-10-09): nine new states -> R_1H beyond RP4H/RET_4H/RV_4H at the 15m RP4H anchors (SPA_24H, UPFRAC_24H, OCC_MEAN_4H, REJ_DECAY_24H, CMD_UP_24H, US_OPEN_DRIVE, SESSION_HANDOFF, FLOW_RESPONSE_CHANGE_4H, SIDE_ASYM_CHANGE_4H); 27 cells; only OCC_MEAN_4H clears the search bar (DISCOVERY_ONLY)",
+      "period": "2020-01-01..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.path_shape",
+       "PRICE_STRUCTURE.impulse",
+       "PRICE_STRUCTURE.levels",
+       "FLOW.flow_conditional_response",
+       "CALENDAR.sessions"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "CORE_BTC_BINANCE_V0",
@@ -22633,6 +22647,39 @@
    "verdict": "NO_USEFUL_STRUCTURE",
    "what_tested": "Unsigned close-path functionals vs time-of-day-stratified null",
    "why_closed": "Nearby generic path-functional relabels (family C)"
+  },
+  {
+   "blind_function": "Bounded directional state search",
+   "blind_mechanism": "Several path-shape, occupancy, clock and flow-response states compared with the next signed return after a small price-state baseline.",
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "a rerun; a neighbouring variant, threshold, window, horizon or control of any of the nine states on CORE; retuning OCC_MEAN_4H on CORE; reading SESSION_HANDOFF subsets; reopening FAILED_PROGRESS or OI_RESPONSE without an owner ruling; a product line",
+   "function": "Fifteen-minute decisions on CORE 5m; partial rank association beyond the baseline with an ISO-week block bootstrap; one shot.",
+   "id": "DIRECTIONAL-STATE-SEARCH-V2",
+   "mechanism": "New past-only states (signed path asymmetry, path occupancy, rejection decay, countermove decay, US open drive, session handoff, change in price response to aggressive flow) against the next 1h signed return beyond RANGE_POSITION_4H, RET_4H and RV_4H.",
+   "note": "Baseline RANGE_POSITION_4H units: RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1, RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1; discovery parent PRE-IMPULSE-STATE-ATLAS-V1 on a Cursor branch (pending merge).",
+   "period": "one bounded discovery cycle; CORE 2020-01-01 .. 2024-12-31; 175292 anchors (15m RP4H phase), 262 ISO weeks; session objects 1258 NYSE days",
+   "practical_bar": "No magnitude floor. Search-exposure bar of rules §4 (|z| >= 3.848 over m = 840); TOP-3 rule frozen before the outcome.",
+   "program": "DIRECTIONAL_STATE_SEARCH_V2",
+   "records": [
+    "docs/research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md",
+    "docs/research/DIRECTIONAL_STATE_SEARCH_V2_LEDGER.json",
+    "docs/research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.md",
+    "docs/research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.json",
+    "docs/research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md",
+    "scripts/research/directional_state_search_v2/evaluate.py",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "OCC_MEAN_4H only through a separate question-fresh replication design (BitMEX 2016-19 first) with the local-path control declared before the outcome, after an owner go.",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Bounded directional state search beyond range position",
+   "units_n": "six active families, nine primary objects, one variant, one sensitivity, two placebo clocks, two stage-2 interactions (27 cells); two families blocked before outcome",
+   "verdict": "DISCOVERY_ONLY. OCC_MEAN_4H incremental +0.0202 [+0.0130, +0.0277], z 5.31, 4/5 years, the only object clearing the bar (TOP 3 = {OCC_MEAN_4H}); competing last-hour reversal reading not tested. SPA_24H, UPFRAC_24H and CMD_UP_24H explained away by RET_24H/RET_4H/RP4H; REJ_DECAY_24H, FLOW_RESPONSE_CHANGE_4H and SIDE_ASYM_CHANGE_4H null; US_OPEN_DRIVE and SESSION_HANDOFF not separated from placebo clocks (SESSION_HANDOFF -0.056 below the bar). FAILED_PROGRESS and OI_RESPONSE blocked (owner-closed lines).",
+   "why_closed": "The one allowed cycle of this frozen design (commit 99205a3a, SHA a361ff35) was completed; a second run is refused (REFUSING_RERUN). The program does not expand after results."
   },
   {
    "blocker": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",

@@ -447,5 +447,422 @@
     ]
    }
   }
+ },
+ "post_outcome": {
+  "cells_read": 27,
+  "reads": [
+   {
+    "cell": "F1a:raw",
+    "kind": "raw",
+    "object": "F1a",
+    "state": "SPA_24H",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.02236084384535267,
+    "lo": -0.030961970367145545,
+    "hi": -0.01408646143920641,
+    "z": -5.235198847185594
+   },
+   {
+    "cell": "F1a:incremental",
+    "kind": "incremental",
+    "object": "F1a",
+    "state": "SPA_24H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H",
+     "RV_24H"
+    ],
+    "point": 0.0024289412151496615,
+    "lo": -0.006616427108828867,
+    "hi": 0.011139906698636518,
+    "z": 0.5412565056002278
+   },
+   {
+    "cell": "F1b:raw",
+    "kind": "raw",
+    "object": "F1b",
+    "state": "UPFRAC_24H",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.015557236314818952,
+    "lo": -0.02357520277790866,
+    "hi": -0.006870887913451965,
+    "z": -3.657323726994164
+   },
+   {
+    "cell": "F1b:incremental",
+    "kind": "incremental",
+    "object": "F1b",
+    "state": "UPFRAC_24H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H",
+     "RV_24H"
+    ],
+    "point": 0.005831388120510576,
+    "lo": -0.0019115213445080438,
+    "hi": 0.01499242783630743,
+    "z": 1.3356371177606583
+   },
+   {
+    "cell": "F2a:raw",
+    "kind": "raw",
+    "object": "F2a",
+    "state": "OCC_MEAN_4H",
+    "target": "R_1H",
+    "controls": [],
+    "point": 0.025644115059502884,
+    "lo": 0.018546968535178152,
+    "hi": 0.03287493977165752,
+    "z": 6.9442309958411705
+   },
+   {
+    "cell": "F2a:incremental",
+    "kind": "incremental",
+    "object": "F2a",
+    "state": "OCC_MEAN_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": 0.020158649974251052,
+    "lo": 0.012984199578650586,
+    "hi": 0.02766591147029018,
+    "z": 5.313290322041844
+   },
+   {
+    "cell": "F3a:raw",
+    "kind": "raw",
+    "object": "F3a",
+    "state": "REJ_DECAY_24H",
+    "target": "R_1H",
+    "controls": [],
+    "point": 0.0012896658974972319,
+    "lo": -0.02028926296133807,
+    "hi": 0.021974204551414748,
+    "z": 0.12025377044741817
+   },
+   {
+    "cell": "F3a:incremental",
+    "kind": "incremental",
+    "object": "F3a",
+    "state": "REJ_DECAY_24H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RP_24H"
+    ],
+    "point": 0.003086776880395202,
+    "lo": -0.017603169135664495,
+    "hi": 0.023305103268847233,
+    "z": 0.2904760108743951
+   },
+   {
+    "cell": "F4a:raw",
+    "kind": "raw",
+    "object": "F4a",
+    "state": "CMD_UP_24H",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.018658428435615132,
+    "lo": -0.026337978176241623,
+    "hi": -0.011395355111508973,
+    "z": -4.834408721738213
+   },
+   {
+    "cell": "F4a:incremental",
+    "kind": "incremental",
+    "object": "F4a",
+    "state": "CMD_UP_24H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H"
+    ],
+    "point": 0.0005355621458417069,
+    "lo": -0.007942093125487468,
+    "hi": 0.008579496096872075,
+    "z": 0.1265405530640763
+   },
+   {
+    "cell": "F6a:raw",
+    "kind": "raw",
+    "object": "F6a",
+    "state": "US_OPEN_DRIVE",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.04324461089048214,
+    "lo": -0.10264780162126605,
+    "hi": 0.015819591451963336,
+    "z": -1.3792950372892956
+   },
+   {
+    "cell": "F6a:incremental",
+    "kind": "incremental",
+    "object": "F6a",
+    "state": "US_OPEN_DRIVE",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.029671601702537,
+    "lo": -0.08913658491692766,
+    "hi": 0.029442039975734923,
+    "z": -0.9688277045582178
+   },
+   {
+    "cell": "F6b:raw",
+    "kind": "raw",
+    "object": "F6b",
+    "state": "SESSION_HANDOFF",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.053526822728316464,
+    "lo": -0.109989809444144,
+    "hi": 0.002394007444099065,
+    "z": -1.8472739521832076
+   },
+   {
+    "cell": "F6b:incremental",
+    "kind": "incremental",
+    "object": "F6b",
+    "state": "SESSION_HANDOFF",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.05556790717231755,
+    "lo": -0.10964677134290254,
+    "hi": -0.0023121346376492,
+    "z": -1.9496179839188434
+   },
+   {
+    "cell": "F7a:raw",
+    "kind": "raw",
+    "object": "F7a",
+    "state": "FLOW_RESPONSE_CHANGE_4H",
+    "target": "R_1H",
+    "controls": [],
+    "point": -0.005056791833963641,
+    "lo": -0.012246218499331966,
+    "hi": 0.0021396731695492634,
+    "z": -1.3394654774111932
+   },
+   {
+    "cell": "F7a:incremental",
+    "kind": "incremental",
+    "object": "F7a",
+    "state": "FLOW_RESPONSE_CHANGE_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H"
+    ],
+    "point": -0.002495769829441165,
+    "lo": -0.01016754891476762,
+    "hi": 0.005101346339087621,
+    "z": -0.6349010888392299
+   },
+   {
+    "cell": "F7b:raw",
+    "kind": "raw",
+    "object": "F7b",
+    "state": "SIDE_ASYM_CHANGE_4H",
+    "target": "R_1H",
+    "controls": [],
+    "point": 0.003647869483202356,
+    "lo": -0.004104499240427554,
+    "hi": 0.011799713454640887,
+    "z": 0.909895505535592
+   },
+   {
+    "cell": "F7b:incremental",
+    "kind": "incremental",
+    "object": "F7b",
+    "state": "SIDE_ASYM_CHANGE_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H"
+    ],
+    "point": 0.002041548559514195,
+    "lo": -0.006103133051556168,
+    "hi": 0.01050907198106257,
+    "z": 0.48605318578942286
+   },
+   {
+    "cell": "F2a-v:raw",
+    "kind": "variant_raw",
+    "object": "F2a-v",
+    "state": "OCC_THIRDS_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": 0.0254806820646741,
+    "lo": 0.01839796601664408,
+    "hi": 0.03278100631362651,
+    "z": 6.888135828271486
+   },
+   {
+    "cell": "F2a-v:incremental",
+    "kind": "variant_incremental",
+    "object": "F2a-v",
+    "state": "OCC_THIRDS_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": 0.021161431036491454,
+    "lo": 0.013962063370845858,
+    "hi": 0.02865883126026673,
+    "z": 5.531908230511512
+   },
+   {
+    "cell": "F7a-s:incremental",
+    "kind": "sensitivity",
+    "object": "F7a-s",
+    "state": "FLOW_RESPONSE_CHANGE_4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H",
+     "LOG_LAMBDA_4H"
+    ],
+    "point": -0.0023230181804114315,
+    "lo": -0.01006086436172054,
+    "hi": 0.0051961497333160335,
+    "z": -0.5907920936103023
+   },
+   {
+    "cell": "F6a:placebo",
+    "kind": "placebo",
+    "object": "F6a",
+    "state": "US_OPEN_DRIVE@all_other_anchors",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.02929216236243837,
+    "lo": -0.034304217762828534,
+    "hi": -0.02426029442082201,
+    "z": -11.32532502615674
+   },
+   {
+    "cell": "F6a:clock_minus_placebo",
+    "kind": "placebo_difference",
+    "object": "F6a",
+    "state": "US_OPEN_DRIVE",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.0003794393400986286,
+    "lo": -0.06070957797518892,
+    "hi": 0.059726801797698716,
+    "z": -0.012250137224935956
+   },
+   {
+    "cell": "F6b:placebo",
+    "kind": "placebo",
+    "object": "F6b",
+    "state": "SESSION_HANDOFF@all_other_anchors",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.011774303511970442,
+    "lo": -0.019509865577443195,
+    "hi": -0.0038656759385644144,
+    "z": -2.917988503282285
+   },
+   {
+    "cell": "F6b:clock_minus_placebo",
+    "kind": "placebo_difference",
+    "object": "F6b",
+    "state": "SESSION_HANDOFF",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.04379360366034711,
+    "lo": -0.0986112276569987,
+    "hi": 0.00867675586724822,
+    "z": -1.540528528645594
+   },
+   {
+    "cell": "F2a:x_RP4H",
+    "kind": "interaction",
+    "object": "F2a",
+    "state": "OCC_MEAN_4H x RP4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": -0.004537689143678488,
+    "lo": -0.01114438633593464,
+    "hi": 0.002306076328279094,
+    "z": -1.3131687466971405
+   },
+   {
+    "cell": "F6b:x_RP4H",
+    "kind": "interaction",
+    "object": "F6b",
+    "state": "SESSION_HANDOFF x RP4H",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "point": 0.024862130784727765,
+    "lo": -0.031609334062886116,
+    "hi": 0.08581024731791675,
+    "z": 0.8275307109070056
+   }
+  ],
+  "m_for_bar": 840,
+  "z_bar": 3.8480790983636606,
+  "top3_by_frozen_rule": [
+   "F2a"
+  ],
+  "result_json": "docs/research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.json"
  }
 }

@@ -722,6 +722,10 @@ When adding documentation:
 - `research/RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md` (**exposure audit before freeze, 2026-10-09: one exact-class read (E1-RUN-001 development, 2026-08-02..08-16) cut at object level**).
 - `research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 6f4a5d32, Unit B: Unit A's object and estimand on Binance USD-M BTCUSDT 2025-01..2026-10-08 minus [2026-08-02, 2026-08-26); E1 window never requested**).
 - `research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED on Binance 2025-26; primary partial -0.0344 [-0.0473, -0.0217]; rerun refused**).
+- `research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 99205a3a: one bounded discovery cycle of new directional states beyond RANGE_POSITION_4H on CORE 2020-24; collision audit, inventory, method, frozen TOP-3 rule**).
+- `research/DIRECTIONAL_STATE_SEARCH_V2_LEDGER.json` (**search ledger: pre-outcome inventory and abandoned formulations, post-outcome reads (27 cells)**).
+- `research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.md` / `.json` (**RESULT, frozen evaluator output 2026-10-09; DISCOVERY_ONLY; only OCC_MEAN_4H clears the search bar; rerun refused**).
+- `research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md` (**interpretation, claim decision and the proposed OCC_MEAN_4H replication unit; not executed**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

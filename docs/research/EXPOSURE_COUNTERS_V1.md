@@ -16,7 +16,7 @@
 
 | Surface | DIRECTION | LEVEL_RES | RANGE_VOL | PATH_STRESS | ACTIVITY | OTHER |
 |---|---|---|---|---|---|---|
-| CORE Binance perp BTC 2020–24 | **≈ 813\*** (≈317 recorded units + 496 PRE_IMPULSE_STATE_ATLAS_V1 cells) | 140\* (≈1.8k counting declared material cells) | 110\* | 10 | 7\* | 4 |
+| CORE Binance perp BTC 2020–24 | **≈ 840\*** (≈317 recorded units + 496 PRE_IMPULSE_STATE_ATLAS_V1 cells + 27 DIRECTIONAL_STATE_SEARCH_V2 cells, 2026-10-09) | 140\* (≈1.8k counting declared material cells) | 110\* | 10 | 7\* | 4 |
 | Binance perp BTC 2025–26 | ≈126\* (≈72 + ≈50 E1 development, §4 correction, + 4 RANGE_POSITION_4H Unit B, 2026-10-09) | 7\* | 8\* | 1 | 0 | 1 |
 | Binance alts 2020–24 (incl. pooled ETH) | ≈67\* | 0 | 3 | 1 | 0 | 2 |
 | Binance alts 2025–26 (divergence) | ≈60\* | 0 | 0 | 1 | 0 | 1 |
@@ -39,6 +39,7 @@
 - Product analogues 3\*.
 - MARKET-01/02.
 - PRE_IMPULSE_STATE_ATLAS_V1 (Cursor branch): 496 ledger cells, features × {1h, 4h, 8h, 24h} × {raw, hour-adjusted}; 24h logged but not ranked.
+- DIRECTIONAL_STATE_SEARCH_V2 (2026-10-09): 27 cells, nine states × {raw, incremental} + variant, sensitivity, placebo clocks, stage-2 interactions; R_1H only.
 
 **Main contributors to 2025–26 × DIRECTION:**
 - divergence validation 10 and mechanism exploration ≈50 (pooled);
@@ -72,6 +73,7 @@ The family split of the 496 PRE_IMPULSE cells follows that unit's feature regist
 
 - **Promotion from discovery to question-fresh replication** needs the family-wise α 0.10 Bonferroni bound over `m_ST` plus the unit's own cells.
 - **On CORE × DIRECTION**, `m_ST` ≈ 813 → p ≤ 1.2e-4 (|t| ≳ 3.8). RANGE_POSITION_4H (week-mean t ≈ −22) clears it.
+- **After DIRECTIONAL_STATE_SEARCH_V2**, `m_ST` ≈ 840 → |z| ≳ 3.85 for the next CORE × DIRECTION unit (before its own cells).
 - **BitMEX 2016–19 had 0 DIRECTION cells before Unit A; it has 4 now.** It is still the least searched directional surface in the project. Binance 2025–26 has about 126 (§4 correction and Unit B), mostly from pooled divergence work and E1 development.
 
 ## 4. Known gaps
