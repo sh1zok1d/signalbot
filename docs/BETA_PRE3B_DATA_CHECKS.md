@@ -1,6 +1,6 @@
 # Pre-3b data checks C1, C2 — prepared, not run
 
-**Status:** `PREPARED / NOT_RUN` (2026-10-09, track A for ОПГ-1). The owner runs both blocks on the VPS **after step 3a is deployed** and before 3b. Both are read-only on production. Each prints `PASS` / `FAIL` lines; the owner sends the output to the architect.
+**Status:** `RUN_1_DONE / V2_PREPARED` (v1 2026-10-09, run once on production by the owner; v2 2026-10-09 changes C1b's matching and C2's OKX premise after run 1, see «Run 1 results»). The owner runs both blocks on the VPS **after step 3a is deployed** and before 3b. Both are read-only on production. Each prints `PASS` / `FAIL` lines; the owner sends the output to the architect.
 
 - **C1** checks the scale of OKX liquidation sizes (`ctVal`, D1).
 - **C2** checks how the beta reads the rows written before D1: the D2 read-time correction.
@@ -19,6 +19,19 @@
   - Neither block writes a table, a temporary table or a file outside its own `mktemp -d` directory, which is removed on exit.
 - **Symbol.** `BTCUSDT`, the canonical symbol stored in every row (`config/config.yaml`).
 
+## Run 1 results (production, owner, 2026-10-09)
+The full record is in `docs/BETA_RELEASE_LOG_V1.md` (step 3a, pre-3b checks). In short:
+- **C1.**
+  - `C1a_*` and `C1b_ctval` (0.01) passed.
+  - `C1b_match` failed under v1's ±1 s rule: 82 matched, 51 equal.
+  - Re-run on the exact ms plus price: 51 keys, 50 equal. The one difference is a count, not a scale. At 04:01:48.625Z, px 82455.2, REST holds two orders (0.09 and 2.94 contracts) and the database one row, `qty` 0.0294 = 2.94 × 0.01.
+  - **C1 is closed.** v2's rule below (stored ⊆ REST, multiset) passes on that data.
+- **C2.**
+  - `C2_rows_swapped`, `C2_tape_swapped`, `C2_okx_not_measured` and `C2_mark_side` passed.
+  - `C2_okx_no_rows` and `C2_window_old_only` failed. 6 OKX rows fall in the window; the first event is at 14:04:48Z.
+  - All 6 carry `mapping_version = 2` and were processed after the 14:59:21Z restart, 57–71 min after their event time.
+  - v2 drops that premise (see C2). The impact of late OKX events on the tape is in `docs/BETA_OKX_LATE_ARRIVAL_IMPACT.md`.
+
 ## C1 — OKX liquidation sizes (ctVal)
 **What it shows.**
 - **(a)** For each venue, over the rows after `2026-10-08 14:59Z`: N, then p10 / median / p90 of `qty` (BTC) and of `notional` (USD).
@@ -26,7 +39,11 @@
 - **(b)** An independent reference:
   - OKX's own REST list of recent filled BTC-USDT-SWAP liquidations;
   - `ctVal`, fetched in the same block from the instruments endpoint.
-- **(b) Matching.** Each REST order is matched to a stored OKX row by `ts` (±1 s) and `bkPx = price`; when several rows qualify, the one nearest in time is taken (never the one nearest in size). For up to 10 matched orders the block shows `sz × ctVal` beside the stored `qty`.
+- **(b) Matching (v2, after run 1).** A key is OKX's own event time, to the exact millisecond, plus the price (`bkPx`). The collector stores both as received.
+  - At each key that appears in both the REST list and the database, the stored sizes must be a sub-multiset of the REST sizes × ctVal: every stored row equals a **distinct** REST order of the same size.
+  - REST may hold more orders at a key than the database. The WS channel is a subset of liquidations.
+  - For up to 10 keys the block shows the stored sizes beside the REST sizes.
+  - **Why v1's rule was replaced.** v1 matched ±1 s and the nearest row. That paired REST-only orders with a neighbouring WS row at the same price: 82 matched, 51 equal on production.
 
 **PASS lines.**
 
@@ -36,9 +53,10 @@
 | `C1a_okx_rows` | at least one OKX row exists after D1 |
 | `C1a_okx_scale` | OKX's median notional lies between 0.1× and 10× the median of Binance's and Bybit's medians. A wrong ctVal (1 or 0.0001 instead of 0.01) gives a 100× gap. |
 | `C1b_ctval` | `ctVal` from the instruments endpoint is `0.01` |
-| `C1b_match` | at least 5 REST orders matched, and every matched `qty` equals `sz × ctVal` within 1e-9 relative |
+| `C1b_match` | at least 5 keys (exact ms + price) are shared, and at every one the stored sizes are covered by distinct REST orders of the same size (rounded to 1e-8 BTC) |
+| `INFO C1b_unkeyed` | (not judged) stored OKX rows inside the REST list's time span that have no REST order at the same ms and price |
 
-- **Not enough matches.** If fewer than 5 REST orders are found in the database, `C1b_match` prints `INCONCLUSIVE`, not PASS. Run C1 again later.
+- **Not enough matches.** If fewer than 5 keys are shared, `C1b_match` prints `INCONCLUSIVE`, not PASS. Run C1 again later.
   - OKX's WebSocket channel pushes a subset of liquidations, not all of them. Its docs say it "doesn't represent the total number of liquidations".
   - The REST list holds only the latest 100 orders.
 
@@ -98,44 +116,45 @@ liq = json.load(open(f"{work}/liq.json"))
 assert inst.get("code") == "0" and inst["data"], "instruments: unexpected answer"
 assert liq.get("code") == "0", "liquidation-orders: unexpected answer"
 ct = Decimal(inst["data"][0]["ctVal"])
-rows = [(int(d["ts"]), Decimal(d["bkPx"]), Decimal(d["sz"]), d.get("posSide") or "", d.get("side") or "")
+rows = [(int(d["ts"]), Decimal(d["bkPx"]), Decimal(d["sz"]))
         for g in liq["data"] if g.get("instId") == "BTC-USDT-SWAP" for d in g.get("details", [])]
-vals = ",".join(f"({ts},{px},{sz},'{ps}','{sd}')" for ts, px, sz, ps, sd in rows) or "(0,0,0,'','')"
+vals = ",".join(f"({ts},{px},{sz})" for ts, px, sz in rows) or "(0,0,0)"
+# keyed on OKX's own event time (exact ms, as the collector stores it) and the price; sizes compared as multisets
+cte = f"""WITH ref(ts_ms, bkpx, sz) AS (VALUES {vals}),
+r AS (SELECT ts_ms, round(bkpx, 8) AS px, round(sz * :ctval, 8) AS q, count(*) AS n_rest FROM ref GROUP BY 1, 2, 3),
+span AS (SELECT to_timestamp(min(ts_ms) / 1000.0) - interval '1 second' AS t0,
+                to_timestamp(max(ts_ms) / 1000.0) + interval '1 second' AS t1 FROM ref),
+s AS (SELECT round(extract(epoch FROM l.ts) * 1000)::bigint AS ts_ms, round(l.price::numeric, 8) AS px,
+             round(l.qty::numeric, 8) AS q, count(*) AS n_db
+      FROM liquidations l, span
+      WHERE l.exchange = 'okx' AND l.symbol = 'BTCUSDT' AND l.ts BETWEEN span.t0 AND span.t1 GROUP BY 1, 2, 3),
+sk AS (SELECT s.* FROM s WHERE EXISTS (SELECT 1 FROM r WHERE r.ts_ms = s.ts_ms AND r.px = s.px)),
+cmp AS (SELECT sk.ts_ms, sk.px, sk.q, sk.n_db, coalesce(r.n_rest, 0) AS n_rest
+        FROM sk LEFT JOIN r USING (ts_ms, px, q))"""
 print(f"\\set ctval {ct}")
 print(f"\\echo '--- C1b: ctVal from /api/v5/public/instruments = {ct}; {len(rows)} REST orders fetched'")
-print(f"""
-WITH ref(ts_ms, bkpx, sz, pos_side, side) AS (VALUES {vals}),
-m AS (
-  SELECT r.ts_ms, r.bkpx, r.sz, r.sz * :ctval AS want_qty, l.ts, l.price, l.qty, l.side AS stored_side
-  FROM ref r
-  JOIN LATERAL (
-    SELECT ts, price, qty, side FROM liquidations
-    WHERE exchange = 'okx' AND symbol = 'BTCUSDT'
-      AND ts BETWEEN to_timestamp(r.ts_ms / 1000.0) - interval '1 second'
-                 AND to_timestamp(r.ts_ms / 1000.0) + interval '1 second'
-      AND abs(price - r.bkpx) <= 1e-9 * r.bkpx
-    ORDER BY abs(extract(epoch FROM ts) * 1000 - r.ts_ms), ts LIMIT 1) l ON true)
-SELECT to_timestamp(ts_ms / 1000.0) AS rest_ts, bkpx, sz, want_qty AS sz_x_ctval, qty AS stored_qty,
-       abs(qty - want_qty) <= 1e-9 * want_qty AS equal
-FROM m ORDER BY ts_ms DESC LIMIT 10;
-WITH ref(ts_ms, bkpx, sz, pos_side, side) AS (VALUES {vals}),
-m AS (
-  SELECT r.sz * :ctval AS want_qty, l.qty
-  FROM ref r
-  JOIN LATERAL (
-    SELECT qty FROM liquidations
-    WHERE exchange = 'okx' AND symbol = 'BTCUSDT'
-      AND ts BETWEEN to_timestamp(r.ts_ms / 1000.0) - interval '1 second'
-                 AND to_timestamp(r.ts_ms / 1000.0) + interval '1 second'
-      AND abs(price - r.bkpx) <= 1e-9 * r.bkpx
-    ORDER BY abs(extract(epoch FROM ts) * 1000 - r.ts_ms), ts LIMIT 1) l ON true)
+print(f"""\\echo '--- stored OKX rows on a REST key (exact ms + price): stored qty against the REST sizes x ctVal at that key'
+{cte}
+SELECT to_timestamp(k.ts_ms / 1000.0) AS event_ts, k.px AS price,
+       (SELECT string_agg(q || CASE WHEN n_db > 1 THEN ' x' || n_db ELSE '' END, ', ' ORDER BY q) FROM cmp c
+        WHERE c.ts_ms = k.ts_ms AND c.px = k.px) AS stored_qty,
+       (SELECT string_agg(q || CASE WHEN n_rest > 1 THEN ' x' || n_rest ELSE '' END, ', ' ORDER BY q) FROM r
+        WHERE r.ts_ms = k.ts_ms AND r.px = k.px) AS rest_sz_x_ctval,
+       bool_and(k.n_db <= k.n_rest) AS covered
+FROM cmp k GROUP BY k.ts_ms, k.px ORDER BY k.ts_ms DESC LIMIT 10;
+{cte}
 SELECT CASE WHEN :ctval = 0.01 THEN 'PASS' ELSE 'FAIL' END || ' C1b_ctval: ctVal = ' || :ctval AS result
 UNION ALL
-SELECT CASE WHEN count(*) < 5 THEN 'INCONCLUSIVE'
-            WHEN bool_and(abs(qty - want_qty) <= 1e-9 * want_qty) THEN 'PASS' ELSE 'FAIL' END
-       || ' C1b_match: ' || count(*) || ' REST orders matched, '
-       || count(*) FILTER (WHERE abs(qty - want_qty) <= 1e-9 * want_qty) || ' with stored qty = sz x ctVal'
-FROM m;
+SELECT CASE WHEN count(DISTINCT (ts_ms, px)) < 5 THEN 'INCONCLUSIVE'
+            WHEN bool_and(n_db <= n_rest) THEN 'PASS' ELSE 'FAIL' END
+       || ' C1b_match: ' || count(DISTINCT (ts_ms, px)) || ' keys (exact ms + price), '
+       || coalesce(sum(n_db), 0) || ' stored rows, ' || coalesce(sum(least(n_db, n_rest)), 0)
+       || ' matched to a distinct REST order of the same size'
+FROM cmp
+UNION ALL
+SELECT 'INFO C1b_unkeyed: ' || coalesce(sum(n_db), 0)
+       || ' stored OKX rows inside the REST time span with no REST order at the same ms and price'
+FROM s WHERE NOT EXISTS (SELECT 1 FROM r WHERE r.ts_ms = s.ts_ms AND r.px = s.px);
 """)
 PY
 PROD -P pager=off < "$WORK/ref.sql"
@@ -146,7 +165,14 @@ C1
 ## C2 — rows written before D1, read through D2
 **The window.** The 24 h ending at the last 5-minute boundary before the last pre-D1 Bybit row (`mapping_version IS NULL`), and never after `2026-10-08 14:59Z`.
 - Every bucket in it holds only old Bybit rows: none is a restart bucket (`MIXED`).
-- It lies before the first OKX row and the first OKX heartbeat.
+- It ends before the first OKX heartbeat.
+- **v2 (after run 1).** The window can no longer be "before the first OKX row". On production, 6 OKX events from before the 14:59:21Z restart arrived 57–71 min late, after it. Every one carries `mapping_version = 2`.
+  - The window cannot be based on arrival time instead. `liquidations` stores the event time (`ts`) only; there is no ingest or recorded-at column (`storage/schema.sql`). The `id` order gives the order of arrival, but no time.
+  - So the «no OKX row» premise is dropped, and the test keeps what the beta must guarantee: **OKX reads None in every tape bucket of the window**.
+  - That holds for two reasons:
+    - The fixed collector's OKX rows move OKX's cutover (`first_new`, the earliest event `ts`) before the restart. The pre-restart buckets after it are then `NEW`, not `UNPROVEN`.
+    - Those buckets have no heartbeat, so liveness reads them `NO_FEED`, which is None.
+  - The late rows themselves are checked to be fixed-collector rows (`C2_okx_rows_new_only`).
 
 The block prints the window, the cutover, the first OKX heartbeat and the deployed commit.
 
@@ -165,11 +191,11 @@ The block prints the window, the cutover, the first OKX heartbeat and the deploy
 
 | Line | PASS when |
 |---|---|
-| `C2_window_old_only` | the window has Bybit rows, all with `mapping_version IS NULL`, and its end is before the first OKX heartbeat and the first OKX row |
+| `C2_window_old_only` | the window has Bybit rows, all with `mapping_version IS NULL`, and its end is at or before the first OKX heartbeat (v2: the first OKX row is no longer a bound, see below) |
 | `C2_rows_swapped` | the beta's corrected long count and notional equal the raw short ones, and vice versa |
 | `C2_tape_swapped` | in every tape bucket of the window, corrected `x:bybit:long…` equals raw `x:bybit:short…` and vice versa (none read as None). Also printed: the bucket states, all `OLD`. |
 | `C2_okx_not_measured` | no tape bucket in the window reads a number for OKX: every one is None («не измерен»), including those where the tape stored 0 |
-| `C2_okx_no_rows` | the beta's raw read returns no OKX row in the window |
+| `C2_okx_rows_new_only` | (v2, replaces `C2_okx_no_rows`) every OKX row in the window carries `mapping_version = 2`: no row was ever stored by the old collector. The number of such rows is printed. They are events from before the restart that arrived after it. |
 | `C2_mark_side` | at least 20 pre-D1 Bybit rows are matched to a mark; the corrected side agrees with the mark for ≥ 90% of them (raw ≤ 10%); post-D1 Bybit rows agree for ≥ 90%. Fewer than 20 matched gives `INCONCLUSIVE`. |
 
 ```bash
@@ -285,8 +311,12 @@ async def main():
                       for s, o in (("long", "short"), ("short", "long")))
         line(swapped and sum(v[0] for v in st.values()) > 0, "C2_rows_swapped",
              "corrected long = stored short and corrected short = stored long")
+        okx_old = await raw.fetchval("""SELECT count(*) FROM liquidations WHERE exchange='okx' AND symbol=$1
+                                        AND ts >= $2 AND ts < $3 AND mapping_version IS NULL""", cfg.symbol, W0, W1)
         okx_rows = [r for r in rows if r["exchange"] == "okx"]
-        line(not okx_rows, "C2_okx_no_rows", f"{len(okx_rows)} OKX rows read in the window")
+        line(okx_old == 0, "C2_okx_rows_new_only",
+             f"{okx_old} old-mapping OKX rows; {len(okx_rows)} OKX rows read in the window, all written by the fixed "
+             f"collector (events before the restart that arrived after it)")
 
         cut = await c.fetch_liquidation_cutover(symbol=cfg.symbol)
         calcs = [r["calculation_version"] for r in await raw.fetch(
@@ -334,7 +364,7 @@ async def main():
         mapped = await raw.fetchval("""SELECT count(*) FROM liquidations WHERE exchange='bybit' AND symbol=$1
                                        AND ts >= $2 AND ts < $3 AND mapping_version IS NOT NULL""", cfg.symbol, W0, W1)
         line(mapped == 0 and sum(v[0] for v in st.values()) > 0
-             and all(t is None or W1 <= t for t in (okx_first_row, okx_first_beat)),
+             and (okx_first_beat is None or W1 <= okx_first_beat),
              "C2_window_old_only", f"{mapped} mapped Bybit rows in the window; OKX first row {okx_first_row}, "
              f"first heartbeat {okx_first_beat}")
     finally:
@@ -358,5 +388,12 @@ C2
   - With OKX rows scaled ×100 (as if ctVal were 1), `C1a_okx_scale` (ratio 130) and `C1b_match` (0 of 8 equal) gave FAIL.
   - With the post-D1 Bybit sides swapped back, `C2_mark_side` gave FAIL (control 0.017).
   - Under `PGOPTIONS` and under the Python connection's `server_settings`, a `CREATE TABLE` / `CREATE TEMP TABLE` is refused (read-only transaction).
+- **v2 re-run (same container, same rows, plus the cases of run 1).**
+  - Six OKX rows with `mapping_version = 2` were added at event times 14:04–14:51Z, inside the C2 window.
+    - All C2 lines passed. `C2_okx_rows_new_only` printed 6 rows.
+    - The OKX bucket states were 277 `UNPROVEN` and 11 `NEW`, and all 288 read None (the `NEW` ones through liveness).
+  - The canned REST answer gained a second order at one key: same ms and price, 0.09 contracts. The database holds one row there. `C1b_match` passed, 8 keys.
+  - A stored row duplicated at a key where REST holds one order gave FAIL: 9 stored, 8 matched.
+  - One stored size ×100 gave FAIL: 7 of 8.
 - **Not tested here: the two `curl` calls to okx.com.** C1(b)'s parsing and matching ran on a canned answer of the documented shape, served by a stub `curl`.
 - **Not tested here: the TimescaleDB image itself.** The SQL uses only plain PostgreSQL.
