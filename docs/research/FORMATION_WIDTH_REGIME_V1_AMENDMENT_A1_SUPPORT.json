@@ -1,0 +1,27 @@
+{
+  "a1_analysis_sample": 1820,
+  "a1_iso_weeks": 262,
+  "amendment": "A1",
+  "code_digest": "ff5b3b45ef4156e00c60ef6e248b30018b1bab854d5f684f4bee901d0246d463",
+  "counts": {
+    "analysis_and_rv_formation": 1820,
+    "analysis_missing_rv_formation": 0,
+    "analysis_sample": 1820,
+    "calendar_days": 1827,
+    "rv_formation_complete": 1820,
+    "rv_formation_outside_analysis": 0,
+    "usable_formation": 1821
+  },
+  "design_sha256": "64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6",
+  "future_association_read": false,
+  "inclusion_rule": "original analysis sample intersect complete RV_FORMATION close span",
+  "incremental_covariate": "RV_FORMATION",
+  "information_authorizes_outcome": false,
+  "original_analysis_sample": 1820,
+  "original_iso_weeks": 262,
+  "outcome_read": false,
+  "read_at": "2026-10-09T05:08:01Z",
+  "rv_prev_role": "DESCRIPTIVE_SECONDARY_NOT_A_ROUTE_INPUT",
+  "sample_n_changed": false,
+  "unit": "FORMATION_WIDTH_REGIME_V1"
+}

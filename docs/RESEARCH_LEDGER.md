@@ -8750,3 +8750,17 @@ WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 VOLATILITY_STATE.range_forecast 2020-01-01
 OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME
 OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 amendment A1, before any outcome
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. The original design file is not rewritten.
+- **Amendment.** `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. Original design SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`.
+- **Change.** The incremental covariate is `RV_FORMATION`, the realized variation of the completed UTC midnight hour. `RV_PREV` remains descriptive secondary context and cannot set the route. No joint regression.
+- **Support.** Path presence only, `2026-10-09T05:08:01Z`. `RV_FORMATION` complete on 1820 days. Overlap with the original analysis sample 1820. ISO weeks 262. `sample_n_changed = false`.
+- **Not computed.** Future RV, future displacement, Spearman with Y, and partial Spearman with Y.
+
+```
+WINDOWS_EXPOSED = unchanged; A1 did not open a new surface and did not consume the row
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; SAMPLE_N_CHANGED = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```

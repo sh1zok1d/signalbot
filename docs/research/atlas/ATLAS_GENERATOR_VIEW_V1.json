@@ -904,7 +904,7 @@
     {
      "function": "FORMATION_WIDTH_REGIME_V1",
      "id": "FORMATION-WIDTH-REGIME-V1",
-     "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +(omitted) pp. The previous hour of volatility is the baseline. The formation hour own volatility is not a control."
+     "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +(omitted) pp. Amendment A1 asks whether width adds information beyond RV of that same hour. RV of the previous hour is descriptive context and is not the route covariate."
     },
     {
      "function": "Range/volatility corridor model (1h/4h/24h) with held-out-year coverage check and live tracking",
@@ -7760,7 +7760,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "b0a2da6d0dcfe9af727b67603b009e18f12e365b388bcc915bc0688d972ed7fa",
+ "SOURCES_DIGEST": "5d2d69c4d0df8197c62e45d15654f3fd196c36131a39b4bb6225aa0849956bca",
  "SURFACES": [
   {
    "also_cols": [
