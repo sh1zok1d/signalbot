@@ -58,7 +58,7 @@ Check them on the VPS: `/admin_health` prints `switches`, and `/admin_status` pr
 
 ## Open items for the freeze
 Decided at the official start, not in the preview:
-- **D7 «High impact» line.** It is on during the preview via `/admin_d7_on`. Whether it stays on at the official start is open; switching it on or off after the start is a display-only flag whose code is in the starting deploy (`ORCHESTRATION_V1.md` §4a).
+- **D7 «High impact» line.** It is on during the preview via `/admin_d7_on`. Whether it stays on at the official start is open, to be decided at the freeze and recorded in the release-candidate record of the starting deploy.
 
 ## (b) Маршрут проверки для владельца (по шагам)
 
