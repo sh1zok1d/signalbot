@@ -9,7 +9,7 @@ from __future__ import annotations
 import html
 import re
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 from . import select as sel
 from .phrases import EMOJI, text
@@ -20,7 +20,10 @@ SCREENS = {"btc": (1, 2, 3), "levels": (1,), "level_card": (1,), "hour": (1,), "
 MAX_CHARS = {1: 600, 2: 900, 3: 1500}
 NOTIFICATION_MAX_CHARS = 500
 CALLBACK_MAX_BYTES = 64
+NEAR_MAX = 2                                     # «🎯 Рядом» on L1: at most two levels
 NARROW_NBSP, NBSP = " ", " "
+# the keys that put a «moving» state line on L1 (the others only add context, the calendar or «Рядом»)
+_ACTIVE = ("episode", "range_extreme", "range_high", "volume_high")
 
 
 def enabled(cfg) -> bool:
@@ -54,9 +57,9 @@ def ppct(v, lang):
     return _nb(fmt_plain_pct(float(v), lang))
 
 
-def usd(v, lang):
+def usd(v, lang, signed=False):
     from beta.i18n import fmt_usd
-    return _nb(fmt_usd(float(v), lang))
+    return _nb(fmt_usd(abs(float(v)) if not signed else float(v), lang))
 
 
 def clock(iso: str) -> str:
@@ -74,122 +77,227 @@ def _e(s: str) -> str:
     return html.escape(s, quote=False)
 
 
-def _join(blocks) -> str:
-    return "\n\n".join("\n".join(_e(x) if not x.startswith("<b>") else x for x in b) for b in blocks if b)
-
-
 def _hdr(s: str) -> str:
     return f"<b>{_e(s)}</b>"
 
 
-# ---- /btc ------------------------------------------------------------------------------------------
-def _cfg_rule_values() -> dict:
-    from beta.config import BetaConfig
-    cfg = BetaConfig.load()
-    c = cfg.section("context")
-    days = int(str(cfg["percentile_window"]).rstrip("d"))
-    return {"high": round((1 - c["label_high"]) * 100), "extreme": round((1 - c["label_extreme"]) * 100), "days": days}
+def _join(blocks) -> str:
+    """Blocks separated by one blank line; a block's first line is its bold header when marked."""
+    out = []
+    for b in blocks:
+        if not b:
+            continue
+        out.append("\n".join(x[1:] if x.startswith("\x00") else _e(x) for x in b))
+    return "\n\n".join(out)
 
 
+def H(s: str) -> str:                      # a header line (bold), passed through _join unescaped
+    return "\x00" + _hdr(s)
+
+
+def _sentence(fragments) -> str:
+    s = ", ".join(fragments)
+    return s[:1].upper() + s[1:] + "."
+
+
+# ---- shared pieces -------------------------------------------------------------------------------
 def _event_name(kind: str, lang: str) -> str:
-    return {"CPI": "CPI", "FOMC": "FOMC"}.get(kind, kind) if lang == "en" else \
-        {"CPI": "CPI (инфляция США)", "FOMC": "решение ФРС"}.get(kind, kind)
+    return text({"CPI": "ev_cpi", "FOMC": "ev_fomc"}[kind], lang) if kind in ("CPI", "FOMC") else kind
 
 
-def _l1_line(key: str, f, lang: str) -> str:
-    if key == "episode":
-        from beta.formatter import plain_name
-        return text("l1_episode", lang, name=plain_name(f["episode"]["event_type"], lang))
-    if key == "level_at":
+def _side(z: Mapping[str, Any], f: Mapping[str, Any]) -> int:
+    lv = f.get("levels") or {}
+    if any(z is a for a in lv.get("above") or ()):
+        return 1
+    if any(z is b for b in lv.get("below") or ()):
+        return -1
+    p = f.get("price")
+    mid = (float(z["low"]) + float(z["high"])) / 2.0 if z.get("low") is not None else float(z["edge"])
+    return 1 if p is None or mid >= p else -1
+
+
+def _level_line(key: str, z: Mapping[str, Any], f, lang: str) -> str:
+    return text(key, lang, arrow="↑" if _side(z, f) > 0 else "↓", name=level_name(z["members"][0], lang),
+                edge=price(z["edge"], lang), dist=spct(float(z["distance_pct"]), lang))
+
+
+def _nearest(f, n: int) -> list:
+    """The level at the price first, then the nearest above and the nearest below, at most n."""
+    lv = f.get("levels") or {}
+    out = [lv["at"]] if lv.get("at") else []
+    for side in ("above", "below"):
+        zs = [z for z in lv.get(side) or () if z and z.get("distance_pct") is not None]
+        if zs:
+            out.append(min(zs, key=lambda z: abs(float(z["distance_pct"]))))
+    return out[:n]
+
+
+def _labels_known(f) -> bool:
+    return sel._label(f, "range_width_pct_median") is not None and sel._label(f, "volume_notional_usd_sum") is not None
+
+
+# ---- /btc L1 -------------------------------------------------------------------------------------
+def _l1_header(f, lang: str) -> str:
+    when = clock(f["data_through"]) if f.get("data_through") else "—"
+    if f.get("price") is not None:
+        return text("hdr_btc", lang, price=price(f["price"], lang), clock=when)
+    return text("hdr_btc_na", lang, clock=when)
+
+
+def _state_lines(keys, f, lang: str) -> list:
+    """The state line (with its number) and one context sentence, from facts only."""
+    h1 = f.get("h1") or {}
+    pct = h1.get("price_move_pct")
+    if "stale" in keys:
+        return [text("st_stale", lang)]
+    active = [k for k in keys if k in _ACTIVE]
+    if active:
+        emoji = "⚡" if ("episode" in keys or "range_extreme" in keys) or pct is None else ("📈" if pct >= 0 else "📉")
+        lines = [text("st_move", lang, emoji=emoji, pct=spct(pct, lang)) if pct is not None else text("nt_hour_any", lang)]
+        frag = []
+        if "episode" in keys:
+            from beta.formatter import plain_name
+            frag.append(text("cx_episode", lang, name=plain_name(f["episode"]["event_type"], lang)))
+        for k in ("range_extreme", "range_high", "volume_high", "corridor_edge"):
+            if k in keys:
+                frag.append(text("cx_" + k, lang))
+        if frag:
+            lines.append(_sentence(frag))
+        return lines
+    if "level_at" in keys:
         z = f["levels"]["at"]
-        return text("l1_level_at", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang))
-    if key == "event_today":
-        e = sel.next_event(f)
-        return text("l1_event_today", lang, clock=clock(e["at"]), event=_event_name(e["kind"], lang))
-    return text({"range_extreme": "l1_range_extreme", "range_high": "l1_range_high", "volume_high": "l1_volume_high",
-                 "corridor_edge": "l1_corridor_edge", "stale": "l1_stale", "nothing": "l1_nothing"}[key], lang)
+        lines = [text("st_level", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang))]
+    elif keys == ["nothing"]:
+        if pct is None:
+            return [text("st_calm_noprice", lang)]
+        return [text("st_calm" if _labels_known(f) else "st_calm_short", lang, pct=spct(pct, lang))]
+    else:
+        lines = [text("st_quiet", lang, pct=spct(pct, lang))] if pct is not None else [text("st_calm_noprice", lang)]
+    if "corridor_edge" in keys:
+        lines.append(_sentence([text("cx_corridor_edge", lang)]))
+    return lines
 
 
-def _l2_line(key: str, f, lang: str) -> str:
-    rv = _cfg_rule_values()
-    if key == "level_at":
-        return text("l2_level_at", lang, name=level_name(f["levels"]["at"]["members"][0], lang))
-    if key == "range_high":
-        return text("l2_range", lang, top=rv["high"], days=rv["days"])
-    if key == "range_extreme":
-        return text("l2_range_extreme", lang, top=rv["extreme"], days=rv["days"])
-    if key == "volume_high":
-        return text("l2_volume", lang, top=rv["high"], days=rv["days"])
-    if key == "corridor_edge":
-        return text("l2_corridor_edge", lang, cov=round(float(f.get("corridor_coverage") or 0) * 100))
-    return text({"stale": "l2_stale", "episode": "l2_episode", "event_today": "l2_event", "nothing": "l2_nothing"}[key],
-                lang)
+def _btc_l1(f, lang: str) -> str:
+    keys = sel.salient(f)
+    blocks = [[H(_l1_header(f, lang))], _state_lines(keys, f, lang)]
+    near = _nearest(f, NEAR_MAX)
+    if near:
+        blocks.append([H(text("near_hdr", lang))] + [_level_line("near_line", z, f, lang) for z in near])
+    ev = sel.next_event(f) if "stale" not in keys else None
+    if ev:
+        blocks.append([text("ev_today", lang, clock=clock(ev["at"]), event=_event_name(ev["kind"], lang))])
+    return _join(blocks)
 
 
-def _btc_header(f, lang: str) -> list:
-    head = text("hdr_btc", lang, price=price(f["price"], lang)) if f.get("price") is not None else text("hdr_btc_na", lang)
-    out = [_hdr(head)]
-    if f.get("data_through"):
-        out.append(text("asof", lang, clock=clock(f["data_through"])))
+# ---- /btc L2 -------------------------------------------------------------------------------------
+def _now_lines(keys, f, lang: str) -> list:
+    out = []
+    for k in keys:
+        if k == "stale":
+            out.append(text("now_stale", lang))
+        elif k == "episode":
+            from beta.formatter import plain_name
+            name = plain_name(f["episode"]["event_type"], lang)
+            out.append(text("now_episode", lang, name=name if lang == "ru" else name[:1].upper() + name[1:]))
+        elif k == "level_at":
+            z = f["levels"]["at"]
+            out.append(text("now_level_at", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang)))
+        elif k in ("range_extreme", "range_high", "volume_high", "corridor_edge"):
+            out.append(text("now_" + k, lang))
+        elif k == "event_today":
+            e = sel.next_event(f)
+            out.append(text("now_event", lang, clock=clock(e["at"]), event=_event_name(e["kind"], lang)))
+        elif k == "nothing":
+            out.append(text("now_calm" if _labels_known(f) else "now_calm_young", lang))
     return out
 
 
-def _btc_l3(f, lang: str) -> list:
-    h1, h24, out = f.get("h1") or {}, f.get("h24") or {}, []
-    if h1.get("price_move_pct") is not None:
-        out.append(text("l3_price_1h", lang, pct=spct(h1["price_move_pct"], lang)))
+def _hist_verdict(z, f, lang: str) -> Optional[str]:
+    hist = z.get("history") or {}
+    verdict = (hist.get("verdicts") or {}).get("1h")
+    if not verdict:
+        return None
+    name = level_name(z["members"][0], lang)
+    side = text("side_above" if _side(z, f) > 0 else "side_below", lang)
+    if verdict == "insufficient":
+        return text("hist_few", lang, name=name)
+    if verdict == "as_usual":
+        return text("hist_same", lang, name=name, side=side)
+    real = ((hist.get("real") or {}).get("1h") or {}).get("hold_rate")
+    ctrl = ((hist.get("control") or {}).get("1h") or {}).get("hold_rate")
+    if real is None or ctrl is None or real == ctrl:
+        return None
+    return text("hist_more" if real > ctrl else "hist_less", lang, name=name, side=side)
+
+
+def _btc_l2(f, lang: str) -> str:
+    keys = sel.salient(f)
+    blocks = [[H(text("hdr_why", lang))], [H(text("b_now", lang))] + _now_lines(keys, f, lang)]
+    hist = [x for x in (_hist_verdict(z, f, lang) for z in _nearest(f, NEAR_MAX)) if x]
+    if hist and "stale" not in keys:
+        blocks.append([H(text("b_hist", lang))] + hist)
+    if any(k in keys for k in ("episode", "range_extreme", "range_high", "volume_high", "level_at")):
+        blocks.append([H(text("b_not", lang)), text("not_forecast", lang)])
+    return _join(blocks)
+
+
+# ---- /btc L3 -------------------------------------------------------------------------------------
+def _btc_l3(f, lang: str) -> str:
+    h1, h24 = f.get("h1") or {}, f.get("h24") or {}
     base, days = h1.get("baseline_median") or {}, h1.get("baseline_days") or {}
+    g_price = []
+    if h1.get("price_move_pct") is not None:
+        g_price.append(text("l3_price_1h", lang, pct=spct(h1["price_move_pct"], lang)))
     if h1.get("range_width_pct") is not None and base.get("range_width_pct_median") is not None:
-        out.append(text("l3_range_1h", lang, val=ppct(h1["range_width_pct"], lang),
-                        base=ppct(base["range_width_pct_median"], lang), n=int(days.get("range_width_pct_median") or 0)))
-    if h1.get("volume_notional_usd") is not None and base.get("volume_notional_usd_sum") is not None:
-        out.append(text("l3_volume_1h", lang, val=usd(h1["volume_notional_usd"], lang),
-                        base=usd(base["volume_notional_usd_sum"], lang), n=int(days.get("volume_notional_usd_sum") or 0)))
-    oi = h1.get("oi_change_pct")
-    if oi:
-        out.append(text("l3_oi_down" if oi < 0 else "l3_oi_up", lang, pct=spct(oi, lang)))
+        g_price.append(text("l3_range_1h", lang, val=ppct(h1["range_width_pct"], lang),
+                            base=ppct(base["range_width_pct_median"], lang),
+                            n=int(days.get("range_width_pct_median") or 0)))
     if h24.get("price_complete") and h24.get("high") is not None and h24.get("low") is not None:
-        out.append(text("l3_hilo_24h", lang, high=price(h24["high"], lang), low=price(h24["low"], lang)))
+        g_price.append(text("l3_hilo_24h", lang, high=price(h24["high"], lang), low=price(h24["low"], lang)))
     c = f.get("corridor_24h") or {}
     if c.get("lower") is not None and c.get("upper") is not None:
-        out.append(text("l3_corridor", lang, lower=price(c["lower"], lang), upper=price(c["upper"], lang)))
-    return out
+        g_price.append(text("l3_corridor", lang, lower=price(c["lower"], lang), upper=price(c["upper"], lang)))
+    g_flow = []
+    if h1.get("volume_notional_usd") is not None and base.get("volume_notional_usd_sum") is not None:
+        g_flow.append(text("l3_volume_1h", lang, val=usd(h1["volume_notional_usd"], lang),
+                           base=usd(base["volume_notional_usd_sum"], lang),
+                           n=int(days.get("volume_notional_usd_sum") or 0)))
+    oi = h1.get("oi_change_pct")
+    if oi:
+        g_flow.append(text("l3_oi_down" if oi < 0 else "l3_oi_up", lang, pct=spct(oi, lang)))
+    delta = h1.get("taker_delta_notional_usd_sum")
+    if delta:
+        g_flow.append(text("l3_buys" if delta > 0 else "l3_sells", lang, usd=usd(delta, lang)))
+    lv = f.get("levels") or {}
+    g_levels = [_level_line("l3_level", z, f, lang)
+                for z in [z for z in (lv.get("above") or ()) if z] + [z for z in (lv.get("below") or ()) if z]]
+    g_hist = []
+    from beta.decision_format import _hist_lines
+    for z in _nearest(f, NEAR_MAX):
+        for line in _hist_lines(z.get("history"), lang, _side(z, f), "levels")[:1]:
+            name = level_name(z["members"][0], lang)
+            g_hist.append(text("l3_hist", lang, name=name[:1].upper() + name[1:], line=line.lstrip("↳ ").strip()))
+    blocks = [[H(text("hdr_data", lang))], [H(text("g_price", lang))] + g_price]
+    if g_flow:
+        blocks.append([H(text("g_flow", lang))] + g_flow)
+    if g_levels:
+        blocks.append([H(text("g_levels", lang))] + g_levels)
+    if g_hist:
+        blocks.append([H(text("g_hist", lang))] + g_hist)
+    return _join(blocks)
 
 
 def _btc(level: int, lang: str, f) -> tuple:
-    keys = sel.salient(f)
     if level == 1:
-        body = [_l1_line(k, f, lang) for k in keys]
-        buttons = [[(text("btn_why", lang), callback("btc", 2)), (text("btn_data", lang), callback("btc", 3))],
-                   [(text("btn_levels", lang), callback("levels", 1))]]
-        return _join([_btc_header(f, lang), body]), buttons
+        return _btc_l1(f, lang), [[(text("btn_why", lang), callback("btc", 2)), (text("btn_data", lang), callback("btc", 3))],
+                                  [(text("btn_levels", lang), callback("levels", 1))]]
     if level == 2:
-        body = [_l2_line(k, f, lang) for k in keys]
-        return (_join([[_hdr(text("hdr_why", lang))], body]),
-                [[(text("btn_data", lang), callback("btc", 3)), (text("btn_back", lang), callback("btc", 1))]])
-    return (_join([[_hdr(text("hdr_data", lang))], _btc_l3(f, lang)]),
-            [[(text("btn_back", lang), callback("btc", 1))]])
+        return _btc_l2(f, lang), [[(text("btn_data", lang), callback("btc", 3)), (text("btn_back", lang), callback("btc", 1))]]
+    return _btc_l3(f, lang), [[(text("btn_back", lang), callback("btc", 1))]]
 
 
 # ---- levels ----------------------------------------------------------------------------------------
-def card_line(z: Mapping[str, Any], lang: str) -> str:
-    return text("lv_card", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang),
-                dist=spct(float(z["distance_pct"]), lang))
-
-
-def _levels(lang: str, f) -> tuple:
-    lv = f.get("levels") or {}
-    above, below = [z for z in lv.get("above") or () if z], [z for z in lv.get("below") or () if z]
-    blocks = [[_hdr(text("hdr_levels", lang))]]
-    if above:
-        blocks.append([text("lv_above", lang)] + ["📍 " + card_line(z, lang) for z in above])
-    if below:
-        blocks.append([text("lv_below", lang)] + ["📍 " + card_line(z, lang) for z in below])
-    if not above and not below:
-        blocks.append([text("lv_none", lang)])
-    return _join(blocks), [[(text("btn_back", lang), callback("btc", 1))]]
-
-
 def card_zone(f: Mapping[str, Any]):
     """The card's level: `zone` when given, else the view's level at the price, else the nearest level of
     either side (by |distance|); None when there is none."""
@@ -202,51 +310,77 @@ def card_zone(f: Mapping[str, Any]):
     return min(near, key=lambda z: abs(float(z["distance_pct"]))) if near else None
 
 
+def _levels(lang: str, f) -> tuple:
+    lv = f.get("levels") or {}
+    zones = [z for z in lv.get("above") or () if z] + [z for z in lv.get("below") or () if z]
+    blocks = [[H(text("hdr_levels", lang))]]
+    blocks.append([_level_line("l3_level", z, f, lang) for z in zones] or [text("lv_none", lang)])
+    return _join(blocks), [[(text("btn_back", lang), callback("btc", 1))]]
+
+
 def _level_card(lang: str, f) -> tuple:
     back = [[(text("btn_back", lang), callback("levels", 1))]]
     z = card_zone(f)
     if z is None or not z.get("members"):
-        return _join([[_hdr(text("hdr_levels", lang))], [text("lv_none", lang)]]), back
-    return (_join([[_hdr(level_name(z["members"][0], lang) + " " + price(z["edge"], lang))], [card_line(z, lang)]]),
-            back)
+        return _join([[H(text("hdr_levels", lang))], [text("lv_none", lang)]]), back
+    blocks = [[H("🎯 " + level_name(z["members"][0], lang) + " " + price(z["edge"], lang))],
+              [_level_line("l3_level", z, f, lang)]]
+    v = _hist_verdict(z, f, lang)
+    if v:
+        blocks.append([v])
+    return _join(blocks), back
 
 
-# ---- notifications ---------------------------------------------------------------------------------
+# ---- notifications: one headline with its number, one sentence, the time window ---------------------
 def _hour(lang: str, f) -> tuple:
-    span = f"{clock(f['window_start'])}–{clock(f['window_end'])}"
-    body = []
-    if (f.get("passed") or {}).get("range"):
-        body.append(text("nt_hour_range", lang))
-    if (f.get("passed") or {}).get("volume"):
-        body.append(text("nt_hour_volume", lang))
-    if f.get("price_move_pct") is not None:
-        body.append(text("nt_hour_price", lang, pct=spct(f["price_move_pct"], lang)))
-    return _join([[_hdr("🕐 " + text("nt_hour", lang, span=span))], body]), [[(text("btn_why", lang), callback("btc", 2))]]
+    pct = f.get("price_move_pct")
+    head = (text("nt_hour", lang, emoji="📈" if pct >= 0 else "📉", pct=spct(pct, lang)) if pct is not None
+            else text("nt_hour_any", lang))
+    frag = [text(k, lang) for k, on in (("cx_range_high", (f.get("passed") or {}).get("range")),
+                                         ("cx_volume_high", (f.get("passed") or {}).get("volume"))) if on]
+    body = [text("nt_hour_why", lang, what=_sentence(frag)[:-1])] if frag else []
+    window = [text("nt_window", lang, start=clock(f["window_start"]), end=clock(f["window_end"]))]
+    return _join([[H(head)], body + window]), [[(text("btn_why", lang), callback("btc", 2))]]
 
 
 def _level_alert(lang: str, f) -> tuple:
     name = level_name(f["member"], lang)
-    return (_join([[_hdr("📍 " + text("nt_level", lang, name=name, level=price(f["level"], lang)))],
-                   [text("nt_level_price", lang, price=price(f["price"], lang), clock=clock(f["at"]))]]),
+    period = text("period_" + f["period"], lang) if f.get("period") in ("day", "week", "month") else None
+    body = [text("nt_level_why", lang, period=period, price=price(f["price"], lang))] if period else []
+    return (_join([[H(text("nt_level", lang, name=name, level=price(f["level"], lang)))],
+                   body + [text("nt_at", lang, clock=clock(f["at"]))]]),
             [[(text("btn_levels", lang), callback("levels", 1))]])
 
 
 def _move(lang: str, f) -> tuple:
-    return (_join([[_hdr("⚡ " + text("nt_move", lang, pct=spct(f["move_pct"], lang)))],
-                   [text("nt_move_span", lang, start=clock(f["start"]), end=clock(f["at"]),
-                         open=price(f["open"], lang), close=price(f["close"], lang))]]),
+    return (_join([[H(text("nt_move", lang, pct=spct(f["move_pct"], lang)))],
+                   [text("nt_move_why", lang, open=price(f["open"], lang), close=price(f["close"], lang)),
+                    text("nt_window", lang, start=clock(f["start"]), end=clock(f["at"]))]]),
             [[(text("btn_levels", lang), callback("levels", 1))]])
 
 
 def _brief(lang: str, f) -> tuple:
     hours = int(f.get("window_hours") or 8)
     w = f.get("window") or {}
-    first = []
-    if w.get("price_move_pct") is not None and w.get("low") is not None and w.get("high") is not None:
-        first.append(text("nt_brief_move", lang, hours=hours, pct=spct(w["price_move_pct"], lang),
-                          low=price(w["low"], lang), high=price(w["high"], lang)))
-    body = [_l1_line(k, f, lang) for k in sel.salient(f)]
-    return (_join([[_hdr("☀️ " + text("nt_brief", lang, hours=hours))], first, body]),
+    pct = w.get("price_move_pct")
+    head = text("nt_brief", lang, hours=hours, pct=spct(pct, lang)) if pct is not None else \
+        text("nt_brief", lang, hours=hours, pct="—")
+    keys = sel.salient(f)
+    frag = []
+    if "episode" in keys:
+        from beta.formatter import plain_name
+        frag.append(text("cx_episode", lang, name=plain_name(f["episode"]["event_type"], lang)))
+    frag += [text("cx_" + k, lang) for k in ("range_extreme", "range_high", "volume_high", "corridor_edge") if k in keys]
+    body = [_sentence(frag)] if frag else []
+    if w.get("low") is not None and w.get("high") is not None:
+        body.append(text("nt_brief_range", lang, low=price(w["low"], lang), high=price(w["high"], lang)))
+    if w.get("window_start") and w.get("window_end"):
+        body.append(text("nt_window", lang, start=clock(w["window_start"]), end=clock(w["window_end"])))
+    else:
+        body = [text("nt_brief_none", lang)] + body
+        if f.get("data_through"):
+            body.append(text("nt_at", lang, clock=clock(f["data_through"])))
+    return (_join([[H(head)], body]),
             [[(text("btn_why", lang), callback("btc", 2)), (text("btn_levels", lang), callback("levels", 1))]])
 
 
@@ -272,4 +406,3 @@ def max_chars(screen: str, level: int) -> int:
 
 def used_emoji(html_text: str) -> set:
     return {e for e in EMOJI if e in html_text}
-
