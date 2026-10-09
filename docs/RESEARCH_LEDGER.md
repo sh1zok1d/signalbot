@@ -8675,3 +8675,33 @@ CATALOG / RED TEAM OUTCOMES = none
 `UNIT_A = RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 | design SHA256 d9caaadd27da6e54f6f47fe372b4439cf0d208825dd61936af9688c77a88f2ad | commit 52734bfb | parent Bybit successor 8132f181 kept exactly | primary partial Spearman(RP4H, R_1H | RET_4H, RV_4H)`
 `PREFLIGHT = series SHA 8e027433... ok | 382,033 rows | holes 288 = the documented 2016-12-06T23:55..2016-12-07T23:50 gap | 22,728 zero-trade buckets kept as bars (canonical) | no price statistic computed`
 `OUTCOMES_READ = none | GO = pending owner`
+
+## 2026-10-09 — RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 (Unit A) executed once: SUPPORTED
+
+**Unit.**
+- Design SHA256 `d9caaadd27da6e54f6f47fe372b4439cf0d208825dd61936af9688c77a88f2ad` (commit `52734bfb`), code `a623371c`, evaluator digest `2b55bd18…6494`. Owner GO 2026-10-09.
+- Result `docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md` / `.json` (sha256 `627f04ad…fa9f` / `5025f909…328a`). A second call exits `REFUSING_RERUN`.
+
+**Read.** BitMEX XBTUSD canonical 5m 2016-05-13 .. 2019-12-31, nothing else.
+- Grid 382,321 slots; holes 288 (the documented gap); 22,728 zero-trade bars kept.
+- Analysis N 127,303 over 191 ISO weeks.
+
+**Evidence** (week-block 95 % intervals, 2000/2000 draws):
+
+| Estimand | Point | 95 % interval | Role |
+|---|---|---|---|
+| Raw Spearman(RP4H, R_1H) | −0.0760 | −0.0841 .. −0.0683 | — |
+| **Primary** partial given RET_4H, RV_4H | **−0.0474** | **−0.0549 .. −0.0397** | route |
+| Secondary 1: partial given RET_4H only | −0.0472 | −0.0546 .. −0.0394 | not a route |
+| Secondary 2: adds RET_1H, RET_15M | −0.0106 | −0.0186 .. −0.0024 | not a route |
+
+- **Primary by year:** 2016 −0.070, 2017 −0.030, 2018 −0.046, 2019 −0.059. Halves −0.048 / −0.050.
+- **Width diagnostic:** −0.0473 (unchanged).
+- **Quintiles of RP4H (description only):** P(UP) 0.582 / 0.542 / 0.508 / 0.484 / 0.443, medians monotone. The means are not monotone.
+
+```
+ROUTE = RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication, not pristine) | flags none
+WINDOWS_CONSUMED = D2_BITMEX_PRE2020_XBTUSD 2016-05-13..2019-12-31 PRICE_STRUCTURE.impulse (RP4H -> R_1H), 4 DIRECTION cells
+NOT_READ = Binance 2025/2026, spot, Bybit/Binance 2020-24 outcomes, rejection/bars-since, fees | Unit B not started
+FINDINGS_REGISTRY = not updated (owner: no product work in this step); pending owner decision
+```

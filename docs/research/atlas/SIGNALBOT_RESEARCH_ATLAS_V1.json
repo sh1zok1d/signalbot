@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 1,
+    "CLOSED_ON_SURFACE": 2,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -201,7 +201,8 @@
    "units": [
     "B2-03",
     "DH1-X6",
-    "H03"
+    "H03",
+    "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -10188,14 +10189,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 207,
+  "units": 208,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 30,
+   "CLOSED_ON_SURFACE": 31,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15592,7 +15593,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "81200a645dad0321870a9393042894eedc9a00abc4f25a15cdc743e6e0faa9f5",
+ "SOURCES_DIGEST": "9bcced0e8c7e9998ca01e119fef35aeb3883058206f3eaccaf5ca228f34392be",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15987,6 +15988,14 @@
        "EVENTS"
       ],
       "status": "EXPOSED"
+     },
+     {
+      "note": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 one-shot (2026-10-09): RP4H -> R_1H after RET_4H, RV_4H; four cells (raw, primary, two secondaries); route SUPPORTED",
+      "period": "2016-05-13..2019-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "D2_BITMEX_PRE2020_XBTUSD",
@@ -21624,6 +21633,37 @@
    "verdict": "H03_REJECTED_SPECIFIC_CLAIM",
    "what_tested": "45 WxqxH cells, both continuation and exhaustion readings",
    "why_closed": "Nearby extreme-impulse / path-morphology -> directional continuation cards have high novelty burden"
+  },
+  {
+   "blind_function": "Range location temporal replication",
+   "blind_mechanism": "Decision close location inside the trailing high-low window, compared with the next signed return after a small recent-price state, on an earlier epoch.",
+   "col": "CANDLES",
+   "datasets": [
+    "D2_BITMEX_PRE2020_XBTUSD"
+   ],
+   "forbidden": "a rerun; changing the formula, nuisance set, sample, missingness, route or bootstrap; switching the reading to a secondary; opening Binance 2025/2026 or spot inside this unit; treating the quintile table as a rule; a product line",
+   "function": "Fifteen-minute decisions on the canonical BitMEX 5m grid (zero-trade buckets are bars; one documented 288-bar gap). One frozen partial association.",
+   "id": "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
+   "mechanism": "Trailing 4h range location of the decision close against the next 1h signed return, after the 4h signed return and 4h realized volatility. Exact object and estimand of the Bybit cross-venue successor, on a time-disjoint epoch.",
+   "note": "Parents PRE-IMPULSE-STATE-ATLAS-V1 and RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 live on Cursor branches (pending merge).",
+   "period": "one BitMEX XBTUSD read; T 2016-05-13T16:00Z .. 2019-12-31T23:00Z; analysis N 127303; 191 ISO weeks",
+   "practical_bar": "No magnitude floor. Route from the raw and primary signs and whether the primary interval excludes zero.",
+   "program": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1",
+   "records": [
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.json",
+    "scripts/research/rp4h_bitmex_temporal_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "Unit B (Binance 2025-26) only after its own design review and owner go. Expected-return utility, boundary features and other successors are separate units.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Range location temporal replication on BitMEX",
+   "units_n": "one feature, one horizon, one primary control pair; two secondaries outside the route",
+   "verdict": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication, not pristine). Raw -0.0760 [-0.0841, -0.0683]; primary partial given RET_4H, RV_4H -0.0474 [-0.0549, -0.0397]; every year negative (primary 2016 -0.070, 2017 -0.030, 2018 -0.046, 2019 -0.059). Secondary local-path partial (adds RET_1H, RET_15M) -0.0106 [-0.0186, -0.0024], not a route. Not a product line. Not a fee-aware edge.",
+   "why_closed": "The one allowed read of this frozen design (SHA d9caaadd, commit 52734bfb, code a623371c) was completed; a second read is refused (REFUSING_RERUN)."
   },
   {
    "col": "CANDLES",

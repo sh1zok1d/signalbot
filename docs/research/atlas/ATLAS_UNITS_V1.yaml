@@ -4206,3 +4206,29 @@ units:
     forbidden: treating this as an untested neighbour of the closed unit it names
     records:
     - docs/research/DH3_DESIGN.md
+  - id: RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1
+    title: Range location temporal replication on BitMEX
+    program: RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: 'one BitMEX XBTUSD read; T 2016-05-13T16:00Z .. 2019-12-31T23:00Z; analysis N 127303; 191 ISO weeks'
+    units_n: 'one feature, one horizon, one primary control pair; two secondaries outside the route'
+    practical_bar: 'No magnitude floor. Route from the raw and primary signs and whether the primary interval excludes zero.'
+    mechanism: 'Trailing 4h range location of the decision close against the next 1h signed return, after the 4h signed return and 4h realized volatility. Exact object and estimand of the Bybit cross-venue successor, on a time-disjoint epoch.'
+    function: 'Fifteen-minute decisions on the canonical BitMEX 5m grid (zero-trade buckets are bars; one documented 288-bar gap). One frozen partial association.'
+    blind_mechanism: 'Decision close location inside the trailing high-low window, compared with the next signed return after a small recent-price state, on an earlier epoch.'
+    blind_function: 'Range location temporal replication'
+    verdict: 'RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication, not pristine). Raw -0.0760 [-0.0841, -0.0683]; primary partial given RET_4H, RV_4H -0.0474 [-0.0549, -0.0397]; every year negative (primary 2016 -0.070, 2017 -0.030, 2018 -0.046, 2019 -0.059). Secondary local-path partial (adds RET_1H, RET_15M) -0.0106 [-0.0186, -0.0024], not a route. Not a product line. Not a fee-aware edge.'
+    why_closed: 'The one allowed read of this frozen design (SHA d9caaadd, commit 52734bfb, code a623371c) was completed; a second read is refused (REFUSING_RERUN).'
+    forbidden: 'a rerun; changing the formula, nuisance set, sample, missingness, route or bootstrap; switching the reading to a secondary; opening Binance 2025/2026 or spot inside this unit; treating the quintile table as a rule; a product line'
+    reopen: 'Unit B (Binance 2025-26) only after its own design review and owner go. Expected-return utility, boundary features and other successors are separate units.'
+    records:
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md
+    - docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.json
+    - scripts/research/rp4h_bitmex_temporal_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    note: 'Parents PRE-IMPULSE-STATE-ATLAS-V1 and RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 live on Cursor branches (pending merge).'

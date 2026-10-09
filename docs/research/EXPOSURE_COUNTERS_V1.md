@@ -23,7 +23,7 @@
 | Live forward 2026 (E1 development, P4) | ≈50\* | 0 | 4 | 0 | 0 | 0 |
 | ETH Binance 2020–24 (ETH units) | 4\* | 0 | 2 | 0 | 0 | 1 |
 | Binance spot BTC 2020–24 | 3 | 0 | 0 | 1 | 1 | 0 |
-| **BitMEX XBTUSD 2016–19** | **0** | 1 | 1 | 1 | 0 | 1 |
+| **BitMEX XBTUSD 2016–19** | **4** (RANGE_POSITION_4H Unit A, 2026-10-09; 0 before) | 1 | 1 | 1 | 0 | 1 |
 | Bybit/OKX perp 2020–24 | 0 | 0 | 4 | 0 | 0 | 0 |
 | Binance spot BTC 2017–19 | 1 | 2 | 0 | 0 | 0 | 0 |
 | OKX spot 2022–24 | 0 | 0 | 0 | 0 | 0 | 1 |
@@ -70,7 +70,7 @@ The family split of the 496 PRE_IMPULSE cells follows that unit's feature regist
 
 - **Promotion from discovery to question-fresh replication** needs the family-wise α 0.10 Bonferroni bound over `m_ST` plus the unit's own cells.
 - **On CORE × DIRECTION**, `m_ST` ≈ 813 → p ≤ 1.2e-4 (|t| ≳ 3.8). RANGE_POSITION_4H (week-mean t ≈ −22) clears it.
-- **BitMEX 2016–19 has 0 DIRECTION cells.** It is the least searched directional surface in the project. Binance 2025–26 has about 72, mostly from pooled divergence work.
+- **BitMEX 2016–19 had 0 DIRECTION cells before Unit A; it has 4 now.** It is still the least searched directional surface in the project. Binance 2025–26 has about 72, mostly from pooled divergence work.
 
 ## 4. Known gaps
 

@@ -1,0 +1,172 @@
+{
+  "analysis_n": 127303,
+  "attenuation_by_ret": -0.02885660084237386,
+  "binance_2025_2026_read": false,
+  "bootstrap": {
+    "primary": {
+      "draws": 2000,
+      "hi": -0.03966393364237833,
+      "lo": -0.05489761509131873,
+      "valid": 2000
+    },
+    "raw": {
+      "draws": 2000,
+      "hi": -0.06830361738599743,
+      "lo": -0.08412778440298724,
+      "valid": 2000
+    },
+    "secondary_local": {
+      "draws": 2000,
+      "hi": -0.002443693717692334,
+      "lo": -0.018596784471191837,
+      "valid": 2000
+    },
+    "secondary_ret4": {
+      "draws": 2000,
+      "hi": -0.03943971026143664,
+      "lo": -0.05459940191826253,
+      "valid": 2000
+    }
+  },
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261117,
+  "claim_ceiling": "HISTORICAL_ONLY",
+  "design_commit": "52734bfb",
+  "design_sha256": "d9caaadd27da6e54f6f47fe372b4439cf0d208825dd61936af9688c77a88f2ad",
+  "evaluator_digest": "2b55bd18012cf89b26a63104796fc125dffe1a209063b4e757192b22a0346494",
+  "evidence_class": "TEMPORAL_HISTORICAL_REPLICATION / ONE_SHOT",
+  "fees_computed": false,
+  "first_t": "2016-05-13T16:00:00Z",
+  "grid": {
+    "holes": 288,
+    "occupied": 382033,
+    "slots": 382321
+  },
+  "halves": {
+    "median_t_ms": 1520547300000.0,
+    "pieces": [
+      {
+        "n": 63652,
+        "piece": "first",
+        "primary": -0.04791514965219063,
+        "primary_degenerate": false,
+        "raw": -0.07805404032698986
+      },
+      {
+        "n": 63651,
+        "piece": "second",
+        "primary": -0.049751215313179345,
+        "primary_degenerate": false,
+        "raw": -0.07880349740563802
+      }
+    ]
+  },
+  "iso_weeks": 191,
+  "last_t": "2019-12-31T23:00:00Z",
+  "objects_read": [
+    "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz"
+  ],
+  "parent_design_sha256": "8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d",
+  "parent_unit": "RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1",
+  "phase_anchors": 127440,
+  "preflight_census": {
+    "first_open_ms": 1463140500000,
+    "holes": 288,
+    "last_open_ms": 1577836500000,
+    "rows": 382033,
+    "zero_trade_bars": 22728
+  },
+  "primary_degenerate": false,
+  "primary_partial": -0.04742832892681095,
+  "product_integration_candidate": false,
+  "quintiles": {
+    "bins": [
+      {
+        "bin": 1,
+        "mean_return": 0.0003503277807978311,
+        "median_return": 0.0006352375548247062,
+        "n": 25461,
+        "p_up": 0.5815561054161267
+      },
+      {
+        "bin": 2,
+        "mean_return": -4.844774511460366e-05,
+        "median_return": 0.0003655022321259188,
+        "n": 25460,
+        "p_up": 0.541555380989788
+      },
+      {
+        "bin": 3,
+        "mean_return": 2.8929223505369215e-05,
+        "median_return": 7.823195779456579e-05,
+        "n": 25461,
+        "p_up": 0.5077962373826637
+      },
+      {
+        "bin": 4,
+        "mean_return": 0.00023027505948982265,
+        "median_return": -7.60779359500964e-05,
+        "n": 25460,
+        "p_up": 0.4838570306362922
+      },
+      {
+        "bin": 5,
+        "mean_return": -0.00012918700434812078,
+        "median_return": -0.00039715636567953333,
+        "n": 25461,
+        "p_up": 0.44287341424138876
+      }
+    ],
+    "degenerate": false,
+    "edges": [
+      0.2782125876569926,
+      0.456642119988366,
+      0.6272727272727355,
+      0.7932577611255496
+    ]
+  },
+  "raw_spearman": -0.07601808851747249,
+  "route": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED",
+  "route_flags": [],
+  "secondary_local_degenerate": false,
+  "secondary_local_partial": -0.010627766244501473,
+  "secondary_ret4_matches_canonical": true,
+  "secondary_ret4_partial": -0.04716148767509863,
+  "series": "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz",
+  "series_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "share_removed_by_ret": 0.37960176854146066,
+  "spot_read": false,
+  "unit": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1",
+  "width_partial": -0.04728984349327723,
+  "width_spearman_with_rp": 0.016108210680006757,
+  "yearly": [
+    {
+      "n": 22188,
+      "piece": "2016",
+      "primary": -0.06973170461469029,
+      "primary_degenerate": false,
+      "raw": -0.11573385698390982
+    },
+    {
+      "n": 35038,
+      "piece": "2017",
+      "primary": -0.03023181552434363,
+      "primary_degenerate": false,
+      "raw": -0.062367597169094395
+    },
+    {
+      "n": 35040,
+      "piece": "2018",
+      "primary": -0.04640335979167655,
+      "primary_degenerate": false,
+      "raw": -0.08186320066362592
+    },
+    {
+      "n": 35037,
+      "piece": "2019",
+      "primary": -0.058521255347988924,
+      "primary_degenerate": false,
+      "raw": -0.07611324356547725
+    }
+  ]
+}
