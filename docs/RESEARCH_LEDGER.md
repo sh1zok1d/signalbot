@@ -8713,3 +8713,35 @@ FINDINGS_REGISTRY = not updated (owner: no product work in this step); pending o
 `OBJECTS = 64 (manifest SHA 5369e8dc...), all checksums verified | interval 2025-01-01..2026-10-09 minus [2026-08-02, 2026-08-26) | E1 window closed by the product guard`
 `PREFLIGHT = rows 179,136 | holes 6,912 (E1 window 2,800; E1-development slice 4,032; rest of the refused 25th 80; other 0) | eligible anchors 59,672 | ISO weeks 90 | 2025: 35,023, 2026: 24,649 | T 2025-01-01T04:15Z .. 2026-10-08T23:00Z`
 `DATA_READ = object bodies downloaded and hashed; timestamps and window spans only | OUTCOMES_READ = none | GO = pending owner`
+
+## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 (Unit B) executed once: SUPPORTED
+
+**Unit.**
+- Design SHA256 `b38013d06f706057ddd1232609a375509771d4f65a04451bfcf511d496ae575d` (commit `6f4a5d32`), code at `70489049`, evaluator digest `1cb514ffcda3df199095e636badaca3c4e62474c012e5376223b2f10edd8edef`. Owner GO 2026-10-09.
+- Result `docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.json` / `.md` (sha256 `ccc33bf88f9354a4ceef3e18352e22c5172ebe8f478417ccf76771b450bba7c5` / `8f370ce4dc4ade9656ac83854b37b20cc455e947444de38652f374ba1c02cd3b`). A second call exits `REFUSING_RERUN`.
+
+**Read.** The 64 pinned Binance USD-M BTCUSDT 5m objects (manifest SHA `5369e8dc…`), 2025-01-01 .. 2026-10-08, nothing else.
+- Grid 186,048 slots; bars 179,136; holes 6,912 (E1 window 2,800; E1-development slice 4,032; rest of the refused 25th 80; other 0), as pinned.
+- Analysis N 59,672 over 90 ISO weeks (as pinned); T 2025-01-01T04:15Z .. 2026-10-08T23:00Z.
+
+**Evidence** (week-block 95 % intervals, 2000/2000 draws):
+
+| Estimand | Point | 95 % interval | Role |
+|---|---|---|---|
+| Raw Spearman(RP4H, R_1H) | −0.0430 | −0.0539 .. −0.0326 | — |
+| **Primary** partial given RET_4H, RV_4H | **−0.0344** | **−0.0473 .. −0.0217** | route |
+| Secondary 1: partial given RET_4H only | −0.0342 | −0.0471 .. −0.0216 | not a route |
+| Secondary 2: adds RET_1H, RET_15M | −0.0222 | −0.0350 .. −0.0089 | not a route |
+
+- **By year (points; no per-piece interval in the design):** 2025 raw −0.029 / primary −0.033; 2026 raw −0.065 / primary −0.038. Halves (median T 2025-11-07): raw −0.028 / −0.059, primary −0.031 / −0.040.
+- **Width diagnostic:** −0.0344 (unchanged). Attenuation by RET_4H −0.0088 (share 0.20).
+- **Quintiles of RP4H (description only):** P(UP) 0.539 / 0.515 / 0.506 / 0.494 / 0.461; medians monotone (+2.9 bp … −2.5 bp); means not monotone.
+
+```
+ROUTE = RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication after the exposure cut, not pristine) | flags none
+WINDOWS_CONSUMED = BINANCE_UM BTCUSDT perp 5m 2025-01-01..2026-10-08 minus [2026-08-02, 2026-08-26), PRICE_STRUCTURE.impulse (RP4H -> R_1H), 4 DIRECTION cells
+E1 = window [2026-08-16T00:00Z, 2026-08-25T17:20Z) and the E1-development slice never requested; no daily object 2026-08-02..08-25 and no monthly 2026-08 object fetched, before or after the result
+NOT_READ = spot, BitMEX/Bybit/Binance 2020-24 outcomes, rejection/bars-since, fees, any new RANGE_POSITION variant | no forecast prototype started
+FINDINGS_REGISTRY = not updated (owner: research records only in this step); pending owner decision
+NOTE = Cursor branch cursor/range-position-4h-bitmex-temporal-replication-v1-08d8 holds a parallel BitMEX read of the same question (same N and points; its own bootstrap code) under the same result filename as Unit A; reconcile at merge
+```

@@ -1,0 +1,161 @@
+{
+  "analysis_n": 59672,
+  "attenuation_by_ret": -0.008802195354333568,
+  "bootstrap": {
+    "primary": {
+      "draws": 2000,
+      "hi": -0.02171801610138838,
+      "lo": -0.04729761259904762,
+      "valid": 2000
+    },
+    "raw": {
+      "draws": 2000,
+      "hi": -0.032644731720434285,
+      "lo": -0.05387626018281967,
+      "valid": 2000
+    },
+    "secondary_local": {
+      "draws": 2000,
+      "hi": -0.008860042547941047,
+      "lo": -0.03497658589458324,
+      "valid": 2000
+    },
+    "secondary_ret4": {
+      "draws": 2000,
+      "hi": -0.021608150564206677,
+      "lo": -0.047055773301099606,
+      "valid": 2000
+    }
+  },
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261117,
+  "claim_ceiling": "HISTORICAL_ONLY",
+  "design_commit": "6f4a5d32",
+  "design_sha256": "b38013d06f706057ddd1232609a375509771d4f65a04451bfcf511d496ae575d",
+  "e1_development_slice": "[2026-08-02, 2026-08-16) excluded before freeze by the exposure audit; never requested",
+  "e1_window": "excluded by the pre-fixed object-level rule (beta.history_data PROTECTED_WINDOWS); never requested",
+  "evaluator_digest": "1cb514ffcda3df199095e636badaca3c4e62474c012e5376223b2f10edd8edef",
+  "evidence_class": "TEMPORAL_HISTORICAL_REPLICATION / ONE_SHOT",
+  "fees_computed": false,
+  "first_t": "2025-01-01T04:15:00Z",
+  "grid": {
+    "holes": 6912,
+    "occupied": 179136,
+    "slots": 186048
+  },
+  "halves": {
+    "median_t_ms": 1762556850000.0,
+    "pieces": [
+      {
+        "n": 29836,
+        "piece": "first",
+        "primary": -0.030806423160930917,
+        "primary_degenerate": false,
+        "raw": -0.02780053693328164
+      },
+      {
+        "n": 29836,
+        "piece": "second",
+        "primary": -0.0400249965625424,
+        "primary_degenerate": false,
+        "raw": -0.059041363713637995
+      }
+    ]
+  },
+  "iso_weeks": 90,
+  "last_t": "2026-10-08T23:00:00Z",
+  "manifest": "docs/research_data/RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0/MANIFEST.json",
+  "object_list_sha256": "5369e8dc265ada989fa048fd49e8d694a2478e69916338223fe118f0dd0db621",
+  "parent_unit": "RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1",
+  "phase_anchors": 62015,
+  "preflight_census": {
+    "first_open_ms": 1735689600000,
+    "holes": 6912,
+    "holes_e1_refused_day_tail": 80,
+    "holes_in_e1_development_slice": 4032,
+    "holes_in_e1_window": 2800,
+    "holes_other": 0,
+    "holes_sha256": "7217c65f26284833eb0b95ab9d766bc16e27a70ec785df7ce44f152fcf474090",
+    "last_open_ms": 1791503700000,
+    "rows": 179136
+  },
+  "primary_degenerate": false,
+  "primary_partial": -0.034440589731547615,
+  "product_integration_candidate": false,
+  "quintiles": {
+    "bins": [
+      {
+        "bin": 1,
+        "mean_return": 1.737172197723849e-05,
+        "median_return": 0.00029061685148977544,
+        "n": 11935,
+        "p_up": 0.5389191453707582
+      },
+      {
+        "bin": 2,
+        "mean_return": 9.440297318684437e-06,
+        "median_return": 8.666364115485984e-05,
+        "n": 11934,
+        "p_up": 0.5154181330651919
+      },
+      {
+        "bin": 3,
+        "mean_return": -3.755670341771375e-05,
+        "median_return": 4.539994334978772e-05,
+        "n": 11934,
+        "p_up": 0.5060331825037707
+      },
+      {
+        "bin": 4,
+        "mean_return": 4.0279267339773676e-05,
+        "median_return": -3.575154124317131e-05,
+        "n": 11934,
+        "p_up": 0.4941344058991118
+      },
+      {
+        "bin": 5,
+        "mean_return": -0.00015167030993742142,
+        "median_return": -0.0002542732940493336,
+        "n": 11935,
+        "p_up": 0.4608294930875576
+      }
+    ],
+    "degenerate": false,
+    "edges": [
+      0.22373949237835222,
+      0.41994257445566724,
+      0.6167426504719101,
+      0.7964192403865277
+    ]
+  },
+  "raw_spearman": -0.04303527409864961,
+  "rejection_or_bars_since_read": false,
+  "route": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED",
+  "route_flags": [],
+  "secondary_local_degenerate": false,
+  "secondary_local_partial": -0.022229257977223547,
+  "secondary_ret4_matches_canonical": true,
+  "secondary_ret4_partial": -0.03423307874431604,
+  "share_removed_by_ret": 0.2045344322463551,
+  "sibling_unit": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1",
+  "spot_read": false,
+  "unit": "RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1",
+  "width_partial": -0.03442588975057417,
+  "width_spearman_with_rp": -0.005657826451736356,
+  "yearly": [
+    {
+      "n": 35023,
+      "piece": "2025",
+      "primary": -0.03326947330151814,
+      "primary_degenerate": false,
+      "raw": -0.028810664582233716
+    },
+    {
+      "n": 24649,
+      "piece": "2026",
+      "primary": -0.03841258818780811,
+      "primary_degenerate": false,
+      "raw": -0.06463370369671625
+    }
+  ]
+}

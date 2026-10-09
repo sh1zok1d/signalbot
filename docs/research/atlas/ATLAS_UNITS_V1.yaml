@@ -4232,3 +4232,30 @@ units:
     - scripts/research/rp4h_bitmex_temporal_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     note: 'Parents PRE-IMPULSE-STATE-ATLAS-V1 and RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 live on Cursor branches (pending merge).'
+  - id: RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1
+    title: Range location temporal replication on Binance 2025-26
+    program: RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    period: 'one Binance USD-M BTCUSDT perp read; T 2025-01-01T04:15Z .. 2026-10-08T23:00Z minus [2026-08-02, 2026-08-26); analysis N 59672; 90 ISO weeks'
+    units_n: 'one feature, one horizon, one primary control pair; two secondaries outside the route'
+    practical_bar: 'No magnitude floor. Route from the raw and primary signs and whether the primary interval excludes zero.'
+    mechanism: 'Trailing 4h range location of the decision close against the next 1h signed return, after the 4h signed return and 4h realized volatility. Exact object and estimand of Unit A and the Bybit cross-venue successor, on the 2025-26 epoch.'
+    function: 'Fifteen-minute decisions on 64 pinned Binance 5m objects; the E1-RUN-001 window and the E1-development slice (exact-class exposure) never requested. One frozen partial association.'
+    blind_mechanism: 'Decision close location inside the trailing high-low window, compared with the next signed return after a small recent-price state, on a later epoch.'
+    blind_function: 'Range location temporal replication'
+    verdict: 'RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication after the exposure cut, not pristine). Raw -0.0430 [-0.0539, -0.0326]; primary partial given RET_4H, RV_4H -0.0344 [-0.0473, -0.0217]; primary 2025 -0.033, 2026 -0.038; halves -0.031 / -0.040. Secondary local-path partial (adds RET_1H, RET_15M) -0.0222 [-0.0350, -0.0089], not a route. Quintile P(UP) 0.539 .. 0.461, means not monotone. Not a product line. Not a fee-aware edge.'
+    why_closed: 'The one allowed read of this frozen design (SHA b38013d0, commit 6f4a5d32, code 70489049) was completed; a second read is refused (REFUSING_RERUN).'
+    forbidden: 'a rerun; changing the formula, nuisance set, anchors, exclusions, sample, missingness, route, bootstrap, object list or quintiles; switching the reading to a secondary; opening the excluded August objects; spot, rejection or bars-since inside this unit; treating the quintile table as a rule; a product line'
+    reopen: 'Successors (a forecast prototype, expected-return utility, boundary features) are separate units with their own design and owner go. The E1 window only with a separate owner permit.'
+    records:
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.json
+    - scripts/research/rp4h_binance_2025_2026_temporal_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    note: 'Sibling RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1. Parents PRE-IMPULSE-STATE-ATLAS-V1 and RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1 live on Cursor branches (pending merge).'
