@@ -1,0 +1,40 @@
+{
+  "adequacy_rule": "eligible>=1000 and iso_weeks>=20 and the only holes are the declared 288-bar run",
+  "adequate": true,
+  "declared_gap_matches_file": true,
+  "eligible": 127303,
+  "evidence_class": "HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION",
+  "first_eligible_t": "2016-05-13T16:00:00Z",
+  "first_open": "2016-05-13T11:55:00Z",
+  "grid_slots": 382321,
+  "holes": 288,
+  "iso_weeks": 191,
+  "last_eligible_t": "2019-12-31T23:00:00Z",
+  "last_open": "2019-12-31T23:55:00Z",
+  "lost_to_future": 3,
+  "lost_to_gap": 116,
+  "lost_to_lookback": 18,
+  "measured_gap_first_open": "2016-12-06T23:55:00Z",
+  "measured_gap_last_open": "2016-12-07T23:50:00Z",
+  "measured_gap_missing": 288,
+  "occupied_bars": 382033,
+  "other_holes": 0,
+  "per_year_n": {
+    "2016": 22188,
+    "2017": 35038,
+    "2018": 35040,
+    "2019": 35037
+  },
+  "phase_anchors": 127440,
+  "price_transform": "last_trade_price_space_no_inverse",
+  "relation_computed": false,
+  "series": "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz",
+  "series_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "unit": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1",
+  "years": [
+    "2016",
+    "2017",
+    "2018",
+    "2019"
+  ]
+}

@@ -8999,6 +8999,40 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 one BitMEX read
+
+**Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. Design commit `2e62a1fe8dccfcbccf3a0aa7428ca9b7e0be474b`. Design SHA256 `124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`. Support SHA256 `a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`. Evaluator digest `d0079c773c6662fbf966fe4c921aa4488950071df08a9b6ed4b6560a94c44ca6`. A second read returns `REFUSING_RERUN`.
+- **Sample.** BitMEX XBTUSD 5m last-trade prices, SHA256 `8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa`. Not inverted. D7 not read. Holes `288`, the declared run only. Analysis N `127303`, ISO weeks `191`, phase anchors `127440`. Lost to the gap `116`, to incomplete lookback `18`, to incomplete future `3`. `T` from `2016-05-13T16:00:00Z` through `2019-12-31T23:00:00Z`.
+- **Raw.** Spearman `-0.07601808851747249`. Interval `[-0.0849305985340786, -0.06825298036463769]`. 2000/2000 draws. Seed `20261118`.
+- **RET only.** Partial `-0.047161487675098625`. Interval `[-0.05496891781200883, -0.03969183488378785]`. Not a route input. Canonical one-covariate helper matches.
+- **Primary.** Partial given `RET_4H` and `RV_4H` `-0.04742832892681095`. Interval `[-0.05532182422646337, -0.039860113554644146]`.
+- **Route.** `RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED`. Scientific status `CROSS_VENUE_AND_TEMPORALLY_REPLICATED_DIRECTIONAL_STATE`. Still historical only.
+- **Description.** Raw and primary are negative in 2016, 2017, 2018 and 2019. Median-T split `2018-03-08T22:15:00Z`: first raw `-0.07805404032698986`, primary `-0.04791514965219063`; second raw `-0.07880349740563802`, primary `-0.049751215313179345`. Quintile P(UP) falls from `0.5815561054161267` to `0.44287341424138876`. Means are not monotone. Quintiles do not route.
+- **Comparison.** Binance discovery raw `-0.057773446228651215`. Bybit raw `-0.05781800690167492`, primary `-0.02784152009582924`. The BitMEX raw and primary points are descriptively larger in magnitude. No magnitude test was frozen.
+- **Not read.** Rejection, bars-since, a second horizon, fees, D7, `2025/2026`. `PRODUCT_INTEGRATION_CANDIDATE = NO`. Not a current probability, not a target-hit model, not a trading edge.
+- **Next.** Not executed. The recommended next unit is the same frozen object on Binance `2025–2026`, leaving the E1 holdout unread.
+
+```
+WINDOWS_CONSUMED = D2_BITMEX_PRE2020_XBTUSD further use of last-trade high, low, close and the next 1h log return; the 288-bar hole left missing
+OUTCOME_READ = yes; ROUTE = RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED; CONFIRMATION_OF_A_TRADE = no
+OBJECTS_2025_2026_USED = none; D7 = not read; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 design and support frozen
+
+**Mode.** Outcome-blind freeze of one temporal replication. `outcome_read = false`. Evidence class `HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`.
+- **Question.** On BitMEX XBTUSD 2016–2019, does `RANGE_POSITION_4H` still associate with `R_1H` after `RET_4H` and `RV_4H`.
+- **Surface.** `D2_BITMEX_PRE2020_XBTUSD` `canonical_5m.jsonl.gz`, SHA256 `8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa`. Last-trade prices. Not inverted. D7 is not read. The only hole is the 288-bar run `2016-12-06T23:55:00Z` through `2016-12-07T23:50:00Z`.
+- **Support.** Eligible anchors `127303`. ISO weeks `191`. Phase anchors `127440`. Lost to the gap `116`. Lost to incomplete lookback `18`. Lost to incomplete future `3`. `T` from `2016-05-13T16:00:00Z` through `2019-12-31T23:00:00Z`. No rank correlation is in the census. Support SHA256 `a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`.
+- **Primary.** Partial Spearman imported from the Bybit successor. Bootstrap `B = 2000`, seed `20261118`, ISO weeks. Design SHA256 `124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`.
+- **Not in this unit.** A second horizon, rejection, bars-since, fees, a new discovery scan.
+
+```
+WINDOWS_CONSUMED = none for the association; the support census counted anchors only
+OUTCOME_READ = no; STATUS = DESIGN_AND_SUPPORT_FROZEN
+OBJECTS_2025_2026_USED = none; D7 = not read; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 one Bybit read
 
 **Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT`. Claim ceiling `HISTORICAL_ONLY`. Design commit `4c6c5583ee93f4541224363e129d5b9505167fe8`. Design SHA256 `8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`. Evaluator digest `bb0f5f548497d9ceec7c849d929973fac9f9aebb43e7f78785225271d5a5e07b`. A second read returns `REFUSING_RERUN`.

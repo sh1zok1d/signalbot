@@ -1,3 +1,34 @@
+## RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 — one BitMEX read — 2026-10-09
+
+`MODE = HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = true | claim ceiling HISTORICAL_ONLY`
+`ROUTE = RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED`
+`STATUS = CROSS_VENUE_AND_TEMPORALLY_REPLICATED_DIRECTIONAL_STATE`
+`SAMPLE = D2 BitMEX XBTUSD 5m last-trade | SHA256 8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa | T 2016-05-13T16:00:00Z through 2019-12-31T23:00:00Z | analysis N 127303 | ISO weeks 191 | gap exclusions 116`
+`RAW = Spearman -0.07601808851747249 | interval [-0.0849305985340786, -0.06825298036463769]`
+`PRIMARY = partial given RET_4H and RV_4H -0.04742832892681095 | interval [-0.05532182422646337, -0.039860113554644146]`
+`RET ONLY = -0.047161487675098625 | interval [-0.05496891781200883, -0.03969183488378785] | not a route input`
+`YEARS = raw and primary negative in 2016, 2017, 2018 and 2019 | halves both negative | no stability gate`
+`NOT OPENED = D7, rejection, bars-since, a second horizon, fees, 2025/2026 | rerun REFUSING_RERUN`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO | not a current probability | not a target-hit model | not a trading edge`
+`DESIGN SHA256 = 124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c | evaluator d0079c773c6662fbf966fe4c921aa4488950071df08a9b6ed4b6560a94c44ca6`
+`NEXT = not executed | same frozen object on Binance 2025-2026, with the E1 holdout left unread`
+
+Result: `docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md`.
+
+## RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 — design and support frozen, outcome unread — 2026-10-09
+
+`MODE = HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = false | claim ceiling HISTORICAL_ONLY`
+`QUESTION = does RANGE_POSITION_4H keep a negative next-1h association after RET_4H and RV_4H on BitMEX 2016-2019`
+`SURFACE = D2_BITMEX_PRE2020_XBTUSD canonical_5m.jsonl.gz | SHA256 8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa | last-trade price, not inverted`
+`SUPPORT = eligible 127303 | ISO weeks 191 | phase anchors 127440 | gap exclusions 116 | lookback exclusions 18 | future exclusions 3 | T 2016-05-13T16:00:00Z through 2019-12-31T23:00:00Z | relation_computed = false`
+`PRIMARY = partial Spearman of RP4H with R_1H given RET_4H and RV_4H | seed 20261118 | B 2000 | ISO weeks`
+`NOT OPENED = the BitMEX association, D7 bytes, rejection, bars-since, a second horizon, fees`
+`DESIGN SHA256 = 124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`
+`SUPPORT SHA256 = a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md`.
+
 ## RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 — one Bybit read — 2026-10-09
 
 `MODE = CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT | outcome_read = true | claim ceiling HISTORICAL_ONLY`

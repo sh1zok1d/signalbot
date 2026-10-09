@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 3,
+    "CLOSED_ON_SURFACE": 4,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -203,6 +203,7 @@
     "DH1-X6",
     "H03",
     "PRE-IMPULSE-STATE-ATLAS-V1",
+    "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
     "RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1"
    ],
    "value": {
@@ -211,8 +212,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -233,8 +234,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -255,8 +256,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -277,8 +278,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -299,8 +300,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -321,8 +322,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -343,8 +344,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -365,8 +366,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -10214,14 +10215,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 220,
+  "units": 221,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 2,
-   "CLOSED_ON_SURFACE": 39,
+   "CLOSED_ON_SURFACE": 40,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -11269,32 +11270,6 @@
    }
   },
   {
-   "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "VOLATILITY_STATE.compression",
    "value": {
@@ -11945,54 +11920,28 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "PRICE_STRUCTURE.impulse",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
   {
-   "col": "CROSS_VENUE",
+   "col": "SPOT",
    "row": "PRICE_STRUCTURE.impulse",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
@@ -12402,6 +12351,58 @@
   {
    "col": "SPOT",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_ASSET",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "PRICE_STRUCTURE.impulse",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
@@ -13375,19 +13376,6 @@
    }
   },
   {
-   "col": "LIQUIDATIONS",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "CALENDAR.sessions",
    "value": {
@@ -13962,6 +13950,19 @@
   {
    "col": "LIQUIDATIONS",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "PRICE_STRUCTURE.impulse",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -15581,7 +15582,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "cab5e2bbec694bae92b0f0d576411bbfcfd71a34cb93b1ad9d0ea425909c5918",
+ "SOURCES_DIGEST": "03b271e029bcde6c4ce5cb8624658eee4ce9b92cb05780fbf8bf645566eaffa3",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16013,6 +16014,14 @@
       "rows": [
        "VOLATILITY_STATE.tail_risk",
        "VOLATILITY_STATE.execution_impact"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 read last-trade high, low, close and the next 1h log return; not a D2 tail-risk rerun",
+      "period": "2016-2019",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
       ],
       "status": "CONSUMED"
      },
@@ -21885,6 +21894,41 @@
    "units_n": "62 series; top score about 0.058 on close location inside the trailing 4h range versus the next 1h signed return; the lower-boundary distance is the same ratio",
    "verdict": "DISCOVERY SCAN COMPLETE (2026-10-09T13:38:33Z). Claim ceiling DISCOVERY_ONLY. Highest score is close location inside the trailing 4-hour range versus the next 1h signed return, Spearman about -0.058, same sign in every year. Lower-boundary distance is that same ratio. Upper-boundary distance is its complement. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "The one allowed scan of this frozen list was completed and the full ledger was kept. A second scan is refused. No cell is a confirmation."
+  },
+  {
+   "blind_function": "Earlier-tape range location check",
+   "blind_mechanism": "Decision close location inside the trailing high-low window on an earlier trade-price tape, compared with the next signed return after the same recent-price state.",
+   "col": "CANDLES",
+   "datasets": [
+    "D2_BITMEX_PRE2020_XBTUSD"
+   ],
+   "forbidden": "a rerun; changing the horizon or the control set after the outcome; dropping a year; reading rejection or bars-since inside this unit; treating the quintile table as a rule; a product line",
+   "function": "Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.",
+   "id": "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
+   "mechanism": "Trailing range location of the decision close against the next signed return, after the same recent-price state, on an earlier trade-price tape. One historical read. Not a new search.",
+   "note": "ONE BITMEX READ. Route RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED. Historical only. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "one BitMEX read; T from 2016-05-13T16:00:00Z through 2019-12-31T23:00:00Z; analysis N 127303; 191 ISO weeks",
+   "practical_bar": "No magnitude floor. The route is the sign of the raw association, the sign of the primary partial, and whether the primary interval lies below zero.",
+   "program": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1",
+   "records": [
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.json",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_SUPPORT.md",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_SUPPORT.json",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.md",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1.json",
+    "docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_EVALUATOR_MANIFEST.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A later unit may ask the same frozen object on a later tape, or whether a boundary feature adds anything beyond range location. Not a rerun. Not a product change.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Earlier-tape range location check",
+   "units_n": "one feature, one horizon, one primary control pair",
+   "verdict": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED. BitMEX raw Spearman about -0.076, primary partial about -0.047 after the 4h signed return and 4h realized volatility, week-block interval below zero. Raw and primary stay negative in each year and in both halves. Descriptively larger in magnitude than the Binance and Bybit points. Not a product line. Not a fee-aware edge.",
+   "why_closed": "The one allowed read of this frozen design was completed. A second read is refused. A later tape and a boundary feature are different units."
   },
   {
    "blind_function": "Range location incremental check",

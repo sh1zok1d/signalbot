@@ -1,0 +1,13 @@
+{
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261118,
+  "design_json_sha256": "493ab313a2ef9fe20e372995f2fe0d685f48de70a46ed8713cf424a83a0c155a",
+  "design_sha256": "124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c",
+  "evaluator_digest": "d0079c773c6662fbf966fe4c921aa4488950071df08a9b6ed4b6560a94c44ca6",
+  "features_imported_from": "scripts.research.range_position_4h_incremental_replication_v1.grid",
+  "partial_rank_imported_from": "scripts.research.range_position_4h_incremental_replication_v1.stats",
+  "route": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED",
+  "series_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "support_sha256": "a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3",
+  "unit": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1"
+}
