@@ -8808,3 +8808,19 @@ WINDOWS_EXPOSED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 VOLATILITY_STATE.range_forecast
 OUTCOME_READ = no; ROUTE = INFORMATIONALLY_WEAK_BEFORE_OUTCOME; CONFIRMATION = not run
 OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1 outcome-blind forecast
+
+**Mode.** `OUTCOME_BLIND_FEASIBILITY` of the already selected ACTIVITY incremental cell. `outcome_read = false`. `future_association_read = false`. `claim_selected_pre_outcome = true`.
+- **Claim.** Positive partial Spearman of relative UTC-hour width with next-hour activity given `RV_FORMATION`, practical bar `+0.10`. Unchanged from `FORMATION_WIDTH_REGIME_V1` and `FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1`. Discovery result SHA256 `333f5a778bf56207c3d6f8261d528a2d3271cdc523aba1239c3f013022466669`.
+- **Historical order.** For this claim, candidate surface number 1 is Bybit. BitMEX is outside this unit. A failed forecast would have left the endpoint unread and would not have opened another tape. An adequate forecast does not read the endpoint either.
+- **Surface.** `LEVEL_CROSS_VENUE_PERP_5M_V0` / `bybit_btcusdt_linear_5m.csv.gz`. SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`. Bybit BTCUSDT linear perpetual. Canonical `open_ms` is UTC (public MT4 labels already shifted by −3 hours). Exact 5m grid, 476254 rows, first open `2020-03-31T21:00:00Z`, last open `2024-12-31T20:55:00Z`, zero bars at or after `2025-01-01`. Analysis dates `[2020-04-01, 2025-01-01)`. The census grid starts `2020-03-31T00:00:00Z` so the first formation can use the 23:55 close; that grid has 24002 empty slots, of which 288 are the edges outside the series and 23714 are the four public-file holes, left missing.
+- **Exposure.** Class `SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION`. Neighboring reads of this file, all `PRICE_STRUCTURE.levels` and all `CONSUMED`: `LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1`, `LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1`, `LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1`. The exact partial cell and the `[01:00, 02:00)` activity endpoint were unread before this census. The calendar sits inside Binance discovery `[2020-01-01, 2025-01-01)`. The surface is exposed, and it is not a time-disjoint holdout.
+- **Support.** `2026-10-09T07:08:16Z`. Design SHA256 `83e5a84de4606ec96ed1605690c2ba708970473c0626ca23b766d05a7ac4c642`. Code digest `49ef4758a2728ae585f32a3a39b5aeb3584ab744a5153e851a6f4530c7ed4ec7`. Support SHA256 `69bbe8384e9f1a029d700d306471ef70cd270ea97373404ea9991df1fb1d3118`. Calendar days 1736. Usable formations 1614. Formation incomplete 122. `RV_FORMATION` span incomplete among usable 0. Next-hour path incomplete among usable 1. Analysis N 1613. ISO weeks 240. Halves before `2022-08-17`: 838 and 775. Years 2020–2024: 261, 351, 362, 331, 308. Width mean `0.01031`, p10 `0.00326`, p50 `0.00791`, p90 `0.01962`, p90/p10 `6.02`. Width lag-1 `+0.5185` on 1569 pairs. Effective N `645.36`. Fisher SE `0.03946`. Independent-day SE `0.02492`. One-draw-per-week SE `0.06496` (descriptive). 80% MDE `0.09811`. Power at `+0.10`: `0.813`.
+- **Route.** `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`. `owner_go_required_for_outcome = true`. `later_outcome_permitted_after_separate_go = true`. `this_unit_reads_outcome = false`. The evaluator returns `REFUSING_OUTCOME_BEFORE_OWNER_GO`. A second census returns `REFUSING_RERUN`.
+
+```
+WINDOWS_EXPOSED = BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast 2020-04-01..2024-12-31, path presence and width only
+OUTCOME_READ = no; ROUTE = INFORMATION_ADEQUATE_FOR_LATER_OUTCOME; CONFIRMATION = not run
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not in this unit; PRODUCT_CHANGE = none
+```

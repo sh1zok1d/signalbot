@@ -4311,3 +4311,28 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'CONFIRMATION stopped before the endpoint. Route INFORMATIONALLY_WEAK_BEFORE_OUTCOME. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Equal-width 4h resolution on this window stays a neighboring consumed contrast. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.'
+  - id: FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1
+    title: FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: CROSS_VENUE
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    period: 'design frozen before the endpoint; Bybit BTCUSDT linear perpetual 5m 2020-04-01..2024-12-31; support census 1613 analysis days, 240 ISO weeks; endpoint not read'
+    units_n: 'N 1613, 240 ISO weeks; effective N about 645 under the width-lag week design effect; Fisher SE about 0.0395; 80% MDE about 0.098; power about 0.813 at the bar 0.10'
+    practical_bar: 'A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not in this unit. The bar is not lowered. A separate owner go is required first.'
+    mechanism: 'MODE=OUTCOME_BLIND_FEASIBILITY of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. The question is whether this pinned Bybit tape has enough outcome-blind support to test the frozen bar. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Same calendar as the Binance discovery window, different venue.'
+    function: 'Census of path presence and width only. Forecast is the confirmation unit width-lag AR(1) Kish model. Support census 2026-10-09T07:08:16Z. Power at association 0.10 clears the frozen 0.80 floor. Endpoint not computed. Evaluator refuses until a separate owner go.'
+    verdict: 'INFORMATION_ADEQUATE_FOR_LATER_OUTCOME (2026-10-09T07:08:16Z). Count floor met (N 1613, 240 weeks, halves 838 and 775). Power to exclude 0 at association 0.10 is about 0.813. MDE about 0.098. The next-hour endpoint was not read. owner_go_required_for_outcome stays true. No second surface. Discovery result on CORE 2020-2024 is unchanged. Not L3.'
+    forbidden: 'reading the next-hour endpoint inside this feasibility unit; treating the adequate forecast as the owner go; a BitMEX or 2025/2026 rescue inside this unit; a reread of CORE 2020-2024; lowering 0.10; adding displacement, another hour, or another covariate; a product forecast or a trading signal'
+    reopen: 'A separate owner go may authorize one outcome read of this same frozen claim on this same Bybit series. That read is a later unit of work, not this census. Declining that go leaves a prospective design, or a new historical unit, as a separate owner decision. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.'
+    records:
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_MANIFEST.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Feasibility stopped before the endpoint. Route INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. Surface class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Level-reaction reads on this file stay neighboring consumed contrasts. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.'

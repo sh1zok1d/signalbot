@@ -1,3 +1,16 @@
+## FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1 — information adequate, endpoint unread — 2026-10-09
+
+`MODE = OUTCOME_BLIND_FEASIBILITY | ROUTE = INFORMATION_ADEQUATE_FOR_LATER_OUTCOME | outcome_read = false | future_association_read = false`
+`CLAIM = the ACTIVITY incremental cell of FORMATION_WIDTH_REGIME_V1 | practical bar +0.10 | direction positive | claim text unchanged`
+`SURFACE = LEVEL_CROSS_VENUE_PERP_5M_V0 bybit_btcusdt_linear_5m.csv.gz | Bybit BTCUSDT linear perpetual 5m | SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c | UTC [2020-04-01, 2025-01-01)`
+`CLASS = SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION | neighboring level paths on this file are CONSUMED | exact partial cell unread | calendar sits inside Binance discovery 2020-2024`
+`SUPPORT = 2026-10-09T07:08:16Z | calendar days 1736 | analysis N 1613 | ISO weeks 240 | halves 838 and 775 | width lag-1 +0.5185 | effective N 645.36 | Fisher SE 0.0395 | 80% MDE 0.0981 | power at +0.10 = 0.813`
+`NOT READ = next-hour activity, raw association, partial association | BitMEX out | 2025/2026 not used | E1 not used | no second surface`
+`GO = owner_go_required_for_outcome = true | later_outcome_permitted_after_separate_go = true | this unit does not give that go | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`CEILING IF A LATER PASS EXISTED = L2 on this same-calendar exposed cross-venue tape | not L3 | not a forecast | not an edge`
+
+Design: `docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_DESIGN.md`. Support: `docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.md`. Discovery result: `docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md`.
+
 ## FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1 — informationally weak before the endpoint — 2026-10-09
 
 `MODE = CONFIRMATION | ROUTE = INFORMATIONALLY_WEAK_BEFORE_OUTCOME | outcome_read = false | claim_selected_pre_outcome = true`

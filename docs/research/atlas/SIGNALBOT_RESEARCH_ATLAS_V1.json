@@ -1709,7 +1709,9 @@
   },
   {
    "col": "CROSS_VENUE",
-   "counts": {},
+   "counts": {
+    "CANDIDATE_UNTESTED": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -1717,16 +1719,18 @@
    "revisit": [],
    "row": "VOLATILITY_STATE.range_forecast",
    "row_name": "Range / volatility scale forecast",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "CANDIDATE_UNTESTED",
+   "units": [
+    "FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1"
+   ],
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
     "saturation": 1,
-    "total": 8
+    "total": 6
    }
   },
   {
@@ -10186,7 +10190,7 @@
   "cells_by_state": {
    "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
-   "CANDIDATE_UNTESTED": 3,
+   "CANDIDATE_UNTESTED": 4,
    "CLOSED_ON_SURFACE": 14,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 4,
@@ -10194,14 +10198,14 @@
    "INFORMATIONALLY_WEAK": 9,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 351
+   "OPEN_FRONTIER": 350
   },
-  "units": 211,
+  "units": 212,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 32,
    "CONFIRMED": 1,
@@ -11993,19 +11997,6 @@
   },
   {
    "col": "CROSS_ASSET",
-   "row": "VOLATILITY_STATE.range_forecast",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
    "row": "VOLATILITY_STATE.range_forecast",
    "value": {
     "confirmation_path": 1,
@@ -15589,7 +15580,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "384cf7eefbc0b94114c58df735d157db2135bed052714bb62aef37b675107345",
+ "SOURCES_DIGEST": "819b7bead59c5f1ca76d98d8189dac22cef08da0361ce701ff8b834f25b28a6a",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16813,6 +16804,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1 support census only, 2026-10-09T07:08:16Z: relative width, RV_FORMATION close-span presence, and next-hour path presence; information forecast INFORMATION_ADEQUATE_FOR_LATER_OUTCOME; analysis N 1613, 240 ISO weeks; the next-hour endpoint was not read; not CONSUMED; class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION; not a reopen of the level-reaction reads on this file",
+      "period": "2020-04-01..2024-12-31",
+      "rows": [
+       "VOLATILITY_STATE.range_forecast"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY",
@@ -23491,6 +23490,36 @@
    "title": "Range/volatility corridor model (1h/4h/24h) with held-out-year coverage check and live tracking",
    "units_n": "Anchors (hourly); 2024 diagnostic 8 720 / 8 660 / 8 279 anchors (1h/4h/24h); day bootstrap for interval score.",
    "verdict": "GENERIC_RANGECAST_SKILL_STATUS = DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED; product evidence; Read `corridor_coverage_holdout` (each about 0.80; 0.76–0.84 is fine); 1h coverage model / constant 79.4% / 79.5%; 4h 79.6% / 80.6%; 24h 79.0% / 78.7% (2024 diagnostic); Remaining weakness: the model under-covers the calmest fifth (69–76%)."
+  },
+  {
+   "col": "CROSS_VENUE",
+   "datasets": [
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY"
+   ],
+   "forbidden": "reading the next-hour endpoint inside this feasibility unit; treating the adequate forecast as the owner go; a BitMEX or 2025/2026 rescue inside this unit; a reread of CORE 2020-2024; lowering 0.10; adding displacement, another hour, or another covariate; a product forecast or a trading signal",
+   "function": "Census of path presence and width only. Forecast is the confirmation unit width-lag AR(1) Kish model. Support census 2026-10-09T07:08:16Z. Power at association 0.10 clears the frozen 0.80 floor. Endpoint not computed. Evaluator refuses until a separate owner go.",
+   "id": "FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1",
+   "mechanism": "MODE=OUTCOME_BLIND_FEASIBILITY of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. The question is whether this pinned Bybit tape has enough outcome-blind support to test the frozen bar. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Same calendar as the Binance discovery window, different venue.",
+   "note": "Feasibility stopped before the endpoint. Route INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. Surface class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Level-reaction reads on this file stay neighboring consumed contrasts. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.",
+   "period": "design frozen before the endpoint; Bybit BTCUSDT linear perpetual 5m 2020-04-01..2024-12-31; support census 1613 analysis days, 240 ISO weeks; endpoint not read",
+   "practical_bar": "A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not in this unit. The bar is not lowered. A separate owner go is required first.",
+   "program": "FORMATION_WIDTH_V1",
+   "records": [
+    "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_DESIGN.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.json",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_MANIFEST.json",
+    "docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A separate owner go may authorize one outcome read of this same frozen claim on this same Bybit series. That read is a later unit of work, not this census. Declining that go leaves a prospective design, or a new historical unit, as a separate owner decision. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
+   "row": "VOLATILITY_STATE.range_forecast",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1",
+   "units_n": "N 1613, 240 ISO weeks; effective N about 645 under the width-lag week design effect; Fisher SE about 0.0395; 80% MDE about 0.098; power about 0.813 at the bar 0.10",
+   "verdict": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME (2026-10-09T07:08:16Z). Count floor met (N 1613, 240 weeks, halves 838 and 775). Power to exclude 0 at association 0.10 is about 0.813. MDE about 0.098. The next-hour endpoint was not read. owner_go_required_for_outcome stays true. No second surface. Discovery result on CORE 2020-2024 is unchanged. Not L3."
   },
   {
    "col": "SPOT",

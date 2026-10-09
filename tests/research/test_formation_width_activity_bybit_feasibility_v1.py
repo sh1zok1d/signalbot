@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
@@ -161,3 +163,43 @@ def test_support_rerun_refuses_before_load(monkeypatch, tmp_path):
     monkeypatch.setattr(support, "load_ohlc", explode)
     with pytest.raises(SystemExit, match=K.REFUSAL_RERUN):
         support.main()
+
+
+def test_official_support_file_is_outcome_blind_and_adequate():
+    payload = json.loads((
+        ROOT / "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.json"
+    ).read_text(encoding="utf-8"))
+    support.assert_support_only(payload)
+    assert payload["outcome_read"] is False
+    assert payload["future_association_read"] is False
+    assert payload["owner_go_required_for_outcome"] is True
+    assert payload["this_unit_reads_outcome"] is False
+    assert payload["claim_selected_pre_outcome"] is True
+    assert payload["exact_cell_consumed_before_this_unit"] is False
+    assert payload["exposure_class"] == K.EXPOSURE_CLASS
+    assert payload["counts"]["calendar_days"] == 1736
+    assert payload["counts"]["usable_formation"] == 1614
+    assert payload["counts"]["formation_incomplete"] == 122
+    assert payload["counts"]["rv_formation_span_incomplete"] == 0
+    assert payload["counts"]["next_hour_path_incomplete"] == 1
+    assert payload["counts"]["analysis_sample"] == 1613
+    assert payload["analysis_iso_weeks"] == 240
+    assert payload["first_half_n"] == 838
+    assert payload["second_half_n"] == 775
+    assert payload["count_floor_met"] is True
+    assert payload["lag1_relative_width_rank_correlation"] == pytest.approx(0.5185063706050135)
+    assert payload["information_forecast"]["effective_n"] == pytest.approx(645.3604432971196)
+    assert payload["information_forecast"]["fisher_se"] == pytest.approx(0.03945577746287656)
+    assert payload["information_forecast"]["minimum_detectable_association_80"] == pytest.approx(0.09810579876388723)
+    assert payload["information_forecast"]["power_lower_bound_excludes_zero_at_practical_bar"] == pytest.approx(
+        0.8131675544359748
+    )
+    assert payload["pre_outcome_route"] == K.ROUTE_ADEQUATE
+    assert payload["later_outcome_permitted_after_separate_go"] is True
+    assert payload["read_at"] == "2026-10-09T07:08:16Z"
+    assert payload["code_digest"] == "49ef4758a2728ae585f32a3a39b5aeb3584ab744a5153e851a6f4530c7ed4ec7"
+    assert payload["design_sha256"] == hashlib.sha256(
+        (ROOT / "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_DESIGN.md").read_bytes()
+    ).hexdigest()
+    assert payload["grid"]["present_bars"] == 476254
+    assert payload["grid"]["canonical_sha256"] == K.CANONICAL_SHA256
