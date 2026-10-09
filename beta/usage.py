@@ -154,7 +154,7 @@ def _invite_block(users: Sequence[dict], activity: Sequence[dict], invites: Sequ
 
 
 REACTION_WINDOW = timedelta(minutes=10)                  # BETA_MEASUREMENT_CONTRACT_V1 §3
-# §2 pulls; /check stays a pull until the contract amendment fixes its class (scope decision §6.7)
+# §2 pulls (measurement contract Amendment 1 keeps /check a pull)
 PULL_ACTIONS = ("cmd_btc", "cmd_catchup", "cmd_levels", "cmd_risk", "cmd_events", "cmd_accuracy",
                 "cmd_research", "cmd_history", "cmd_alert", "cmd_check")
 DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered", "weekly_delivered")

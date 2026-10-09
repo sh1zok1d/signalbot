@@ -6,10 +6,12 @@ from datetime import timedelta
 import asyncpg
 import pytest
 
-from beta_fakes import CFG, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
+from beta_fakes import CFG as _SHIPPED, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
 from storage.beta_v0_store import BetaStore
 from test_beta_v2_pg import A, DAY, NOW, Sender, _handler, _join, _rows, _seed
 
+# these tests pin the legacy level-touch key (level:PDH:<date>); Day 0 ships the structural trigger (3b)
+CFG = _SHIPPED.with_overrides(level_race={**dict(_SHIPPED["level_race"]), "push_trigger": "legacy"})
 pytestmark = pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set (local PostgreSQL)")
 
 

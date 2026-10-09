@@ -21,7 +21,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
-from .admin import collect_health, fingerprint
+from .admin import collect_health
 from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_main_surfaces_enabled
 from .formatter import format_owner_alert, format_push
 from .i18n import render_tz
@@ -243,7 +243,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
     from storage.beta_v0_store import NOTIFIER_LOCK_KEY
     report = {"recovered_unknown": 0, "materialized": 0, "sent": 0, "failed": 0, "unknown": 0,
               "throttled": 0, "expired": 0, "suppressed": 0, "purged_users": 0, "purged_activity": 0,
-              "purged_feedback_messages": 0, "purged_rejected_starts": 0, "owner_alerts": []}
+              "purged_feedback_messages": 0, "purged_owner_forwards": 0, "purged_rejected_starts": 0,
+              "owner_alerts": []}
     if pacer is None:
         pacer = SendPacer.from_config(cfg, stop=stop)
     elif stop is not None and pacer.stop is None:
@@ -278,14 +279,13 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             cutoff = now - timedelta(days=cfg["privacy"]["stopped_user_retention_days"])
             for uid in await conn.stopped_users_before(cutoff):
                 async with conn.transaction():
-                    removed = await conn.delete_participant(uid)
-                    await conn.insert_audit(action="retention_purge", authorized=True,
-                                            actor_fingerprint="system", target_fingerprint=fingerprint(uid),
-                                            result="OK", detail=removed)
+                    await conn.delete_participant(uid, owner_user_id)
+                    await conn.insert_deletion_audit(action="retention_purge", actor_kind="system", now=now)
                 report["purged_users"] += 1
             activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
             report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)
             report["purged_feedback_messages"] = await conn.purge_feedback_messages_before(activity_cutoff)
+            report["purged_owner_forwards"] = await conn.purge_owner_forwards_before(activity_cutoff)
             rejected_cutoff = now - timedelta(days=cfg["telemetry"]["rejected_start_retention_days"])
             report["purged_rejected_starts"] = await conn.purge_rejected_starts_before(rejected_cutoff)
             if stopped():
@@ -376,7 +376,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             # owner health alerts (operational; owner only; rate-limited per key), under the same pacer:
             # not sent once it is closed (they are due again on the next run)
             if sender is not None and owner_user_id is not None:
-                h = await collect_health(conn, cfg, switches, clock())
+                h = await collect_health(conn, cfg, switches, clock(), owner_user_id)
                 runtime = await conn.fetch_health()
                 due = []
                 for a in h["alerts"]:

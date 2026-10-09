@@ -48,35 +48,49 @@ def test_the_trader_type_answer_opens_the_onboarding_once():
     run(body())
 
 
-def test_paused_participants_can_be_answered_and_the_u3_offer_reaches_the_churned_too():
+def test_paused_participants_can_be_answered_and_the_u3_offer_reaches_active_participants_only():
     """J4: /admin_reply reaches a STOPPED participant. I2: /admin_offer refuses without a fixed price,
-    previews, then goes to every enrolled participant, churned included; the owner gets the ledger lines."""
+    previews, then goes once to each ACTIVE participant; stopped, bot-blocked and deleted participants are
+    skipped and counted for the owner (owner, 2026-10-08); the owner gets the ledger lines."""
     async def body():
         from runtime.beta_bot import BetaBotHandler
         from beta.admin import fingerprint
         pool = await fresh_pool()
         store = BetaStore(pool)
-        a, b = 900000000311, 900000000312
+        a, b, c, d = 900000000311, 900000000312, 900000000313, 900000000314
         h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
         await _join(h, store, a, 1)
+        await h.handle(_msg(OWNER, "/admin_test_open", 5))   # d joins after it: the deleted count is the counter's
         await _join(h, store, b, 10)
-        await h.handle(_msg(b, "/stop", 20))
-        out = await h.handle(_msg(OWNER, f"/admin_reply {fingerprint(b)} hello", 21))
+        await _join(h, store, c, 30)
+        await _join(h, store, d, 40)
+        await h.handle(_msg(b, "/stop", 44))
+        await h.handle(_msg(d, "/delete_me", 45))
+        async with store.connect() as conn:                  # c blocked the bot: a Forbidden failure, nothing sent since
+            pk = await conn.insert_market_alert(kind="level", alert_key="level:blk", decision_ts=NOW,
+                                                decision="PUSH", suppression_reason=None, payload={"at": NOW.isoformat()})
+        c_pk = (await pool.fetchrow("SELECT user_pk FROM beta_users WHERE telegram_user_id=$1", c))["user_pk"]
+        await pool.execute("""INSERT INTO beta_notification_deliveries (kind, alert_pk, user_pk, state, decision_ts,
+                                  sending_at, finished_at, error_summary)
+                              VALUES ('alert', $1, $2, 'FAILED', $3, $3, $3, 'Forbidden: bot was blocked by the user')""",
+                           pk, c_pk, NOW)
+        out = await h.handle(_msg(OWNER, f"/admin_reply {fingerprint(b)} hello", 51))
         assert [o.chat_id for o in out if o.chat_id == b] == [b]
-        refused = await h.handle(_msg(OWNER, "/admin_offer", 22))
+        refused = await h.handle(_msg(OWNER, "/admin_offer", 52))
         assert "refused" in refused[0].html
         cfg = CFG.with_overrides(access={**CFG["access"], "u3_offer": {"price": "$15 в месяц", "method": "перевод"}})
         h2 = BetaBotHandler(store, cfg, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW + timedelta(days=22)))
-        preview = await h2.handle(_msg(OWNER, "/admin_offer", 23))
+        preview = await h2.handle(_msg(OWNER, "/admin_offer", 53))
         assert "preview" in preview[0].html and len(preview) == 1
-        sent = await h2.handle(_msg(OWNER, "/admin_offer send", 24))
-        to = sorted(o.chat_id for o in sent if o.chat_id in (a, b))
-        assert to == [a, b] and all("$15 в месяц" in o.html for o in sent if o.chat_id in (a, b))
-        assert fingerprint(a) in sent[0].html and fingerprint(b) in sent[0].html      # the ledger lines, owner only
-        twice = await h2.handle(_msg(OWNER, "/admin_offer send", 25))                # U3 is one offer
+        sent = await h2.handle(_msg(OWNER, "/admin_offer send", 54))
+        to = sorted(o.chat_id for o in sent if o.chat_id in (a, b, c, d))
+        assert to == [a] and all("$15 в месяц" in o.html for o in sent if o.chat_id == a)
+        assert "skipped: 1 stopped, 1 blocked the bot, 1 deleted" in sent[0].html
+        assert fingerprint(a) in sent[0].html and fingerprint(b) not in sent[0].html  # the ledger lines, owner only
+        twice = await h2.handle(_msg(OWNER, "/admin_offer send", 55))                # U3 is one offer
         assert len(twice) == 1 and "already sent" in twice[0].html
-        again = await h2.handle(_msg(OWNER, "/admin_offer send again", 26))          # only on purpose
-        assert sorted(o.chat_id for o in again if o.chat_id in (a, b)) == [a, b]
+        again = await h2.handle(_msg(OWNER, "/admin_offer send again", 56))          # only on purpose
+        assert sorted(o.chat_id for o in again if o.chat_id in (a, b, c, d)) == [a]
         await pool.close()
     run(body())
 

@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+from beta.i18n import KYIV
+
 from beta_fakes import (CFG, EXS, ON_PUSH, S2, TEST_DSN, Clock, ScenarioReader, deps, down_move,
                         fresh_pool, history_buckets, history_metrics, run, seed_history, seed_live_klines)
 from beta import detector as det
@@ -252,10 +254,13 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
             for stmt in statements:
                 results.append([dict(r) for r in await c.fetch(stmt)])
         a_pk = (await _rows(pool, "SELECT user_pk FROM beta_users WHERE telegram_user_id=$1", A))[0]["user_pk"]
-        enrolled, pulls, reactions, blocked, _deletions = results
+        enrolled, pulls, reactions, votes, other_votes, mutes, blocked, _deletions = results
         assert {r["user_pk"] for r in enrolled} >= {a_pk}
         assert any(r["user_pk"] == a_pk for r in pulls)
         assert any(r["user_pk"] == a_pk and r["reacted"] for r in reactions)
+        assert all(r["vote"] in ("USEFUL", "NOISE") for r in votes)          # Amendment 2: votes on pushes (U2)
+        assert all(r["kind"] in ("brief", "weekly", "price", "approach") for r in other_votes)   # reported, not U2
+        assert all(r["push_type"] in ("hours", "levels", "events", "moves", "weekly") for r in mutes)
         assert [r["user_pk"] for r in blocked] == [a_pk]
 
         # ---- nothing internal reached a participant -----------------------------------------
@@ -272,14 +277,16 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         await say(A, "/delete_me")
         assert await _rows(pool, "SELECT count(*) AS n FROM beta_user_activity a JOIN beta_users u USING (user_pk) "
                                  "WHERE u.telegram_user_id=$1", A) == [{"n": 0}]
-        audit = await _rows(pool, "SELECT action, detail->'cohort' AS cohort FROM beta_admin_audit "
-                                  "WHERE action='user_delete_me'")
-        # the participant stays countable for the frozen denominator, without identity
-        assert [(a["action"], json.loads(a["cohort"])) for a in audit] == [
-            ("user_delete_me", {"joined_kyiv_date": "2026-05-12", "known_contact": False})]
-        assert "telegram" not in str(audit) and str(A) not in str(audit)
-        async with pool.acquire() as c:                       # the contract's denominator part 2 sees it
+        audit = await _rows(pool, "SELECT action, actor_fingerprint, target_fingerprint, detail::text AS detail, "
+                                  "recorded_at FROM beta_admin_audit WHERE action='user_delete_me'")
+        # the minimal deletion record (contract §1.5): the action at its Kyiv date, nothing per person; the
+        # test was never opened here, so no counter is kept (a join before the opening is in no metric)
+        assert [(a["action"], a["actor_fingerprint"], a["target_fingerprint"], a["detail"]) for a in audit] == [
+            ("user_delete_me", "participant", None, "{}")]
+        assert audit[0]["recorded_at"].astimezone(KYIV).time().isoformat() == "00:00:00"
+        assert await _rows(pool, "SELECT * FROM beta_deleted_cohort_counts") == []
+        async with pool.acquire() as c:                       # the contract's counter query: nothing kept
             cohort = [dict(r) for r in await c.fetch(statements[-1])]
-        assert cohort == [{"joined_kyiv_date": "2026-05-12", "known_contact": False, "n": 1}]
+        assert cohort == []
         await pool.close()
     run(body())

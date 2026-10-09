@@ -542,7 +542,7 @@ def test_start_and_lang_choice():
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
         assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms"), ("Другие монеты", "x:assets")],
-                                                       [("💡 Идея / чего не хватает", "x:idea"), ("📞 15 минут с командой", "x:interview")],
+                                                       [("💡 Идея / чего не хватает", "x:idea")],
                                                        [("📖 Как читать бота", "x:guide")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
@@ -551,7 +551,7 @@ def test_start_and_lang_choice():
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
         assert help_en[0].buttons == [[("Glossary", "terms"), ("Other coins", "x:assets")],
-                                    [("💡 An idea / what is missing", "x:idea"), ("📞 15 minutes with the team", "x:interview")],
+                                    [("💡 An idea / what is missing", "x:idea")],
                                     [("📖 How to read the bot", "x:guide")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
@@ -637,7 +637,7 @@ RU_TERMS = """ТЕРМИНЫ
 
 Показатели
 OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.
-Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.
+Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот. Ставка указана за 8 ч (одна выплата); биржа, чья ставка старше 15 мин, в медиану не входит.
 Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.
 Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.
 Диапазон — от минимума до максимума цены за период, в % от цены.
@@ -668,7 +668,7 @@ Long / short liquidations — one side's liquidations in the top 5% of the last 
 
 Metrics
 OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.
-Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.
+Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse. The rate is per 8h (one settlement); an exchange whose rate is older than 15 min is left out of the median.
 Delta — difference between market buys and market sells in $. Negative — net selling.
 Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.
 Range — from the lowest to the highest price in the period, in % of the price.
@@ -799,7 +799,7 @@ def test_24h_tab_renders_changes_and_terms_footer():
     assert "OI вырос, пока цена падала" in ru
     assert "крупных изменений нет" not in ru
     assert "Delta: +$210 млн (покупатели)" in ru
-    assert "Funding сейчас 0,006% · среднее за 24 ч 0,009%" in ru
+    assert "Funding сейчас 0,006% за 8 ч (медиана бирж) · среднее за 24 ч 0,009% за 8 ч" in ru
     assert "Высокий импакт" not in ru and "High impact" not in en
     assert "BTC, last 24h" in en and "Terms: /terms" in en.split("\n")[-1]
     assert "range wider: 2.8% vs 1.9%" in en

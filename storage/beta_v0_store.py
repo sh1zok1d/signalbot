@@ -85,6 +85,11 @@ async def apply_beta_schema(conn) -> None:
         await conn.execute(sql)
 
 
+
+class AuditDeidentifyRefused(RuntimeError):
+    """A de-identification was asked for a fingerprint of someone still present; nothing was changed."""
+
+
 class BetaStore:
     """Pool-level entry point. `async with store.connect() as c:` yields a BetaConn."""
 
@@ -270,6 +275,24 @@ class BetaConn:
             """SELECT view_pk, payload, payload_digest, lang, rendered_html, kind
                FROM beta_btc_views WHERE view_pk=$1""", view_pk)
         return None if r is None else {**dict(r), "payload": _load(r["payload"])}
+
+    async def fetch_funding_latest(self, *, symbol: str, exchanges: Sequence[str], at: datetime,
+                                   since: datetime) -> dict:
+        """Per venue, the newest LIVE ``funding_rate`` row strictly before ``at`` (no look-ahead), with its ts;
+        ``None`` for a venue with no row. Backfilled settled rates are not «сейчас». ``since`` (at − the
+        age bound, beta.horizons.FUNDING_MAX_AGE) bounds the scan so the hypertable's older chunks are never
+        read; an older row would be dropped as stale anyway (D3, R3)."""
+        rows = await self.conn.fetch(
+            """SELECT DISTINCT ON (exchange) exchange, ts, funding_rate
+               FROM funding_rate
+               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts < $3 AND ts >= $4 AND source = 'live'
+               ORDER BY exchange, ts DESC""",
+            symbol, list(exchanges), at, since)
+        out = {ex: None for ex in exchanges}
+        for r in rows:
+            out[r["exchange"]] = {"ts": r["ts"], "funding_rate": None if r["funding_rate"] is None
+                                  else float(r["funding_rate"])}
+        return out
 
     async def fetch_open_interest_asof(self, *, symbol: str, exchanges: Sequence[str],
                                        boundaries: Sequence[datetime]) -> dict:
@@ -1181,34 +1204,78 @@ class BetaConn:
             "WHERE telegram_user_id=$1 AND status='ACTIVE'", telegram_user_id, now)
         return status == "UPDATE 1"
 
-    async def delete_participant(self, telegram_user_id: int) -> dict:
+    async def delete_participant(self, telegram_user_id: int, owner_user_id: Optional[int] = None) -> dict:
         """Delete the participant's personal beta records: user row (feedback and
         activity cascade; delivery rows keep only an anonymous NULL user_pk), the
         allowlist entry, and the waitlist row. Market/event records contain no
         identity and remain.
 
-        `cohort` keeps the participant countable without identity
-        (BETA_MEASUREMENT_CONTRACT_V1 §1.3): the Kyiv join date and the known-contact
-        flag only, so the frozen enrollment rule can still count them."""
+        The minimal deletion record (owner, 2026-10-08; BETA_MEASUREMENT_CONTRACT_V1 §1.5): an
+        unknown participant who joined at or after the test opening adds one to
+        `beta_deleted_cohort_counts` for their Kyiv join date, in the same transaction. Nothing
+        else is kept per person: no row, no deletion time, no known flag. Known participants,
+        the owner and joins before the opening are in no metric and leave nothing.
+
+        Every audit row about them is de-identified in the same transaction (owner, 2026-10-08, #420; the only
+        exception to append-only, enforced by `beta_audit_guard`): target NULL, detail {}, the Kyiv date; their
+        actor fingerprint becomes the role. Nothing is deleted from the audit and no action changes."""
+        from beta.admin import fingerprint
         from beta.i18n import KYIV
-        row = await self.conn.fetchrow(
-            "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
-        cohort = None
-        if row is not None and row["joined_at"] is not None:
-            cohort = {"joined_kyiv_date": row["joined_at"].astimezone(KYIV).date().isoformat(),
-                      "known_contact": bool(row["known_contact"])}
-        activity = int(await self.conn.fetchval(
-            """SELECT count(*) FROM beta_user_activity a
-               JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
-            telegram_user_id))
-        users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
-                                        telegram_user_id)
-        allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
-                                        telegram_user_id)
-        wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
-                                       telegram_user_id)
+        async with self.conn.transaction():
+            row = await self.conn.fetchrow(
+                "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
+            opened = await self.test_open_at()
+            counted = (row is not None and row["joined_at"] is not None and not row["known_contact"]
+                       and opened is not None and row["joined_at"] >= opened
+                       and (owner_user_id is None or int(owner_user_id) != int(telegram_user_id)))
+            if counted:
+                await self.conn.execute(
+                    """INSERT INTO beta_deleted_cohort_counts (joined_kyiv_date, n) VALUES ($1, 1)
+                       ON CONFLICT (joined_kyiv_date) DO UPDATE SET n = beta_deleted_cohort_counts.n + 1""",
+                    row["joined_at"].astimezone(KYIV).date())
+            users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
+                                            telegram_user_id)
+            allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
+                                            telegram_user_id)
+            wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
+                                           telegram_user_id)
+            # owner, 2026-10-08 (#420): the audit rows about them are de-identified in the same transaction
+            role = "owner" if owner_user_id is not None and int(owner_user_id) == int(telegram_user_id) \
+                else "participant"
+            # both forms: rows written before the keyed switch hold the legacy one (#423)
+            from beta.pseudonym import legacy_pseudonym
+            audit = await self.deidentify_audit([fingerprint(telegram_user_id), legacy_pseudonym(telegram_user_id)],
+                                                role, deleted_id=telegram_user_id)
         return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
-                "waitlist": int(wait.split()[-1]), "activity": activity, "cohort": cohort}
+                "waitlist": int(wait.split()[-1]), "counted": bool(counted), "audit": int(audit)}
+
+    async def deidentify_audit(self, fps, role: str, *, deleted_id: Optional[int] = None) -> int:
+        """`beta_audit_deidentify(fps, role)` after a check in Python, with the key: none of `fps` may be the keyed
+        or the legacy fingerprint of anyone still in beta_users, beta_allowlist or beta_waitlist. The SQL guard
+        can check only the legacy form (SQL has no key), so this is the defense for the keyed one (#423).
+        A refusal raises before any UPDATE and rolls back the caller's transaction. `deleted_id`, the person being
+        deleted, is never counted as live: a row of theirs still present cannot block their own deletion."""
+        from beta.admin import fingerprint
+        from beta.pseudonym import legacy_pseudonym
+        fps = [str(f) for f in fps]
+        live = await self.conn.fetch("""SELECT telegram_user_id AS id FROM beta_users
+                                        UNION SELECT telegram_user_id FROM beta_allowlist
+                                        UNION SELECT telegram_user_id FROM beta_waitlist""")
+        taken = {f(int(r["id"])) for r in live if deleted_id is None or int(r["id"]) != int(deleted_id)
+                 for f in (fingerprint, legacy_pseudonym)}
+        if taken.intersection(fps):
+            raise AuditDeidentifyRefused("a fingerprint passed for de-identification belongs to someone still present")
+        return int(await self.conn.fetchval("SELECT beta_audit_deidentify($1::text[], $2)", fps, role))
+
+    async def insert_deletion_audit(self, *, action: str, actor_kind: str, now: datetime) -> None:
+        """A deletion's audit row (contract §1.5): the action, the result and the kind of actor
+        (participant / system / owner) at the Kyiv date only; no fingerprint, no detail."""
+        from beta.i18n import KYIV
+        day = now.astimezone(KYIV).replace(hour=0, minute=0, second=0, microsecond=0)
+        await self.conn.execute(
+            """INSERT INTO beta_admin_audit (action, authorized, actor_fingerprint, target_fingerprint,
+                   result, detail, recorded_at) VALUES ($1, true, $2, NULL, 'OK', '{}'::jsonb, $3)""",
+            action, actor_kind, day)
 
     async def mark_privacy_notice_seen(self, telegram_user_id: int, version: int) -> None:
         await self.conn.execute(
@@ -1414,7 +1481,7 @@ class BetaConn:
 
     async def insert_feedback_message(self, *, user_pk: int, text: str, lang: str,
                                       created_at: datetime, kind: str = "feedback") -> int:
-        """Free text: /feedback, an idea (H1) or an interview request (H4)."""
+        """Free text: /feedback, an idea (H1) or a plain message (J4); `interview` is unused since 2026-10-08."""
         return int(await self.conn.fetchval(
             """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at, kind)
                VALUES ($1,$2,$3,$4,$5) RETURNING message_pk""",
@@ -1433,13 +1500,34 @@ class BetaConn:
                ON CONFLICT (user_pk, topic, subject) DO UPDATE SET reason=EXCLUDED.reason, at=EXCLUDED.at""",
             user_pk, topic, subject, reason, at)
 
+    async def insert_owner_forward(self, *, owner_message_id: int, user_pk: int, kind: str,
+                                   created_at: datetime) -> None:
+        """The owner copy of a participant's message, by the message_id Telegram returned for it."""
+        await self.conn.execute(
+            """INSERT INTO beta_owner_forwards (owner_message_id, user_pk, kind, created_at)
+               VALUES ($1,$2,$3,$4) ON CONFLICT (owner_message_id) DO NOTHING""",
+            int(owner_message_id), int(user_pk), kind, created_at)
+
+    async def owner_forward_target(self, owner_message_id: int) -> Optional[dict]:
+        """The participant whose message the owner copy `owner_message_id` was; None when it is no such copy,
+        the copy was purged, or the participant was deleted (the row cascades)."""
+        r = await self.conn.fetchrow(
+            """SELECT f.kind, u.user_pk, u.telegram_user_id, u.chat_id, u.lang, u.status
+               FROM beta_owner_forwards f JOIN beta_users u ON u.user_pk = f.user_pk
+               WHERE f.owner_message_id = $1""", int(owner_message_id))
+        return None if r is None else dict(r)
+
+    async def purge_owner_forwards_before(self, cutoff: datetime) -> int:
+        status = await self.conn.execute("DELETE FROM beta_owner_forwards WHERE created_at < $1", cutoff)
+        return int(status.split()[-1])
+
     async def purge_feedback_messages_before(self, cutoff: datetime) -> int:
         status = await self.conn.execute(
             "DELETE FROM beta_feedback_messages WHERE created_at < $1", cutoff)
         return int(status.split()[-1])
 
     async def enrolled_user_rows(self) -> list:
-        """ACTIVE and STOPPED participants (not deleted): /admin_reply and the U3 offer reach churned ones (J4, I2)."""
+        """ACTIVE and STOPPED participants (not deleted): /admin_reply reaches paused ones too (J4)."""
         rows = await self.conn.fetch(
             """SELECT user_pk, telegram_user_id, chat_id, lang, status
                FROM beta_users WHERE status IN ('ACTIVE', 'STOPPED') ORDER BY user_pk""")
@@ -1586,6 +1674,69 @@ class BetaConn:
             """INSERT INTO beta_admin_audit (action, authorized, actor_fingerprint, target_fingerprint,
                    result, detail) VALUES ($1,$2,$3,$4,$5,$6::jsonb)""",
             action, authorized, actor_fingerprint, target_fingerprint, result, _j(dict(detail or {})))
+
+    async def test_open_at(self) -> Optional[datetime]:
+        """The test opening (`/admin_test_open`; the latest one if the owner forced a re-open), or None."""
+        v = await self.conn.fetchval(
+            """SELECT detail->>'test_open_at' FROM beta_admin_audit
+               WHERE action='admin_test_open' AND authorized AND result='OK' AND detail ? 'test_open_at'
+               ORDER BY audit_id DESC LIMIT 1""")
+        return datetime.fromisoformat(v) if v else None
+
+    async def derived_day0_kyiv(self, owner_user_id: Optional[int]):
+        """Day 0 (contract §1.4, owner 2026-10-08): the Kyiv date of the first unknown participant who joined at
+        or after the test opening, live rows and the deleted participants' counters together.
+        None before the opening or before that join; a join before the opening never counts."""
+        return (await self.derived_day0(owner_user_id))["day0_kyiv"]
+
+    async def derived_day0(self, owner_user_id: Optional[int]) -> dict:
+        """{"day0_kyiv", "provisional_until"}: Day 0 stays provisional until the first unknown joiner's 24-hour
+        known-classification window closes (contract §1.2); a participant marked known in it moves Day 0 to the
+        next unknown join. A deleted first joiner can no longer be reclassified, so their date is final."""
+        from beta.i18n import KYIV
+        opened = await self.test_open_at()
+        if opened is None:
+            return {"day0_kyiv": None, "provisional_until": None}
+        first = await self.conn.fetchval(
+            """SELECT min(joined_at) FROM beta_users
+               WHERE joined_at >= $1 AND NOT known_contact AND telegram_user_id IS DISTINCT FROM $2""",
+            opened, owner_user_id)
+        days = [first.astimezone(KYIV).date()] if first is not None else []
+        live_day = days[0] if days else None
+        gone = await self.conn.fetchval("SELECT min(joined_kyiv_date) FROM beta_deleted_cohort_counts")
+        if gone:
+            days.append(gone)
+        if not days:
+            return {"day0_kyiv": None, "provisional_until": None}
+        day0 = min(days)
+        provisional = first + timedelta(hours=24) if live_day == day0 else None
+        return {"day0_kyiv": day0, "provisional_until": provisional}
+
+    async def u3_offer_recipients(self) -> dict:
+        """I2 / U3 (owner, 2026-10-08): the offer goes to ACTIVE participants only, inactive ones included;
+        STOPPED, deleted and bot-blocked participants are skipped and counted for the owner. Blocked is the
+        contract's §4 marker (a `Forbidden:` failure) with no later sent delivery to that participant."""
+        rows = await self.conn.fetch(
+            """SELECT u.user_pk, u.telegram_user_id, u.chat_id, u.lang, u.status,
+                      EXISTS (SELECT 1 FROM beta_notification_deliveries f
+                              WHERE f.user_pk = u.user_pk AND f.state = 'FAILED'
+                                AND f.error_summary LIKE 'Forbidden:%'
+                                AND NOT EXISTS (SELECT 1 FROM beta_notification_deliveries s
+                                                WHERE s.user_pk = u.user_pk AND s.state = 'SENT'
+                                                  AND COALESCE(s.finished_at, s.created_at)
+                                                      > COALESCE(f.finished_at, f.created_at))) AS blocked
+               FROM beta_users u WHERE u.status IN ('ACTIVE', 'STOPPED') ORDER BY u.user_pk""")
+        # the enrolled who were deleted: the #420 counter (unknown, joined at or after the test opening)
+        deleted = await self.conn.fetchval("SELECT COALESCE(sum(n), 0) FROM beta_deleted_cohort_counts")
+        out = {"recipients": [], "stopped": 0, "blocked": 0, "deleted": int(deleted or 0)}
+        for r in rows:
+            if r["status"] != "ACTIVE":
+                out["stopped"] += 1
+            elif r["blocked"]:
+                out["blocked"] += 1
+            else:
+                out["recipients"].append(dict(r))
+        return out
 
     async def u3_offer_sent(self) -> bool:
         """I2: whether /admin_offer send already went out (U3 is one offer)."""

@@ -382,6 +382,7 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 |---|---|
 | `BETA_TELEGRAM_BOT_TOKEN` | Beta bot token. It is separate from the legacy notifier token. |
 | `BETA_OWNER_TELEGRAM_USER_ID` | The single owner/admin Telegram user id. |
+| `BETA_FINGERPRINT_KEY` | **Required.** The key of the participant pseudonyms (`u_…`): `"u_" + HMAC-SHA-256(key, telegram_user_id)[:12]` (`beta/pseudonym.py`, owner decision 2026-10-08). At least 32 bytes, hex or base64. Without it the bot, the notifier and every `--beta-*` command refuse to start; its value is never printed, logged or put in health or reports. It is a secret: whoever holds it can recompute a fingerprint from a Telegram id. Changing it changes every fingerprint (old audit rows and printed fingerprints no longer match). |
 | `BETA_ENABLED` | Runtime enable. An explicit `1`/`true` enables and `0`/`false` disables, overriding the committed `beta.enabled: false`. If unset or empty, the config decides. |
 | `BETA_DETECTION_ENABLED` | Kill switch for the tape and detector (restrict-only). |
 | `BETA_PUSH_ENABLED` | Must be set explicitly to `1`/`true` **and** `beta.push_enabled: true` must be committed. If unset, push is forbidden. |
@@ -399,6 +400,20 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 - **Admin push state:** `/admin_pause_push` and `/admin_resume_push` change a durable admin push state. Effective push = hard push switch AND admin state, so an admin command can never exceed the hard switch.
 - **Admin D7 state:** `/admin_d7_on` and `/admin_d7_off` change a durable owner state that defaults off. The D7 line is shown only when that state is on and `regime_d7.enabled` is true. See the D7 section for the sanity SQL.
 - **Push OFF scope:** turning push off does not stop the tape, the detector or outcome tracking.
+
+### Owner step before the first deploy with keyed fingerprints
+
+Generate the key on the VPS, once, into the env file (not into any repository, chat or log), before the deploy that carries `beta/pseudonym.py`:
+
+```bash
+umask 077
+printf 'BETA_FINGERPRINT_KEY=%s\n' "$(python3 -c "import secrets;print(secrets.token_hex(32))")" | sudo tee -a /opt/signalbot/.env >/dev/null
+sudo grep -c '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env   # must print 1; never print the value
+```
+
+**Keep a copy outside the server too** (for example the owner's password manager) and never in a database dump or a backup: losing it changes every fingerprint and breaks `/admin_reply` continuity.
+
+**Deploy order:** add the key to `.env` → restart the beta (bot and notifier units) → restart the collector (`sudo systemctl restart signalbot.service`). The refusal to start without the key is the guard: a beta unit that cannot read it does not run. From then on fingerprints are keyed: audit rows written before the switch keep the old unkeyed form and no longer match new ones, and `/admin_reply <fp>` works only with fingerprints the bot printed after the switch.
 
 ## Soak (7 days, push disabled)
 
@@ -528,7 +543,7 @@ A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILAB
 - **`beta_feedback_messages`:** free text from `/feedback` (`text`, `lang`, `created_at`) keyed by `user_pk`. This is not the Useful/Noise table `beta_feedback`. At most `feedback.max_chars` (1000) characters and `feedback.max_per_utc_day` (5) stored messages per user per UTC day. Rows older than `telemetry.retention_days` (120) are purged by the notifier retention job. `/delete_me` deletes them through `ON DELETE CASCADE`. A copy is forwarded to the owner's private chat as a fingerprint, language, Kyiv time, and the text. The forward does not contain the Telegram id. The audit row for `/admin_reply` stores the fingerprint only, not the reply text.
 - **`beta_invites`:** invite codes and labels. Not user ids. `beta_allowlist.invite_code` and `beta_users.invite_code` remember which code admitted the person. Codes are revoked, not deleted.
 - **Rejected `/start`:** when `BETA_TELEMETRY_SALT` is set, a row is `(utc_day, HMAC-SHA256(salt, telegram id))`. When the salt is unset, the day stores a count only. The raw id is never stored. Purged after `telemetry.rejected_start_retention_days` (30).
-- **What never holds ids:** the tape, episode, transition, outcome, push-decision, `beta_btc_views`, `beta_details_opens`, and audit tables hold no Telegram identifiers. Audit rows store pseudonymous fingerprints only. The owner waitlist view is the exception that shows ids to the owner.
+- **What never holds ids:** the tape, episode, transition, outcome, push-decision, `beta_btc_views`, `beta_details_opens`, and audit tables hold no Telegram identifiers. Audit rows store pseudonymous fingerprints only (keyed HMAC pseudonyms; not anonymous data). The owner waitlist view is the exception that shows ids to the owner.
 - **Database backups contain personal data.** Treat backup files and offsite copies accordingly (`deploy/backup.sh`).
 - **`/stop`** pauses messages.
 - **`/delete_me`** deletes the user row, the allowlist entry, and the waitlist row. Feedback and activity rows cascade. Delivery rows keep only an anonymous `NULL` user.

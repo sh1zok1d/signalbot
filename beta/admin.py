@@ -9,7 +9,6 @@ and can never exceed `regime_d7.enabled`.
 """
 from __future__ import annotations
 
-import hashlib
 import html
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
@@ -23,7 +22,7 @@ ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "a
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
                   "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known",
-                  "admin_latency", "admin_offer")
+                  "admin_latency", "admin_offer", "admin_test_open")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -41,10 +40,12 @@ def owner_parts(text: str, limit: int = 3500) -> list:
 
 
 def fingerprint(telegram_user_id: Optional[int]) -> str:
-    """Pseudonymous (not anonymous) stable id for audit/log lines."""
+    """Pseudonymous (not anonymous) stable id for audit/log lines: the keyed HMAC of beta.pseudonym, the one
+    function every caller uses. Refuses (FingerprintKeyError) when BETA_FINGERPRINT_KEY was not loaded."""
     if telegram_user_id is None:
         return "none"
-    return "u_" + hashlib.sha256(f"signalbot-beta-v0:{int(telegram_user_id)}".encode()).hexdigest()[:12]
+    from .pseudonym import pseudonym
+    return pseudonym(int(telegram_user_id))
 
 
 def is_owner(owner_user_id: Optional[int], telegram_user_id: Optional[int]) -> bool:
@@ -89,7 +90,8 @@ async def collect_status(conn, cfg: BetaConfig, now: datetime) -> dict:
     return {"status": status, "open_episodes": open_eps, "latest": latest, "heartbeat": hb}
 
 
-async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: datetime) -> dict:
+async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: datetime,
+                         owner_user_id: Optional[int] = None) -> dict:
     st = await collect_status(conn, cfg, now)
     wm = await conn.get_watermark("detector", symbol=cfg.symbol, market_type=cfg.market_type,
                                   timeframe=cfg.timeframe)
@@ -107,6 +109,9 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
                            switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
     admin_d7 = await conn.get_admin_d7_enabled()
+    derived = await conn.derived_day0(owner_user_id)
+    test_day0 = day0_consistency(cfg, await conn.test_open_at(), derived["day0_kyiv"],
+                                 provisional_until=derived["provisional_until"], now=now)
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
             "last_good_bucket": st["status"].get("last_good_bucket"),
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
@@ -115,9 +120,29 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "delivery_counts_window": counts, "delivery_problems": problems, "alerts": alerts,
             "switches": switches.as_dict(), "admin_push_enabled": admin_push,
             "effective_push_enabled": effective_push_enabled(switches, admin_push),
-            "admin_d7_enabled": admin_d7,
+            "admin_d7_enabled": admin_d7, "test_day0": test_day0,
             "effective_d7_enabled": effective_d7_enabled(cfg, admin_d7),
             "open_episodes": [(e.public_id, e.event_type, e.state) for e in st["open_episodes"]]}
+
+
+def day0_consistency(cfg: BetaConfig, test_open_at: Optional[datetime], derived, *,
+                     provisional_until: Optional[datetime] = None, now: Optional[datetime] = None) -> dict:
+    """`briefing.withdrawal.day0_kyiv` against the audit (measurement contract §1.4, §6.1): the config value
+    must be the derived Day 0, never set before the test opens or before the first unknown join."""
+    configured = cfg["briefing"]["withdrawal"].get("day0_kyiv")
+    derived_s = derived.isoformat() if derived is not None else None
+    if test_open_at is None:
+        state = "MISMATCH_NOT_OPEN" if configured else "NOT_OPEN"
+    elif derived_s is None:
+        state = "MISMATCH_NO_DAY0" if configured else "WAITING_FIRST_UNKNOWN"
+    elif configured is None:
+        state = "SET_DAY0_KYIV"
+    else:
+        state = "OK" if configured == derived_s else "MISMATCH"
+    provisional = provisional_until is not None and (now is None or now < provisional_until)
+    return {"state": state, "test_open_at": test_open_at.isoformat() if test_open_at else None,
+            "day0_kyiv": derived_s, "config_day0_kyiv": configured,
+            "provisional_until": provisional_until.isoformat() if provisional else None}
 
 
 def parse_invite_new(args: str):
@@ -162,8 +187,13 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                  f"push effective {effective_push_enabled(switches, await conn.get_admin_push_enabled())}\n"
                  f"d7 effective {effective_d7_enabled(cfg, await conn.get_admin_d7_enabled())}")
     elif command == "admin_health":
-        h = await collect_health(conn, cfg, switches, now)
-        reply = f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
+        h = await collect_health(conn, cfg, switches, now, owner_user_id)
+        pending = h["test_day0"]["provisional_until"]
+        reply = (f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
+                 f"\ntest {h['test_day0']['state']}: opened {h['test_day0']['test_open_at']}, "
+                 f"Day 0 {h['test_day0']['day0_kyiv']}"
+                 + (f" (provisional until {pending}: the first joiner may still be marked known)" if pending else "")
+                 + f", config day0_kyiv {h['test_day0']['config_day0_kyiv']}")
     elif command == "admin_users":
         rows = await conn.list_users()
         reply = "\n".join(f"{r['telegram_user_id']} {r['status'] or 'INVITED'} joined {r['joined_at']}"
@@ -186,9 +216,11 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 else:
                     result, reply = "CAP", "cap reached; not added"
             else:
-                removed = await conn.delete_participant(uid)
+                removed = await conn.delete_participant(uid, owner_user_id)
                 reply = f"removed ({removed})"
-                detail = removed
+                # the minimal deletion record (contract §1.5): the owner's own row below is skipped
+                await conn.insert_deletion_audit(action="admin_remove", actor_kind="owner", now=now)
+                return {"reply": reply, "broadcast": None, "direct": None, "mass": None, "authorized": True}
     elif command == "admin_pause_push":
         await conn.set_admin_push_enabled(False)
         reply = "push paused (durable admin state)."
@@ -324,8 +356,9 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             reply = f"outage {phase} notice: sending to {len(direct)} active participants"
             detail = {"phase": phase, "recipients": len(direct)}
     elif command == "admin_offer":
-        # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the price to everyone enrolled, churned included, days 21–25.
-        # The owner keeps the payment ledger outside git; the fingerprints and the time go to the owner only.
+        # I2 / U3, days 21–25: one offer to each ACTIVE participant, inactive ones included; STOPPED, deleted
+        # and bot-blocked participants are skipped and counted (owner, 2026-10-08). The owner keeps the payment
+        # ledger outside git; the fingerprints and the time go to the owner only.
         from .i18n import t
         offer = cfg.section("access").get("u3_offer") or {}
         if not (offer.get("price") and offer.get("method")):
@@ -333,21 +366,46 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             reply = "refused: access.u3_offer.price and .method are fixed in a commit before Day 0"
         elif (args or "").strip().lower() not in ("send", "send again"):
             reply = ("preview (ru):\n" + t("ru", "u3_offer", price=offer["price"], method=offer["method"])
-                     + "\n\nsend it to every enrolled participant: /admin_offer send")
+                     + "\n\nsend it to every active participant: /admin_offer send")
         elif (args or "").strip().lower() == "send" and await conn.u3_offer_sent():
             # U3 is one offer: a second «send» is refused; the owner types «send again» on purpose
             result = "REFUSED"
             reply = "refused: the U3 offer was already sent; to send it again: /admin_offer send again"
         else:
-            rows = await conn.enrolled_user_rows()
+            offer_to = await conn.u3_offer_recipients()
+            rows = offer_to["recipients"]
             direct = [(int(r["chat_id"]), t(r.get("lang") or "ru", "u3_offer", price=offer["price"],
                                             method=offer["method"]), r.get("lang") or "ru") for r in rows]
             mass = {"action": "admin_offer", "label": "U3 offer"}
             when = now.astimezone(timezone.utc).isoformat()
-            reply = ("U3 offer: sending to %d enrolled participants (churned included)\nfor the ledger "
-                     "(participant_fingerprint, offered_at):\n" % len(direct)
+            skipped = {k: offer_to[k] for k in ("stopped", "blocked", "deleted")}
+            reply = ("U3 offer: sending to %d active participants\nskipped: %d stopped, %d blocked the bot, "
+                     "%d deleted\nfor the ledger (participant_fingerprint, offered_at):\n"
+                     % (len(direct), skipped["stopped"], skipped["blocked"], skipped["deleted"])
                      + "\n".join(f"{fingerprint(int(r['telegram_user_id']))} {when}" for r in rows))
-            detail = {"recipients": len(direct)}
+            detail = {"recipients": len(direct), "skipped": skipped}
+    elif command == "admin_test_open":
+        # Owner decision 2026-10-08 (measurement contract §1.4): the 30-day test opens at this instant, after the
+        # readiness announcement and the contract freeze. Day 0 is the Kyiv date of the first unknown participant
+        # who joins at or after it; an earlier join never starts the test. Written once; «force» re-opens.
+        opened = await conn.test_open_at()
+        started = opened is not None and (await conn.derived_day0_kyiv(owner_user_id) is not None
+                                          or cfg["briefing"]["withdrawal"].get("day0_kyiv"))
+        if started:
+            # an unknown participant has joined since the opening (or Day 0 is configured): moving the opening
+            # now would shift Day 0, the enrolled set and the deleted participants' counters
+            result = "REFUSED"
+            reply = (f"refused: the test has started (opened at {opened.isoformat()}, an unknown participant "
+                     "has joined since); the opening can no longer move")
+        elif opened is not None and (args or "").strip().lower() != "force":
+            result = "REFUSED"
+            reply = (f"refused: the test was opened at {opened.isoformat()}; "
+                     "to move the opening before the first unknown join: /admin_test_open force")
+        else:
+            detail = {"test_open_at": now.astimezone(timezone.utc).isoformat(),
+                      "previous": opened.isoformat() if opened is not None else None}
+            reply = (f"test opened at {detail['test_open_at']}; Day 0 = the Kyiv date of the first unknown join "
+                     "at or after it; then set briefing.withdrawal.day0_kyiv to that date (/admin_health checks it)")
     elif command == "admin_latency":
         # A4: candle close (or schedule) -> delivery, P50/P95 by class
         from .latency import format_report, summarize

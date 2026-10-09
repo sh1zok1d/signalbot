@@ -1114,6 +1114,30 @@ def horizon_oi(block: Optional[Mapping[str, Any]]) -> Optional[float]:
     return block.get("oi_change_pct")
 
 
+def _funding_med(block: Mapping[str, Any], lang: str) -> str:
+    """«медиана бирж», or «медиана 2 из 3 бирж; нет свежей ставки: OKX» when a venue's rate was stale or
+    missing: the venue left out is named, never silently replaced (D3, R3)."""
+    k, n = block.get("funding_venues"), block.get("funding_venues_of")
+    if k is None or not n or k >= n:
+        return t(lang, "funding_med_all")
+    out = _funding_stale(block)
+    return t(lang, "funding_med_k", k=k, n=n) + (t(lang, "funding_stale", venues=out) if out else "")
+
+
+def _funding_stale(block: Mapping[str, Any]) -> str:
+    return ", ".join(venue_name(ex) for ex, v in (block.get("funding_by_venue") or {}).items() if v is None)
+
+
+def _funding_now_text(block: Mapping[str, Any], lang: str) -> str:
+    """«0,020% (медиана бирж)», or «н/д (нет свежей ставки: Bybit, OKX)»: the venue note belongs to the «сейчас»
+    rate only; the 24h mean is the tape's cross-venue median (D3, R3)."""
+    rate = block.get("funding_rate")
+    if rate is not None:
+        return t(lang, "funding_now_val", rate=fmt_funding(rate, lang), med=_funding_med(block, lang))
+    out = _funding_stale(block)
+    return na(lang) + (t(lang, "funding_stale_na", venues=out) if out else "")
+
+
 def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
     raw = block.get("oi_by_venue") or {}
     if not raw and block.get("oi_change_pct") is None:
@@ -1227,8 +1251,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
         liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
         lines.extend(liq_lines)
         funding = block.get("funding_rate")
-        lines.append(t(lang, "funding_na", na=na(lang)) if funding is None
-                     else t(lang, "funding_now", rate=fmt_funding(funding, lang)))
+        lines.append(t(lang, "funding_now", now=_funding_now_text(block, lang)))
     lines.extend(_d7_tab_lines(view, lang))
     lines.extend(_liq_footnotes(lower, lang))
     lines.append(t(lang, "terms_footer"))
@@ -1277,12 +1300,10 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
         lines.append(_taker_text(block.get("taker_delta_notional_usd_sum"), lang))
         liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
         lines.extend(liq_lines)
-        now = block.get("funding_rate")
         avg = block.get("funding_rate_avg")
         lines.append(t(
             lang, "funding_24h",
-            now=na(lang) if now is None else fmt_funding(now, lang),
-            avg=na(lang) if avg is None else fmt_funding(avg, lang)))
+            now=_funding_now_text(block, lang), avg=na(lang) if avg is None else fmt_funding(avg, lang)))
         if avg is not None:
             lines.extend(derivative_lines(view, lang, part="funding"))
         lines.extend(derivative_lines(view, lang, part="long_short"))
