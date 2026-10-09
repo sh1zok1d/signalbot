@@ -8609,4 +8609,3 @@ WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-10-08 (minus E1
 OBJECTS_2025_2026_USED = 49 kline objects (+ 2024-12 warm-up); E1 objects refused; E1 / V3 untouched
 MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HIST; PRODUCT_CHANGE = none
 ```
-
