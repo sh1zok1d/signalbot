@@ -117,6 +117,8 @@ def _side(z: Mapping[str, Any], f: Mapping[str, Any]) -> int:
 
 
 def _level_line(key: str, z: Mapping[str, Any], f, lang: str) -> str:
+    if z is (f.get("levels") or {}).get("at"):
+        return text("lv_at_line", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang))
     return text(key, lang, arrow="↑" if _side(z, f) > 0 else "↓", name=level_name(z["members"][0], lang),
                 edge=price(z["edge"], lang), dist=spct(float(z["distance_pct"]), lang))
 
@@ -269,9 +271,13 @@ def _now_lines(keys, f, lang: str) -> list:
             out.append(text("now_stale", lang) if sel.stale_only(f) else
                        text("now_degraded", lang, inputs=_inputs(f, lang)))
         elif k == "episode":
-            from beta.formatter import plain_name
-            name = plain_name(f["episode"]["event_type"], lang)
-            out.append(text("now_episode", lang, name=name if lang == "ru" else name[:1].upper() + name[1:]))
+            from beta.formatter import event_description, plain_name
+            et = f["episode"]["event_type"]
+            name, meaning = plain_name(et, lang), event_description(et, lang)
+            if meaning[1:2].islower():           # «Движение цены …» → «движение цены …»; keep «OI …», «Delta …»
+                meaning = meaning[:1].lower() + meaning[1:]
+            out.append(text("now_episode", lang, name=name if lang == "ru" else name[:1].upper() + name[1:],
+                            meaning=meaning))
         elif k == "level_at":
             z = f["levels"]["at"]
             out.append(text("now_level_at", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang)))
@@ -451,6 +457,7 @@ def _level_alert(lang: str, f) -> tuple:
 def _move(lang: str, f) -> tuple:
     return (_join([[H(text("nt_move", lang, pct=spct(f["move_pct"], lang)))],
                    [text("nt_move_why", lang, open=price(f["open"], lang), close=price(f["close"], lang)),
+                    text("nt_move_rule", lang),
                     text("nt_window", lang, start=clock(f["start"]), end=clock(f["at"]))]]),
             [[(text("btn_levels", lang), callback("levels", 1))]])
 

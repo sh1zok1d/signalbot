@@ -319,7 +319,9 @@ def test_l1_anatomy_and_l3_groups():
     ru = norm(plain(render("btc", 1, "ru", f)[0])).split("\n\n")
     assert ru[0] == "₿ BTC · $62 480 · 14:10 Киев"
     assert ru[1].splitlines()[0] == "⚡ BTC −0,84% за час"
-    assert ru[2].splitlines()[0] == "🎯 Рядом" and all(x[0] in "↑↓" for x in ru[2].splitlines()[1:])
+    near = ru[2].splitlines()
+    assert near[0] == "🎯 Рядом" and near[1] == "🎯 у цены: минимум вчера 62 490"      # at the price: no arrow, no 0,00 %
+    assert all(x[0] in "↑↓" for x in near[2:]) and "0,00" not in ru[2]
     en = norm(plain(render("btc", 1, "en", f)[0])).split("\n\n")
     assert en[0] == "₿ BTC · $62,480 · 14:10 Kyiv"
     l3 = norm(plain(render("btc", 3, "ru", f)[0])).split("\n\n")
@@ -373,3 +375,24 @@ def test_stale_shows_nothing_current_and_degraded_names_the_partial_input():
     vol = norm(plain(render("btc", 1, "ru", from_view(_degraded(("FAMILY_UNUSABLE:volume",))))[0]))
     assert "Неполные данные: объём." in vol and "объём" not in vol.split("Остальное — ниже.")[1].split("🎯")[0]
     assert _l1_body(_view("stale_none")) != _l1_body(_degraded())
+
+
+def test_architect_text_fixes():
+    f = from_view(_ranked(_busy(), range_rank=0.5, volume_rank=0.5))
+    f["episode"] = {"event_type": "PRICE_OI_CONTRACTION_DOWN", "state": "TRIGGERED", "triggered": True}
+    from beta.formatter import event_description
+    l2 = norm(plain(render("btc", 2, "ru", f)[0]))
+    assert "Идёт резкое падение: движение цены за 5м" in l2 and "условия выполняются" not in l2
+    assert norm(event_description("PRICE_OI_CONTRACTION_DOWN", "en")).lower() in \
+        norm(plain(render("btc", 2, "en", f)[0])).lower()
+    for lang in LANGS:                                                  # 📊 is data only; L2 block titles plain
+        h = render("btc", 2, lang, f)[0]
+        assert "📊" not in h and h.startswith("<b>🔎")
+    l3 = norm(plain(render("btc", 3, "ru", from_view(_busy()))[0]))
+    assert "Оценка диапазона на 24 ч:" in l3 and "Обычный диапазон" not in l3
+    assert "24h range estimate:" in norm(plain(render("btc", 3, "en", from_view(_busy()))[0]))
+    assert "оценки суточного диапазона" in PHRASES["cx_corridor_edge"][0]
+    mv = from_alert("move", {"at": "2024-03-04T06:00:00+00:00", "start": "2024-03-04T05:45:00+00:00", "price": 62250.0,
+                             "open": 63100.0, "close": 62250.0, "move_pct": -1.35, "every_days": 9, "near": []})
+    assert "Для 15 минут это резкое движение." in plain(render("move", 1, "ru", mv)[0])
+    assert "For 15 minutes, this is a sharp move." in plain(render("move", 1, "en", mv)[0])
