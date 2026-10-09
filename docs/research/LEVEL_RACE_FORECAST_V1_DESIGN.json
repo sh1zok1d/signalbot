@@ -7,7 +7,7 @@
     "PRODUCT_EVIDENCE",
     "STRUCTURE"
   ],
-  "status": "MODEL_FROZEN / HELD_OUT_NOT_READ",
+  "status": "MODEL_FROZEN / HELD_OUT_READ_ONCE",
   "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
   "event": {
     "constructor": "scripts/research/level_touch_degradation_v1 (level_instances, build_episodes, scan_all)",
@@ -584,5 +584,18 @@
     "model_file_sha256": "454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a",
     "go_token": "GO:454109c8b253",
     "approval": "architect via mini-head 01HKncEv, 2026-10-08"
+  },
+  "held_out_result": {
+    "record": "docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.json",
+    "sha256": "6c6c5739314964d08e21a1727f9f90d6a35f34e725624b14c2ab6b7a236cbe34",
+    "run_commit": "bd35820bd89310b7e5db57b1afe5356bd79184f3",
+    "cases": {
+      "T0": "B",
+      "T15": "B"
+    },
+    "state_at_switch": {
+      "T0": "HIST",
+      "T15": "HIST"
+    }
   }
 }

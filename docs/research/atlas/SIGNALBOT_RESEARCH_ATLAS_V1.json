@@ -15592,7 +15592,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "3678d85d5dbc771ba1128bb673ed1b3ce635a4f6fd533bea819987ed4536bd85",
+ "SOURCES_DIGEST": "c41e70631bbd1e150b7afccefc75242dc4de2df5ace4ef786f99172b241828a0",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15923,6 +15923,14 @@
        "EVENTS.expiries"
       ],
       "status": "PRODUCT_OPEN"
+     },
+     {
+      "note": "LEVEL-RACE-FORECAST-V1 held-out read, one-shot (2026-10-09): frozen level race model on structural first touches and the generic 4h race stream; E1-RUN-001 objects refused before any request; class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like; not pristine",
+      "period": "2025-01-01..2026-10-08",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "BINANCE_UM_KLINES_5M_PRODUCT",
@@ -22130,6 +22138,8 @@
     "docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md",
     "docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.json",
     "scripts/research/level_race_forecast_v1/develop.py",
+    "docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.md",
+    "docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.json",
     "docs/RESEARCH_LEDGER.md"
    ],
    "reopen": "Model development under the frozen design 997ba986 on this same surface (DISCOVERY), then one held-out read of 2025-01-01..freeze date with the E1 exclusion, on an explicit go. Not a retuned cell set, band edge or N_MIN for table V1; a new table is V2.",
@@ -22138,7 +22148,7 @@
    "state": "EXPOSED_ONLY",
    "title": "LEVEL_RACE_FORECAST_V1",
    "units_n": "1919 eligible #352 first touches (T0 rows 1919); early j+1/j+2 census NEITHER 1332, BREAK 296, REJECT 278, AMBIGUOUS 13; T15 rows 1332; 6 T0 cells and 18 T15 cells (+9 side-pooled)",
-   "verdict": "HIST TABLE V1 COMPUTED ONCE (2026-10-08), table sha256 4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b. Descriptive L2 shares with B0 baseline per fixed cell. DEVELOPMENT CV RUN ONCE (code d7012001): pooled out-of-fold log-loss B0 0.8987, M1 0.8705 (gain +0.028, 95% +0.014..+0.042); champion M1 by the frozen rule, DISCOVERY_ONLY; C1 no out-of-fold gain; generic G1 over GB0 +0.036. Not frozen; held-out read not started.",
+   "verdict": "HIST TABLE V1 COMPUTED ONCE (2026-10-08; table sha256 4f57c800...). DEVELOPMENT CV RUN ONCE (code d7012001): champion M1 by the frozen rule. MODEL FROZEN 50eeb39b (model sha256 454109c8...). HELD-OUT READ ONCE (2026-10-09, main bd35820b, architect go): raw M1 vs B0 T0 +0.010 (95% -0.018..+0.038), T15 -0.000 (-0.027..+0.027) nats; M1 vs G1@event T0 +0.052 (+0.013..+0.090), T15 +0.024 (-0.014..+0.062); case B at both landmarks by the frozen rule; fallback fails G2 (NEITHER CITL -18.8 / -15.7 pp); state at switch HIST at both; level offset not claimed.",
    "why_closed": "Not closed. The race outcomes of the level row were read on the already consumed discovery surface for the Day-0 history line; further exposure, not a confirmation."
   },
   {

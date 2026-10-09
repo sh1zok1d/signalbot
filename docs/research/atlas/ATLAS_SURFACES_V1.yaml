@@ -71,6 +71,7 @@ datasets:
     exposure:
       - {period: 2022-2024, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "rangecast fit 2022-2023, 2024 diagnostic holdout examined"}
       - {period: 2025-2026, rows: [VOLATILITY_STATE.range_forecast, PRICE_STRUCTURE.levels, FLOW.flow_conditional_response, DERIVATIVES.oi_buildup, EVENTS.cpi, EVENTS.fomc, EVENTS.expiries], status: PRODUCT_OPEN, note: "PRODUCT_DECISION_V2 §4: consumed for research over the product features"}
+      - {period: 2025-01-01..2026-10-08, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-RACE-FORECAST-V1 held-out read, one-shot (2026-10-09): frozen level race model on structural first touches and the generic 4h race stream; E1-RUN-001 objects refused before any request; class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like; not pristine"}
     records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md, beta/history_data.py]
   - id: C012_DISCOVERY_BTC_1M_V0
     col: CANDLES

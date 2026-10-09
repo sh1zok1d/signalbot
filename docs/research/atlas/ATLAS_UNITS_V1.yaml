@@ -4165,7 +4165,7 @@ units:
     practical_bar: 'none; L2 product history line (FORECAST_LAYER_DECISION_V1 §6a). Every share carries N, the mean B0 «обычно» and a week-cluster 95% interval of share minus B0 (B=2000, seed 20261008).'
     mechanism: 'MODE=DISCOVERY then one held-out read (FORECAST_LAYER_DECISION_V1). Three-outcome race (barrier beyond the level first / back barrier first / neither) inside the original 4h window of a structural first touch, at T0 and T15, against driftless first-passage geometry B0. This entry records the HIST table read only.'
     function: '#352 constructor unchanged (PDH/PDL/PWH/PWL/PMH/PML, zone half 0.15%, touch 1, X = 0.5*1.2816*sigma*sqrt(48)); T0 = close j, tau 48; T15 = close j+2, tau 46, only events with no barrier on j+1/j+2; cells family x structural side (x B0_beyond band 0.35/0.55 at T15); N_MIN 30, T15 side pooling then LOW_N; AMBIGUOUS excluded and counted'
-    verdict: 'HIST TABLE V1 COMPUTED ONCE (2026-10-08), table sha256 4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b. Descriptive L2 shares with B0 baseline per fixed cell. DEVELOPMENT CV RUN ONCE (code d7012001): pooled out-of-fold log-loss B0 0.8987, M1 0.8705 (gain +0.028, 95% +0.014..+0.042); champion M1 by the frozen rule, DISCOVERY_ONLY; C1 no out-of-fold gain; generic G1 over GB0 +0.036. Not frozen; held-out read not started.'
+    verdict: 'HIST TABLE V1 COMPUTED ONCE (2026-10-08; table sha256 4f57c800...). DEVELOPMENT CV RUN ONCE (code d7012001): champion M1 by the frozen rule. MODEL FROZEN 50eeb39b (model sha256 454109c8...). HELD-OUT READ ONCE (2026-10-09, main bd35820b, architect go): raw M1 vs B0 T0 +0.010 (95% -0.018..+0.038), T15 -0.000 (-0.027..+0.027) nats; M1 vs G1@event T0 +0.052 (+0.013..+0.090), T15 +0.024 (-0.014..+0.062); case B at both landmarks by the frozen rule; fallback fails G2 (NEITHER CITL -18.8 / -15.7 pp); state at switch HIST at both; level offset not claimed.'
     why_closed: 'Not closed. The race outcomes of the level row were read on the already consumed discovery surface for the Day-0 history line; further exposure, not a confirmation.'
     reopen: 'Model development under the frozen design 997ba986 on this same surface (DISCOVERY), then one held-out read of 2025-01-01..freeze date with the E1 exclusion, on an explicit go. Not a retuned cell set, band edge or N_MIN for table V1; a new table is V2.'
     forbidden: 'recomputing table V1 on other years; stating the shares as a current probability; BREAK/REJECT words in user text; changing band edges or N_MIN after this read; reading 2025/2026 race outcomes before the frozen held-out read'
@@ -4177,6 +4177,8 @@ units:
     - docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md
     - docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.json
     - scripts/research/level_race_forecast_v1/develop.py
+    - docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.md
+    - docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.json
     - docs/RESEARCH_LEDGER.md
     note: 'Design frozen 997ba98615135b263684ad10f9c044335910a346 before any outcome. Code 748dae25. Claim ceiling L2 (HIST). Journal classes L2_LEVEL_RACE_HIST_T0_4H / L2_LEVEL_RACE_HIST_T15_4H, rule LEVEL_RACE_4H_V1. Surface class for the later held-out: TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like.'
   - id: DH3-X9

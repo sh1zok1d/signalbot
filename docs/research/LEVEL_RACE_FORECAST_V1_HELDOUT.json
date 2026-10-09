@@ -1,0 +1,458 @@
+{
+ "counts": {
+  "rows": {
+   "T0": 700,
+   "T15": 564
+  },
+  "ambiguous": {
+   "T0": 2,
+   "T15": 0
+  },
+  "unusable": 0
+ },
+ "n_level": 1262,
+ "n_generic": 60919,
+ "raw": {
+  "T0": {
+   "n": 698,
+   "m1_vs_b0": {
+    "est": 0.01027702373286707,
+    "lo": -0.017879283186765273,
+    "hi": 0.03843333065249941,
+    "n": 698,
+    "clusters": 92
+   },
+   "m1_vs_g1": {
+    "est": 0.051737618211111766,
+    "lo": 0.013334847977342586,
+    "hi": 0.09014038844488095,
+    "n": 698,
+    "clusters": 92
+   },
+   "g1_vs_b0": {
+    "est": -0.0414605944782447,
+    "lo": -0.05616034656919902,
+    "hi": -0.026760842387290373,
+    "n": 698,
+    "clusters": 92
+   }
+  },
+  "T15": {
+   "n": 564,
+   "m1_vs_b0": {
+    "est": -7.077534501375483e-05,
+    "lo": -0.026920984007686447,
+    "hi": 0.026779433317658936,
+    "n": 564,
+    "clusters": 92
+   },
+   "m1_vs_g1": {
+    "est": 0.02417029183370182,
+    "lo": -0.013792714366950884,
+    "hi": 0.06213329803435452,
+    "n": 564,
+    "clusters": 92
+   },
+   "g1_vs_b0": {
+    "est": -0.024241067178715586,
+    "lo": -0.04178161826799514,
+    "hi": -0.006700516089436032,
+    "n": 564,
+    "clusters": 92
+   }
+  }
+ },
+ "cases": {
+  "T0": "B",
+  "T15": "B"
+ },
+ "gates": {
+  "T0": {
+   "case": "B",
+   "gates": {
+    "n": 698,
+    "G0": {
+     "n": 698,
+     "pass": true
+    },
+    "G1": {
+     "ll_excess_est": 0.07968624627087212,
+     "ll_excess_hi": 0.10170698558356801,
+     "pass": false
+    },
+    "G2": {
+     "outcomes": {
+      "BREAK": {
+       "est": 11.172293863106404,
+       "lo": 8.200123965375933,
+       "hi": 14.144463760836873,
+       "n": 698,
+       "clusters": 92,
+       "pass": false
+      },
+      "REJECT": {
+       "est": 7.643486290026508,
+       "lo": 4.13135042508168,
+       "hi": 11.155622154971335,
+       "n": 698,
+       "clusters": 92,
+       "pass": false
+      },
+      "NEITHER": {
+       "est": -18.815780153132916,
+       "lo": -22.293636877187847,
+       "hi": -15.337923429077986,
+       "n": 698,
+       "clusters": 92,
+       "pass": false
+      }
+     },
+     "pass": false
+    },
+    "G3": {
+     "heads": {
+      "R": {
+       "est": 0.8008056017325734,
+       "lo": 0.22264573219992512,
+       "hi": 1.3789654712652217,
+       "n": 698,
+       "a": 1.1660958732617381,
+       "pass": true
+      },
+      "B": {
+       "est": 0.8717117915866371,
+       "lo": 0.6291877991429025,
+       "hi": 1.1142357840303718,
+       "n": 586,
+       "a": 0.18124151486872986,
+       "pass": true
+      }
+     },
+     "pass": true
+    },
+    "passed": false
+   },
+   "fallback_g2": false,
+   "state_at_switch": "HIST"
+  },
+  "T15": {
+   "case": "B",
+   "gates": {
+    "n": 564,
+    "G0": {
+     "n": 564,
+     "pass": true
+    },
+    "G1": {
+     "ll_excess_est": 0.0585385998555081,
+     "ll_excess_hi": 0.0841962567441219,
+     "pass": false
+    },
+    "G2": {
+     "outcomes": {
+      "BREAK": {
+       "est": 8.458708400941747,
+       "lo": 5.15175921977464,
+       "hi": 11.765657582108854,
+       "n": 564,
+       "clusters": 92,
+       "pass": false
+      },
+      "REJECT": {
+       "est": 7.202094613201543,
+       "lo": 3.357601253556066,
+       "hi": 11.04658797284702,
+       "n": 564,
+       "clusters": 92,
+       "pass": false
+      },
+      "NEITHER": {
+       "est": -15.660803014143287,
+       "lo": -19.55393524399182,
+       "hi": -11.767670784294754,
+       "n": 564,
+       "clusters": 92,
+       "pass": false
+      }
+     },
+     "pass": false
+    },
+    "G3": {
+     "heads": {
+      "R": {
+       "est": 1.2403039461770502,
+       "lo": 0.6358522745945578,
+       "hi": 1.8447556177595426,
+       "n": 564,
+       "a": 0.691460978037547,
+       "pass": true
+      },
+      "B": {
+       "est": 0.8488645638444944,
+       "lo": 0.6453524622989925,
+       "hi": 1.0523766653899962,
+       "n": 452,
+       "a": 0.10213505260304963,
+       "pass": true
+      }
+     },
+     "pass": true
+    },
+    "passed": false
+   },
+   "fallback_g2": false,
+   "state_at_switch": "HIST"
+  }
+ },
+ "calibrator_versions": [
+  "LEVEL_RACE_CAL_V1:e31211aabb566e5b",
+  "LEVEL_RACE_CAL_V1:d9a6fec53ddba293",
+  "LEVEL_RACE_CAL_V1:fd2df6ad43de4abd",
+  "LEVEL_RACE_CAL_V1:93fee51648e69b14",
+  "LEVEL_RACE_CAL_V1:3f4d6d364527d449",
+  "LEVEL_RACE_CAL_V1:33e1e57709af8102",
+  "LEVEL_RACE_CAL_V1:8616c366c51a520f",
+  "LEVEL_RACE_CAL_V1:f24019ed92a1cc89",
+  "LEVEL_RACE_CAL_V1:f8e3000cd7ef9174",
+  "LEVEL_RACE_CAL_V1:d9ee4bd87c085f9a",
+  "LEVEL_RACE_CAL_V1:d3113605462d5b3d",
+  "LEVEL_RACE_CAL_V1:287ee2ba338b0941",
+  "LEVEL_RACE_CAL_V1:f8ec53b879096b34",
+  "LEVEL_RACE_CAL_V1:29538574cbd28421",
+  "LEVEL_RACE_CAL_V1:ffb92fd9d0637cdb",
+  "LEVEL_RACE_CAL_V1:66cc7e774c8af3a8",
+  "LEVEL_RACE_CAL_V1:62fe4cb48e617be6",
+  "LEVEL_RACE_CAL_V1:d62b205559e4274d",
+  "LEVEL_RACE_CAL_V1:85d5796a0058b029",
+  "LEVEL_RACE_CAL_V1:9c18782f93f0c1ea",
+  "LEVEL_RACE_CAL_V1:9c251d469e03b8b2",
+  "LEVEL_RACE_CAL_V1:2dc42b25ae410a24",
+  "LEVEL_RACE_CAL_V1:a77506b1e3067e38",
+  "LEVEL_RACE_CAL_V1:3f7492e7ca969686",
+  "LEVEL_RACE_CAL_V1:34f839001447eabe",
+  "LEVEL_RACE_CAL_V1:48e7ca2a786be9b4",
+  "LEVEL_RACE_CAL_V1:01c8773d3680e9af",
+  "LEVEL_RACE_CAL_V1:02557ccda6534ea8",
+  "LEVEL_RACE_CAL_V1:4b3cf5fc13bdfeb0",
+  "LEVEL_RACE_CAL_V1:22ac1b89197a683a",
+  "LEVEL_RACE_CAL_V1:4847a04716c0d1f9",
+  "LEVEL_RACE_CAL_V1:da90eaddb221c501"
+ ],
+ "freeze_date": "2026-10-09",
+ "model_file_sha256": "454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a",
+ "objects": [
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-12.zip",
+   "sha256": "261ced4d4a389f680ae730c53ba82b42f97f656b630352713e2d7fd738f57b8c"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-01.zip",
+   "sha256": "0c99422d64fa3cc58564cf77969fc5a96d6f44783c79ecfcf94b103753bf7570"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-02.zip",
+   "sha256": "fdd6fb92b75bae5c02dd583b5be44ca6673d1807ce4b0c08160d3c5cf7677a46"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-03.zip",
+   "sha256": "46f83773b9cec38a09be429727a5a300ccca6d11c8e8ca5fa9545fad6eda131f"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-04.zip",
+   "sha256": "9eda69fd858e9ced7e72cfbb75bffe34458763c37c8ee73910e572b4baba21ed"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-05.zip",
+   "sha256": "073da284f178e72777abbfbcf79faa99fcf77bd69c4a678938abbf6cd7d14f5b"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-06.zip",
+   "sha256": "da39c04e24a90c87406b9030e1aaf376655ad59d4bc0496f38e4162a9babf514"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-07.zip",
+   "sha256": "2cea4750d51d9c064d674ec8d0d8d1f39448960284272fdc74698562c873bf0f"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-08.zip",
+   "sha256": "7f78f6f88ae1946f8bd8312a37d1d74b24e24d6b13bc37d2909ad7c8c0c7e9ae"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-09.zip",
+   "sha256": "dbfb8bc2f9343107c7a702acd6919d77060a8f7ea4b25359c71e5fc018a85209"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-10.zip",
+   "sha256": "fab262ca4318f8f65164ae33a020458439adc6f7bc2e59bbfce1886118d05a48"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-11.zip",
+   "sha256": "2759d4be0fe68cc2be3d4d91940fcd95abc69f0c31f25d0b6cb5e0629c625d2d"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-12.zip",
+   "sha256": "0e923a3d2ac4f6711d8c841220f4e5d2e479c1bdb40b41515eb250e16808304f"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-01.zip",
+   "sha256": "c092f3b26036f203bb5b11c28958574aa8501315ed26dd0f8c017051b9fb3abf"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-02.zip",
+   "sha256": "8be83befce2cd9bf0959c872d91108debd03e1b51a451bac3a56b8ddca196bb4"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-03.zip",
+   "sha256": "0302ccef9b3e5e38c35bc8667a1e890138c9136e89145688220eea99b748200e"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-04.zip",
+   "sha256": "e2934467bdb6a000124948f4c8fef176e2066520a6b2e5a0522450fed51396f7"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-05.zip",
+   "sha256": "b1a73378796bb62084c32ca5865903beeaf87d521d950d5e7776343f682dea93"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-06.zip",
+   "sha256": "782c555963c852ca768335de21d5743147e5d50bff449600f8fceb9ebe5273de"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip",
+   "sha256": "ec750f7aa69c8f842fa1464a90ad4aa92452cfa767df9e8d70dc484e466c8fc3"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-01.zip",
+   "sha256": "d07b32bbaa249ad07540bc73b808c1f45a74a36445e8512ea1f57abe22fdb49c"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-02.zip",
+   "sha256": "3f850c16896eba7daf9e83b616b6df519e1149efd47b3b42624d06d8076d4b39"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-03.zip",
+   "sha256": "b5e7fab121b19840a3ccfbb62e064336fa64cc611c3ce58da171c967b495bb8c"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-04.zip",
+   "sha256": "a89e2a13d7604fb55f14859071363daa7b2b754dc9a0503643ddf36d9c9bd323"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-05.zip",
+   "sha256": "bda279fb494c6534255ad23b93a2e30018aac4b2ec8a6658489130588a9eb2f6"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-06.zip",
+   "sha256": "64067df14037319d68c4a7d6bfe037b9cb632a49dfd39b0ab3eda387118cf2e2"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-07.zip",
+   "sha256": "4eecd95d52cf51335d2ab44ad5a3b085269e9340c0f160e7ad5088fbe14898fc"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-08.zip",
+   "sha256": "ba7a4e9679ba8aa565cea7cf8159c2b076f7a65766728d4b48f23d1b2514cc28"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-09.zip",
+   "sha256": "400e2f0244bdd67ac64bfde0eecd94a09b313ce01d5afedb2a51f89f35f8ed18"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-10.zip",
+   "sha256": "8184e5264d3bcda36847f79548d116590d03bbf4e85ce0b069f6a3b73ed7c14a"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-11.zip",
+   "sha256": "65b94ec61951197b77762e688afa9913d19f9e1e08c93add1d0c7f0173dd48f3"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-12.zip",
+   "sha256": "8582cebd03e59051a36e780e277a294408f4528fd868a1048df2cb762c4b61ef"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-13.zip",
+   "sha256": "54ad0f9b43fc43102dd4d95a1964d9af055eab8f3b62263af7b132c7f6fe649e"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-14.zip",
+   "sha256": "2e170fc298efc41c49c63a698b3d092beaf5212da77b81b8b631487a4a618a7c"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-15.zip",
+   "sha256": "04613f05d81f97c9b1c9c156f3f8a592d4015c330baae062b8c784701877f3bc"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-26.zip",
+   "sha256": "08a0bbfdddb52ac0d99e93f25d91e94c8251ba73b5c3465a7068209a5f25b15c"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-27.zip",
+   "sha256": "1ad16ed0ab6b4b7c86f35c58a4153a5a042c714873a819adb10ff4cc3da6fae2"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-28.zip",
+   "sha256": "2b3af9b3a8a5ec161724d2af10948d7b578ec5db3be1a423f985e3aed49c1911"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-29.zip",
+   "sha256": "9e50c86802628a470f20ca6dd9e7203a968a7d6b8cfb9944326fac6eae17d476"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-30.zip",
+   "sha256": "e491a57d5f5cb40bd41f73d320b15e4ef69f52ab58097d135753b4d0384ef0ef"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-31.zip",
+   "sha256": "7d056a4c6317ec0903ba027f9ae58473baca2a0f32a9e0f941f07ada166086ae"
+  },
+  {
+   "key": "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip",
+   "sha256": "3a2d163a2bd28ca614fa0840a92ecbcde0d9c4962b278dd619d5bf81a9918e26"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-01.zip",
+   "sha256": "10cd0734819af381d7cd032c84ba4a9a080a57bba1f97e8e71d45a16f27b067e"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip",
+   "sha256": "2a492563746eba6c3689b90c00a081bfce3ceab86a06493e80f22c4d55e8c7ea"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-03.zip",
+   "sha256": "fccefc7f641f37118ba60b6890590da2600db284383815e157ae51f9d743f630"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-04.zip",
+   "sha256": "c97345f772ec5dd965c0d87c2b32c17a7652ba3820a8eaa99371f83c79f2e487"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-05.zip",
+   "sha256": "53154ab4fc649a2fe3bf13357fea7b3d2aede3ce47fff2f5dcbc4f6c7c1c1294"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-06.zip",
+   "sha256": "dea89e33c0ea6df7b9ccb3ff6e0a087cc2c8ebcde55b3bde4c41694399899117"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-07.zip",
+   "sha256": "2d622f67e9a9d5eba0449c01b79191877a6e4494bc4f7206c5f59d4b917858b0"
+  },
+  {
+   "key": "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-08.zip",
+   "sha256": "9963f007248198e8dc3d975e7d1bfe80eff702eb130babf0efc2dfe3ea8859fe"
+  }
+ ],
+ "refused": [
+  "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-16.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-17.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-18.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-19.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-20.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-21.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-22.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-23.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-24.zip",
+  "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-25.zip"
+ ]
+}
