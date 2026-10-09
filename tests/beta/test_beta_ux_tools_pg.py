@@ -123,15 +123,34 @@ def test_gallery_is_one_self_contained_page_of_real_and_synthetic_states():
                        "payload": {"at": "2026-10-09T10:05:00+00:00", "price": 62000.0, "level": 62010.0,
                                    "level_kind": "PDH", "member": {"kind": "PDH"}}}],
            "pushes": []}
-    states = real_states(doc) + synthetic_states(2)
+    states = real_states(doc) + synthetic_states()
     page = build(states)
     assert page.startswith("<!doctype html>") and "<script src" not in page and "<link" not in page
-    assert "REAL · view btc · 2026-10-09T10:00:00+00:00" in page and "REAL · alert level" in page
-    assert page.count("SYNTHETIC · tools/beta_user_sim") == 2
-    assert "data-l='btc-1'" in page and "data-l='btc-2'" in page and "data-l='btc-3'" in page
-    assert "data-l='levels-1'" in page and "data-l='level-1'" in page and "render failed" not in page
-    assert ">RU<" in page and ">EN<" in page and "col narrow" in page and "col wide" in page
+    assert "R01 · REAL · view btc · 2026-10-09T10:00:00+00:00" in page and "R02 · REAL · alert level" in page
+    assert page.count("<section class='state'") == 20 and "render failed" not in page
+    assert "<ul class='toc'>" in page and "href='#S07-btc-L2-ru'" in page          # contents: state × screen
+    assert "id='S07-btc-L2-ru'" in page and "id='S07-btc-L2-ru-wide'" in page      # stable ids, both widths
+    for screen in ("btc", "levels", "level_card", "hour", "level", "move", "brief"):  # coverage
+        assert f"-{screen}-L1-ru'" in page, screen
+    assert ">RU · narrow<" in page and ">EN · wide<" in page and "col narrow" in page and "col wide" in page
     assert "onclick=\"show(" in page
+
+
+def test_the_18_named_states_have_levels_and_visibly_different_l1():
+    import re
+    from beta.ux import render
+    from tools.ux_gallery.states import named_states
+    states = named_states()
+    assert [sid for sid, _n, _s in states] == [f"S{i:02d}" for i in range(1, 19)]
+    l1 = set()
+    for sid, name, screens in states:
+        if name != "stale data":                                              # stale: no levels by design
+            assert screens["btc"]["levels"]["above"] and screens["btc"]["levels"]["below"], sid
+            assert "level_card" in screens, sid
+        html_text, buttons = render("btc", 1, "ru", screens["btc"])
+        assert all(d.startswith("ux:") for row in buttons for _l, d in row)
+        l1.add(re.sub(r"<[^>]+>", "", html_text))
+    assert len(l1) >= 15
 
 
 def test_the_preview_uses_track_as_renderer_and_no_stub():

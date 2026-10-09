@@ -37,8 +37,7 @@ async def live_facts(conn, cfg: BetaConfig, screen: str, *, now: datetime) -> Op
                                 window_hours=BRIEF_WINDOW_HOURS if kind == "brief" else None,
                                 maturity_days=maturity_days(cfg),
                                 d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
-        f = from_view(_plain(view))
-        return card_facts(f) if screen == "level_card" else f
+        return from_view(_plain(view))
     if screen in ("level", "move"):
         row = await conn.conn.fetchrow("SELECT payload FROM beta_market_alerts WHERE kind = $1 "
                                        "ORDER BY alert_pk DESC LIMIT 1", screen)
@@ -53,13 +52,6 @@ async def live_facts(conn, cfg: BetaConfig, screen: str, *, now: datetime) -> Op
         at = getattr(ep, "triggered_at", None)
         return from_hour_gate(at.isoformat() if at else None, _plain(row["gate"]))
     raise ValueError(screen)
-
-
-def card_facts(f: dict) -> Optional[dict]:
-    """`level_card` shows one level: the one price is at, else the nearest above, else the nearest below."""
-    lv = f.get("levels") or {}
-    z = lv.get("at") or next((x for x in (lv.get("above") or []) + (lv.get("below") or []) if x), None)
-    return None if z is None else {**f, "zone": z}
 
 
 async def render_v2(conn, cfg: BetaConfig, screen: str, level: int, *, now: datetime,
