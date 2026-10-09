@@ -1,0 +1,153 @@
+{
+  "analysis_n": 61016,
+  "bootstrap": {
+    "primary": {
+      "draws": 2000,
+      "hi": -0.021199227878033276,
+      "lo": -0.0451282598216187,
+      "valid": 2000
+    },
+    "raw": {
+      "draws": 2000,
+      "hi": -0.031193009512288403,
+      "lo": -0.052616152253205005,
+      "valid": 2000
+    },
+    "robustness": {
+      "draws": 2000,
+      "hi": -0.00801082720840069,
+      "lo": -0.033106219907940125,
+      "valid": 2000
+    },
+    "secondary": {
+      "draws": 2000,
+      "hi": -0.02086059974775955,
+      "lo": -0.04503230750583691,
+      "valid": 2000
+    }
+  },
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261119,
+  "claim_ceiling": "HISTORICAL_ONLY",
+  "current_probability": false,
+  "design_json_sha256": "9109486ebd3d128b64820fdfb0b5c764c6eacad98ed6c150454733a41ed5930e",
+  "design_sha256": "9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370",
+  "e1_objects_requested": false,
+  "evaluator_digest": "51d8aa6beccaa89dab428df9688268f84a2199311f985c84fd76fac90e2fb19b",
+  "evidence_class": "MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION",
+  "first_t": "2025-01-01T04:15:00Z",
+  "forecast_engine_prototype_started": false,
+  "grid_slots": 186048,
+  "halves": {
+    "first": {
+      "n": 30508,
+      "primary": -0.03252208012281968,
+      "primary_degenerate": false,
+      "raw": -0.027851554510744038
+    },
+    "median_t": "2025-11-14T23:07:30Z",
+    "median_t_ms": 1763161650000.0,
+    "second": {
+      "n": 30508,
+      "primary": -0.035369351385318895,
+      "primary_degenerate": false,
+      "raw": -0.056510754686468365
+    }
+  },
+  "historical_only": true,
+  "holes": 2880,
+  "iso_weeks": 92,
+  "last_t": "2026-10-08T23:00:00Z",
+  "lost_to_future": 3,
+  "lost_to_lookback": 16,
+  "lost_to_object_hole": 980,
+  "modern_temporal_generalization_established": true,
+  "objects_sha256": "6f659f541440ff60469cf1f8e4c78aaa5b3eaf81b1e73951bcf765b7ab074138",
+  "occupied_bars": 183168,
+  "phase_anchors": 62015,
+  "primary_degenerate": false,
+  "primary_partial": -0.03309209419731298,
+  "product_code_changed": false,
+  "product_integration_candidate": false,
+  "quintiles": {
+    "bins": [
+      {
+        "bin": 1,
+        "mean_return": 1.1206445054994656e-05,
+        "median_return": 0.00026205900815149254,
+        "n": 12203,
+        "p_up": 0.5368352044579202
+      },
+      {
+        "bin": 2,
+        "mean_return": 7.243336441918186e-06,
+        "median_return": 8.500555197629927e-05,
+        "n": 12203,
+        "p_up": 0.515528968286487
+      },
+      {
+        "bin": 3,
+        "mean_return": -3.2042272457695974e-05,
+        "median_return": 4.3812224318565405e-05,
+        "n": 12203,
+        "p_up": 0.5064328443825289
+      },
+      {
+        "bin": 4,
+        "mean_return": 4.163010941687828e-05,
+        "median_return": -3.361401032262612e-05,
+        "n": 12203,
+        "p_up": 0.4943046791772515
+      },
+      {
+        "bin": 5,
+        "mean_return": -0.00014592312253473733,
+        "median_return": -0.00024147177692521692,
+        "n": 12204,
+        "p_up": 0.4615699770567027
+      }
+    ],
+    "degenerate": false,
+    "edges": [
+      0.22302230223022432,
+      0.4191764705882387,
+      0.6167131891137505,
+      0.7966841186736662
+    ]
+  },
+  "raw_spearman": -0.04168262293182324,
+  "robustness_degenerate": false,
+  "robustness_partial": -0.02085933430182763,
+  "route": "RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED",
+  "secondary_matches_canonical": true,
+  "secondary_partial_ret": -0.03288914371736288,
+  "series": "docs/research_data/RANGE_POSITION_4H_BINANCE_2025_2026_V1/canonical_5m.jsonl.gz",
+  "series_sha256": "64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9",
+  "support_sha256": "84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab",
+  "target_hit_model": false,
+  "trading_edge": false,
+  "unit": "RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1",
+  "width_partial": -0.033073950353106785,
+  "width_partial_degenerate": false,
+  "width_spearman_with_rp": -0.004880478401809054,
+  "yearly": [
+    {
+      "n": 35023,
+      "primary": -0.03326947330151814,
+      "primary_degenerate": false,
+      "raw": -0.028810664582233716,
+      "year": 2025
+    },
+    {
+      "n": 25993,
+      "primary": -0.03478418747029193,
+      "primary_degenerate": false,
+      "raw": -0.06047527336455901,
+      "year": 2026
+    }
+  ],
+  "years_present": [
+    2025,
+    2026
+  ]
+}

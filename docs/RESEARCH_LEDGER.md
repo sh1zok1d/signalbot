@@ -8999,6 +8999,27 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 one Binance read
+
+**Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. The surface had already been opened for other product questions. This relation had not. It is not a pristine holdout. Design commit `ba2f9a2177f3869742dd72446340c8af223c061e`. Design SHA256 `9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370`. Support SHA256 `84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab`. Evaluator digest `51d8aa6beccaa89dab428df9688268f84a2199311f985c84fd76fac90e2fb19b`. A second read returns `REFUSING_RERUN`.
+- **Sample.** Binance USD-M BTCUSDT 5m, series SHA256 `64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9`. Object ledger SHA256 `6f659f541440ff60469cf1f8e4c78aaa5b3eaf81b1e73951bcf765b7ab074138`. 49 objects verified, none missing. Holes `2880`, the refused August object span only. Analysis N `61016`, ISO weeks `92`, phase anchors `62015`. Lost to the object hole `980`, of which `953` also touch the strict E1 timestamp window. Lost to incomplete lookback `16`. Lost to incomplete future `3`. `T` from `2025-01-01T04:15:00Z` through `2026-10-08T23:00:00Z`.
+- **E1.** `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)` was not requested. The August 2026 monthly object and the ten daily objects `2026-08-16` through `2026-08-25` were refused before any fetch. The stored hole is `2026-08-16T00:00:00Z` through `2026-08-25T23:55:00Z`.
+- **Raw.** Spearman `-0.04168262293182324`. Interval `[-0.052616152253205005, -0.031193009512288403]`. 2000/2000 draws. Seed `20261119`.
+- **RET only.** Partial `-0.03288914371736288`. Interval `[-0.04503230750583691, -0.02086059974775955]`. Not a route input. Canonical one-covariate helper matches.
+- **Primary.** Partial given `RET_4H` and `RV_4H` `-0.03309209419731298`. Interval `[-0.0451282598216187, -0.021199227878033276]`.
+- **Robustness.** Partial given `RET_4H`, `RV_4H`, `RET_1H` and `RET_15M` `-0.02085933430182763`. Interval `[-0.033106219907940125, -0.00801082720840069]`. Not a route input.
+- **Route.** `RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED`. Modern temporal generalization of the frozen object is established on this tape. Scientific status stays `CROSS_VENUE_AND_TEMPORALLY_REPLICATED_DIRECTIONAL_STATE` / `HISTORICAL_ONLY`.
+- **Description.** 2025 N `35023`, raw `-0.028810664582233716`, primary `-0.03326947330151814`. 2026 N `25993`, raw `-0.06047527336455901`, primary `-0.03478418747029193`. Median-T split `2025-11-14T23:07:30Z`: first N `30508`, raw `-0.027851554510744038`, primary `-0.03252208012281968`; second N `30508`, raw `-0.056510754686468365`, primary `-0.035369351385318895`. Quintile P(UP) falls from `0.5368352044579202` to `0.4615699770567027`. Quintile means are not monotone. Quintiles do not route. Width Spearman with position `-0.004880478401809054`. Width partial `-0.033073950353106785`. Diagnostic only.
+- **Comparison, not pooled.** BitMEX primary `-0.04742832892681095`. Bybit primary `-0.02784152009582924`. Binance 2020–2024 discovery raw only `-0.057773446228651215`; that scan did not estimate this primary partial. The sign is negative on every reported point. The modern primary sits between the Bybit and BitMEX primaries. The modern raw is smaller in magnitude than the discovery raw, the Bybit raw, and the BitMEX raw. 2026 raw is larger in magnitude than 2025 raw; the two primary points are close. No single period carries the sign alone. No regime explanation is inferred from these points.
+- **Not read.** Rejection, bars-since, a second horizon, fees, the E1 holdout. `PRODUCT_INTEGRATION_CANDIDATE = NO`. Not a current probability, not a target-hit model, not a trading edge. A forecast-engine prototype was not started.
+- **Next.** Not executed. The next scientific question is the owner decision on whether to leave `FIND_DIRECTIONAL_EDGE` for the first `FORECAST_ENGINE_PROTOTYPE`.
+
+```
+WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT further use of 2025-2026 5m high, low, close and the next 1h log return for PRICE_STRUCTURE.impulse; the refused August span left missing
+OUTCOME_READ = yes; ROUTE = RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED; CONFIRMATION_OF_A_TRADE = no
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 design and support frozen
 
 **Mode.** Outcome-blind freeze of one modern-time replication. `outcome_read = false`. Evidence class `MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. The 2025–2026 product surface has been used for other questions. This relation was not among them. It is not a pristine holdout.
