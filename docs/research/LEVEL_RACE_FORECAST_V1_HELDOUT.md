@@ -48,7 +48,7 @@ Generic stream: 60 919 rows (hourly anchors × 4 pairs) feed the calibrator.
 ## Interpretation (not a claim)
 
 - **B0 vs M1 against the development record.** On held-out level events, raw B0 is close to M1 at both landmarks. The development gain of +0.034 / +0.020 nats (T0 / T15) did not reappear beyond its interval.
-- **Generic stream.** The generic-stream model G1 on level geometry is worse than B0 at both landmarks, as in development. The fallback under-predicts resolution at structural first touches: the NEITHER CITL is −19 / −16 pp, near the development diagnostic of −12.6 pp.
+- **Generic stream.** The generic-stream model G1 on level geometry is worse than B0 at both landmarks, as in development. The fallback under-predicts resolution at structural first touches: the NEITHER CITL is −19 / −16 pp, near the development diagnostic of −12.6 pp. This is a calibration gap of the generic fallback on level events; it is not a level-offset claim (§6b requires M1 to beat B0 and G1@event).
 - **M1 over G1@event.** M1 still beats G1@event at T0, but by the frozen rule that does not make case A.
 - **Level offset.** No level offset is claimed, internally or in text.
 - **Display.** The model states would not display at either landmark. The Day-0 history line (HIST V1) stays the display.
@@ -62,7 +62,9 @@ None. Level offset not claimed (§11b). No L3 state is reached; `level_race.mode
 - The surface was already exposed (class B).
 - The week-clustered intervals rest on 92 clusters.
 - The case decision was made on raw outputs, and the gates on the published fallback.
-- 2025/2026 differs from the 2020–2024 development era in volatility regime; no era adjustment was made, by design.
+- T15 is nested in T0: the same events with nested windows, so the two landmarks are not independent evidence.
+- One held-out surface; the E1-RUN-001 holdout is excluded; 2 AMBIGUOUS T0 events.
+- No era adjustment was made, by design.
 - The generic stream is a calibration feed only.
 
 ## Search exposure

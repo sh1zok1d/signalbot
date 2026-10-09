@@ -842,6 +842,14 @@ findings:
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: []
     priority: 50
+  - id: LEVEL-RACE-V1
+    status: NOT_CONFIRMED
+    text_ru: "модель «кто первый» у уровня на 2025-01…2026-10-08 почти не отличалась от простой геометрии (T0 +0,010 [−0,018; +0,038] нат, T15 −0,000); эффект уровня не заявлен, строка остаётся историей 2020–2024"
+    text_en: "the level race model on 2025-01..2026-10-08 was about equal to the plain geometry baseline (T0 +0.010 [−0.018, +0.038] nats, T15 −0.000); no level effect is claimed, the line stays the 2020–2024 history"
+    data: "Binance BTCUSDT 2025-01…2026-10-08 без отложенного окна E1, 698 касаний (T0), 564 (T15); T15 вложен в T0"
+    record: "docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.md"
+    contexts: [level]
+    priority: 50
 
   # ---- the hypothesis failed, the record states something else ---------------------------------
   - id: H01
