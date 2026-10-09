@@ -1,0 +1,439 @@
+{
+  "amendment": "A2",
+  "amendment_a2_scope": "BINANCE_2025_2026 data source only",
+  "binance_2025_2026_excluded_open_interval": [
+    "2026-08-02T00:00:00Z",
+    "2026-08-26T00:00:00Z"
+  ],
+  "binance_2025_2026_manifest": "docs/research_data/RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0/MANIFEST.json",
+  "binance_2025_2026_mask_equals_unit_b_sample": true,
+  "binance_2025_2026_object_list_sha256": "5369e8dc265ada989fa048fd49e8d694a2478e69916338223fe118f0dd0db621",
+  "binance_2025_2026_source": "scripts.research.rp4h_binance_2025_2026_temporal_v1 (Unit B canonical surface)",
+  "binance_2025_2026_unit_b_census": {
+    "holes": 6912,
+    "holes_e1_refused_day_tail": 80,
+    "holes_in_e1_development_slice": 4032,
+    "holes_in_e1_window": 2800,
+    "holes_other": 0,
+    "holes_sha256": "7217c65f26284833eb0b95ab9d766bc16e27a70ec785df7ce44f152fcf474090",
+    "rows": 179136
+  },
+  "binance_2025_2026_unit_b_sample_rows": 59672,
+  "bitmex_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "brier_computed": false,
+  "bybit_included": false,
+  "census_runtime": {
+    "numpy": "2.1.3",
+    "pandas": "2.2.3",
+    "python": "3.11.17"
+  },
+  "coefficients_computed": false,
+  "core_snapshot": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "e1_development_slice_requested": false,
+  "e1_objects_requested": false,
+  "fold_clock_runtime_check": "PASSED",
+  "grids_stitched": false,
+  "label_availability": {
+    "bar_ms": 300000,
+    "blocks_checked": 1082,
+    "horizon": 12,
+    "label_lag_ms": 3600000,
+    "max_n_excluded_by_label_lag": 3,
+    "max_train_label_available_at_le_block_start": true,
+    "rule": "T + HORIZON * BAR_MS <= block_start",
+    "violations": 0
+  },
+  "logloss_computed": false,
+  "model_metrics_computed": false,
+  "p_up_computed": false,
+  "parent_a1_comparison": {
+    "BINANCE_2020_2024": {
+      "changed_count_keys": [],
+      "counts": {
+        "first_labeled_t": {
+          "a1": "2020-01-01T04:15:00Z",
+          "a2": "2020-01-01T04:15:00Z"
+        },
+        "hourly_labeled": {
+          "a1": 43830,
+          "a2": 43830
+        },
+        "hourly_test_rows": {
+          "a1": 40523,
+          "a2": 40523
+        },
+        "hourly_test_weeks": {
+          "a1": 242,
+          "a2": 242
+        },
+        "labeled_by_calendar_year": {
+          "a1": {
+            "2020": 35111,
+            "2021": 35040,
+            "2022": 35020,
+            "2023": 35013,
+            "2024": 35125
+          },
+          "a2": {
+            "2020": 35111,
+            "2021": 35040,
+            "2022": 35020,
+            "2023": 35013,
+            "2024": 35125
+          }
+        },
+        "last_labeled_t": {
+          "a1": "2024-12-31T23:00:00Z",
+          "a2": "2024-12-31T23:00:00Z"
+        },
+        "n_exact_zero_excluded": {
+          "a1": 63,
+          "a2": 63
+        },
+        "n_feature_eligible": {
+          "a1": 175372,
+          "a2": 175372
+        },
+        "n_labeled": {
+          "a1": 175309,
+          "a2": 175309
+        },
+        "primary_test_rows": {
+          "a1": 162084,
+          "a2": 162084
+        },
+        "primary_test_weeks": {
+          "a1": 242,
+          "a2": 242
+        },
+        "primary_warmup_rows": {
+          "a1": 13225,
+          "a2": 13225
+        },
+        "primary_warmup_weeks": {
+          "a1": 20,
+          "a2": 20
+        }
+      },
+      "primary_15m": {
+        "fold_schedule_identical": true,
+        "test_weeks_only_in_a1": [],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [],
+        "test_weeks_with_changed_n_train": 0
+      },
+      "secondary_hourly": {
+        "fold_schedule_identical": true,
+        "test_weeks_only_in_a1": [],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [],
+        "test_weeks_with_changed_n_train": 0
+      }
+    },
+    "BINANCE_2025_2026": {
+      "changed_count_keys": [
+        "hourly_labeled",
+        "hourly_test_rows",
+        "hourly_test_weeks",
+        "labeled_by_calendar_year",
+        "n_exact_zero_excluded",
+        "n_feature_eligible",
+        "n_labeled",
+        "primary_test_rows",
+        "primary_test_weeks"
+      ],
+      "counts": {
+        "first_labeled_t": {
+          "a1": "2025-01-01T04:15:00Z",
+          "a2": "2025-01-01T04:15:00Z"
+        },
+        "hourly_labeled": {
+          "a1": 15252,
+          "a2": 14916
+        },
+        "hourly_test_rows": {
+          "a1": 15252,
+          "a2": 14916
+        },
+        "hourly_test_weeks": {
+          "a1": 92,
+          "a2": 90
+        },
+        "labeled_by_calendar_year": {
+          "a1": {
+            "2025": 35014,
+            "2026": 25985
+          },
+          "a2": {
+            "2025": 35014,
+            "2026": 24643
+          }
+        },
+        "last_labeled_t": {
+          "a1": "2026-10-08T23:00:00Z",
+          "a2": "2026-10-08T23:00:00Z"
+        },
+        "n_exact_zero_excluded": {
+          "a1": 17,
+          "a2": 15
+        },
+        "n_feature_eligible": {
+          "a1": 61016,
+          "a2": 59672
+        },
+        "n_labeled": {
+          "a1": 60999,
+          "a2": 59657
+        },
+        "primary_test_rows": {
+          "a1": 60999,
+          "a2": 59657
+        },
+        "primary_test_weeks": {
+          "a1": 92,
+          "a2": 90
+        },
+        "primary_warmup_rows": {
+          "a1": 0,
+          "a2": 0
+        },
+        "primary_warmup_weeks": {
+          "a1": 0,
+          "a2": 0
+        }
+      },
+      "primary_15m": {
+        "fold_schedule_identical": false,
+        "test_weeks_only_in_a1": [
+          "2026-W32",
+          "2026-W33"
+        ],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [
+          "2026-W31"
+        ],
+        "test_weeks_with_changed_n_train": 7
+      },
+      "secondary_hourly": {
+        "fold_schedule_identical": false,
+        "test_weeks_only_in_a1": [
+          "2026-W32",
+          "2026-W33"
+        ],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [
+          "2026-W31"
+        ],
+        "test_weeks_with_changed_n_train": 7
+      }
+    },
+    "BITMEX_2016_2019": {
+      "changed_count_keys": [],
+      "counts": {
+        "first_labeled_t": {
+          "a1": "2016-05-13T16:00:00Z",
+          "a2": "2016-05-13T16:00:00Z"
+        },
+        "hourly_labeled": {
+          "a1": 31510,
+          "a2": 31510
+        },
+        "hourly_test_rows": {
+          "a1": 28323,
+          "a2": 28323
+        },
+        "hourly_test_weeks": {
+          "a1": 171,
+          "a2": 171
+        },
+        "labeled_by_calendar_year": {
+          "a1": {
+            "2016": 21835,
+            "2017": 34932,
+            "2018": 34599,
+            "2019": 34617
+          },
+          "a2": {
+            "2016": 21835,
+            "2017": 34932,
+            "2018": 34599,
+            "2019": 34617
+          }
+        },
+        "last_labeled_t": {
+          "a1": "2019-12-31T23:00:00Z",
+          "a2": "2019-12-31T23:00:00Z"
+        },
+        "n_exact_zero_excluded": {
+          "a1": 1320,
+          "a2": 1320
+        },
+        "n_feature_eligible": {
+          "a1": 127303,
+          "a2": 127303
+        },
+        "n_labeled": {
+          "a1": 125983,
+          "a2": 125983
+        },
+        "primary_test_rows": {
+          "a1": 113210,
+          "a2": 113210
+        },
+        "primary_test_weeks": {
+          "a1": 171,
+          "a2": 171
+        },
+        "primary_warmup_rows": {
+          "a1": 12773,
+          "a2": 12773
+        },
+        "primary_warmup_weeks": {
+          "a1": 20,
+          "a2": 20
+        }
+      },
+      "primary_15m": {
+        "fold_schedule_identical": true,
+        "test_weeks_only_in_a1": [],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [],
+        "test_weeks_with_changed_n_train": 0
+      },
+      "secondary_hourly": {
+        "fold_schedule_identical": true,
+        "test_weeks_only_in_a1": [],
+        "test_weeks_only_in_a2": [],
+        "test_weeks_with_changed_n_test": [],
+        "test_weeks_with_changed_n_train": 0
+      }
+    }
+  },
+  "parent_binance_2025_2026_file_read": false,
+  "parent_unit": "RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1",
+  "probabilities_computed": false,
+  "segments": {
+    "BINANCE_2020_2024": {
+      "first_labeled_t": "2020-01-01T04:15:00Z",
+      "first_test": {
+        "block_start": "2020-05-18T00:00:00Z",
+        "iso_week": 21,
+        "iso_year": 2020,
+        "n_train": 13222,
+        "n_train_weeks": 20
+      },
+      "hourly_first_test": {
+        "block_start": "2020-05-18T00:00:00Z",
+        "iso_week": 21,
+        "iso_year": 2020,
+        "n_train": 3307,
+        "n_train_weeks": 20
+      },
+      "hourly_labeled": 43830,
+      "hourly_test_rows": 40523,
+      "hourly_test_weeks": 242,
+      "labeled_by_calendar_year": {
+        "2020": 35111,
+        "2021": 35040,
+        "2022": 35020,
+        "2023": 35013,
+        "2024": 35125
+      },
+      "last_labeled_t": "2024-12-31T23:00:00Z",
+      "last_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_test": 189
+      },
+      "n_exact_zero_excluded": 63,
+      "n_feature_eligible": 175372,
+      "n_labeled": 175309,
+      "primary_test_rows": 162084,
+      "primary_test_weeks": 242,
+      "primary_warmup_rows": 13225,
+      "primary_warmup_weeks": 20
+    },
+    "BINANCE_2025_2026": {
+      "first_labeled_t": "2025-01-01T04:15:00Z",
+      "first_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_train": 175117,
+        "n_train_weeks": 261
+      },
+      "hourly_first_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_train": 43782,
+        "n_train_weeks": 261
+      },
+      "hourly_labeled": 14916,
+      "hourly_test_rows": 14916,
+      "hourly_test_weeks": 90,
+      "labeled_by_calendar_year": {
+        "2025": 35014,
+        "2026": 24643
+      },
+      "last_labeled_t": "2026-10-08T23:00:00Z",
+      "last_test": {
+        "block_start": "2026-10-05T00:00:00Z",
+        "iso_week": 41,
+        "iso_year": 2026,
+        "n_test": 381
+      },
+      "n_exact_zero_excluded": 15,
+      "n_feature_eligible": 59672,
+      "n_labeled": 59657,
+      "primary_test_rows": 59657,
+      "primary_test_weeks": 90,
+      "primary_warmup_rows": 0,
+      "primary_warmup_weeks": 0
+    },
+    "BITMEX_2016_2019": {
+      "first_labeled_t": "2016-05-13T16:00:00Z",
+      "first_test": {
+        "block_start": "2016-09-26T00:00:00Z",
+        "iso_week": 39,
+        "iso_year": 2016,
+        "n_train": 12770,
+        "n_train_weeks": 20
+      },
+      "hourly_first_test": {
+        "block_start": "2016-09-26T00:00:00Z",
+        "iso_week": 39,
+        "iso_year": 2016,
+        "n_train": 3187,
+        "n_train_weeks": 20
+      },
+      "hourly_labeled": 31510,
+      "hourly_test_rows": 28323,
+      "hourly_test_weeks": 171,
+      "labeled_by_calendar_year": {
+        "2016": 21835,
+        "2017": 34932,
+        "2018": 34599,
+        "2019": 34617
+      },
+      "last_labeled_t": "2019-12-31T23:00:00Z",
+      "last_test": {
+        "block_start": "2019-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2020,
+        "n_test": 186
+      },
+      "n_exact_zero_excluded": 1320,
+      "n_feature_eligible": 127303,
+      "n_labeled": 125983,
+      "primary_test_rows": 113210,
+      "primary_test_weeks": 171,
+      "primary_warmup_rows": 12773,
+      "primary_warmup_weeks": 20
+    }
+  },
+  "unit": "RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_A2",
+  "venue_dummy": false,
+  "zero_return_rule": "ZERO_RETURN_EXCLUDED"
+}
