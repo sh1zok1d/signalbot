@@ -8999,6 +8999,24 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — FUNDING_TAIL_RISK_OKX_REPLICATION_V1 one historical read
+
+**Mode.** One official outcome read after the frozen design. `outcome_read = true`. Evidence class `CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED`. Label `CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN`. Read `2026-10-09T12:30:31Z`. Design commit `0f2c2c6d0e3ea783fcc6ee5de456bb8c8e512c65`. Evaluator digest `6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9`. A second run returns `REFUSING_RERUN`.
+- **Sample.** Funding identity N `3329`. Analysis N `3238`. ISO weeks `156`. Warm-up drops `90`. Schedule-exception drops `1`. Path drops `0`. Volatility-window drops `0`. Zero raw rates `2`. Years in the analysis are 2022, 2023, and 2024. The 2021 segment is the warm-up.
+- **Primary.** Raw Spearman of extremity with 8-hour absolute excursion `0.06664979748104755`, interval `[0.025176203970000286, 0.10808444189750395]`, share of draws above zero `0.999`. Partial given `RV_8H` `0.028873821844373516`, interval `[-0.004485352423566223, 0.060993529736847574]`, share above zero `0.954`, valid draws `2000/2000`. The volatility control reduces the point. The partial point stays positive and the interval includes 0.
+- **Bins, not a route.** Mean absolute excursion: `[0, 0.10)` N 140, `0.026316626460178443`; `[0.10, 0.25)` N 397, `0.019100748339424333`; `[0.25, 0.75)` N 1709, `0.017603469339081048`; `[0.75, 0.90)` N 533, `0.01791609285434317`; `[0.90, 1]` N 459, `0.018805473345256504`. Upper minus center `0.0012020040061754556`, interval `[-0.0009943390564229563, 0.00335524393492153]`. Lower minus center `0.008713157121097395`, interval `[0.004199146516901795, 0.013220252969804202]`. Both tail points sit above the center. The lower-tail interval is above 0. The upper-tail interval includes 0. Downside and upside are both highest in the lowest funding decile.
+- **Years.** 2022 N 1046, Spearman `0.05531890659980287`, partial `0.0025807432610314334`. 2023 N 1095, Spearman `0.10486421193346844`, partial `0.05997025307219011`. 2024 N 1097, Spearman `0.11145393598009805`, partial `0.06367189879527216`. All partial points are positive. 2022 is near zero after the volatility control.
+- **Sides, not a route.** Positive funding N 2288, signed-rank Spearman `0.05712322634468358`, extremity Spearman `0.05389576922029213`. Negative funding N 948, signed-rank Spearman `-0.10056374704904374`, extremity Spearman `0.10056374704904374`.
+- **Binance.** The frozen parent partial is `0.027762672485166194`, label `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The OKX partial is `0.028873821844373516`. Both points are positive and both intervals include 0. No similarity cutoff. The venues are not pooled. On OKX the lower-tail mean is the elevated one and the upper-tail contrast is small; that is not a copy of the Binance bin order, which was computed on long-side downside rather than on absolute excursion.
+- **MARKET-03.** A positive funding-tail/path-risk point is compatible with the historical drawdown reduction seen in MARKET-03. The interval includes zero, so the read does not establish that association. It does not prove why `EmaCrossFunding` worked.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc` change. Not a risk line and not a trading signal.
+
+```
+WINDOWS_CONSUMED = OKX settled funding newly read; OKX BTC-USDT-SWAP 5m path further use of an already consumed window, not a confirmation
+OUTCOME_READ = yes; LABEL = CROSS_VENUE_EXTREMITY_ASSOCIATION_UNCERTAIN; CONFIRMATION = no; PIT = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — FUNDING_TAIL_RISK_OKX_REPLICATION_V1 design frozen before any outcome
 
 **Mode.** Outcome-blind feasibility passed, then the design was frozen. `outcome_read = false`. Evidence class `CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED`. The parent label stays `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The Bybit unit stays `BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE`.
