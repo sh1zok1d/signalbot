@@ -8,7 +8,7 @@
 
 The observation week starts only at the deploy the owner names after accepting the UX (`ORCHESTRATION_V1.md` §4a). Everything in the preview period is excluded from the test's metrics (`BETA_MEASUREMENT_CONTRACT_V1.md` §12.2).
 
-**Code base.** The list below is checked against `bd35820b` (main after #434) and `config/beta_v0.yaml` there. The preview flag `access.preview_owner_only` and the command `/admin_preview [type]` come from track B's PR. Their names are those given by ОПГ-1, and they are confirmed at the deploy SHA (`<SHA>`, filled in by ОПГ-1 after track B's merge).
+**Code base.** The list below is checked against `bd35820b` (main after #434) and `config/beta_v0.yaml` there. The preview flag `access.preview_owner_only` and the command `/admin_preview [type]` come from track B (#439). The deploy SHA (`<SHA>`) is filled in by ОПГ-1 after the merges.
 
 ## (a) What is ON and what is OFF
 
@@ -25,7 +25,7 @@ Check them on the VPS: `/admin_health` prints `switches`, and `/admin_status` pr
 
 | Surface | Where it is switched (bd35820b) |
 |---|---|
-| **Preview: every automated send to the owner only** | `access.preview_owner_only: true` (track B; at `<SHA>`) |
+| **Preview: every automated send to the owner only** | `access.preview_owner_only: true` (#439) |
 | Detection, episodes, the unusual-hour push | `enabled`/`detection_enabled`/`push_enabled` + the env switches above; `push_policy` (quiet hours 23:00–07:00, 60 min global cooldown) |
 | `/btc` with the «Событие» / «1ч» / «24ч» / «🔬 Исследования» tabs and the «Уровни» / «Риск» buttons | always on; the 🔬 tab needs `decision.research_evidence.enabled: true` |
 | `/catchup [1–24]`, `/history`, `/terms`, `/guide`, `/help`, `/lang`, `/type`, `/idea`, `/feedback` | always on |
@@ -70,6 +70,7 @@ Decided at the official start, not in the preview:
 - Не используйте `/admin_broadcast`: он рассылает текст всем активным участникам.
 - Не используйте `/admin_test_open`: он открывает тест (Day 0 не задаём).
 - Не используйте `/admin_offer` (предложение оплаты).
+- **Тестовый аккаунт после проверки должен быть удалён** (`/delete_me` с него, шаг 7) или убран владельцем (`/admin_remove <id>`), чтобы он никогда не попал в официальную когорту.
 - В `/hypotheses` только смотрите индекс. Решения `research`/`reject` записываются навсегда: «первое решение остаётся». `/pin` добавляет запись, которую нельзя убрать.
 
 **0. Тестовый аккаунт (чтобы пройти путь нового пользователя).**
@@ -108,8 +109,8 @@ Decided at the official start, not in the preview:
 7. `/type` — ответить на вопрос о стиле торговли ещё раз.
 
 **4. Оповещения о цене.**
-1. `/alert 65000` — подставьте уровень рядом с ценой. `/alert` — список. `/alert del 1` — удалить первый, `/alert del all` — все.
-2. Когда цена дойдёт, оповещение придёт владельцу (в превью — только владельцу).
+1. **Со своего аккаунта (владельца)**: `/alert 65000` — подставьте уровень рядом с ценой. `/alert` — список. `/alert del 1` — удалить первый, `/alert del all` — все.
+2. Когда цена подойдёт или дойдёт, оповещение придёт владельцу. Оповещение, поставленное с тестового аккаунта, в превью **не придёт** никогда: автоматические сообщения уходят только владельцу.
 
 **5. Исследования и тексты.**
 1. Вкладка «🔬 Исследования» под `/btc`, затем `/research` (два сообщения: что подтвердилось и что нет).
@@ -119,7 +120,17 @@ Decided at the official start, not in the preview:
 5. Обычный текст без команды — тоже уходит команде.
 
 **6. Владелец: просмотр каждого типа автоматических сообщений.**
-1. `/admin_preview` — список типов. Затем `/admin_preview <тип>` для каждого: сводка, недельный отчёт, касание уровня, резкое движение, напоминание о событии, push о необычном часе (точные имена типов — в ответе команды; track B, `<SHA>`).
+1. `/admin_preview` — список типов. Затем `/admin_preview <тип>` для каждого:
+   - `hour` — push о необычном часе;
+   - `level` — касание уровня;
+   - `move` — резкое движение;
+   - `event` — напоминание о CPI / FOMC;
+   - `price` — личный `/alert`: цена дошла;
+   - `approach` — личный `/alert`: цена подходит;
+   - `brief` — утренняя сводка (по текущему состоянию);
+   - `weekly` — недельный отчёт (по текущему состоянию).
+
+   Для типа, которого ещё не было, бот ответит «ещё не было».
 2. `/admin_d7_on` — включить строку D7 «High impact» на `/btc` (решение архитектора: в превью включена). Затем `/admin_status` должен показать `d7 effective True`; снова `/btc` — строка видна, когда текущий час её даёт. Выключить — `/admin_d7_off`.
 3. `/admin_health` — алерты здоровья (ожидается пусто), переключатели и строка `test NOT_OPEN … Day 0 None`. `/admin_status` — `push effective` и `d7 effective`. `/admin_stats` — статистика (в превью не считается тестом).
 4. `/hypotheses` — индекс сигнатур (только смотреть, см. «Важно до начала»).
@@ -145,7 +156,7 @@ Run them as the `signalbot` user from `/opt/signalbot` with the venv python, in 
    sudo grep -c '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env   # must print 1
    ```
    Copy the key into the owner's password manager (`sudo grep '^BETA_FINGERPRINT_KEY=' /opt/signalbot/.env`, read it once on screen, never paste it into a chat). Never into a dump or a backup.
-3. **The preview flag:** at `<SHA>`, `config/beta_v0.yaml` carries `access.preview_owner_only: true` (track B). Check it with `grep -n preview_owner_only config/beta_v0.yaml` after the checkout.
+3. **The preview flag:** at `<SHA>`, `config/beta_v0.yaml` carries `access.preview_owner_only: true` (#439). Check it with `grep -n preview_owner_only config/beta_v0.yaml` after the checkout.
 4. **Code:** `git fetch origin && git checkout <SHA>`. There is no new Python dependency.
 5. **Units:** `sudo deploy/install_beta_units.sh`. It copies the units, runs `daemon-reload` and writes `BUILD_SHA`; it enables nothing.
 6. **Beta restart:** `sudo systemctl restart signalbot-beta-bot.service`. The notifier, detector and outcome timers pick up the new code on their next run.
