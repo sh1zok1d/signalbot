@@ -28,7 +28,8 @@ from .i18n import render_tz
 from .latency import class_summary, latency_field
 from .detector import in_quiet_hours, own_budget_spent
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
-                     D_UNKNOWN, DAILY_CAP, DAILY_FUSE, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
+                     D_UNKNOWN, DAILY_CAP, DAILY_FUSE, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS,
+                     SUPPRESSED_PREVIEW, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -56,6 +57,7 @@ class DeliveryThrottled(DeliveryRejected):
 # send_one outcomes
 SENT, FAILED, UNKNOWN, THROTTLED, DEFERRED, RACED = "SENT", "FAILED", "UNKNOWN", "THROTTLED", "DEFERRED", "RACED"
 REJECTED = "REJECTED"                        # send_direct: Telegram refused it (not delivered; do not retry soon)
+PREVIEW_BLOCKED = "PREVIEW_BLOCKED"          # send_one: SUPPRESSED / SUPPRESSED_PREVIEW (owner-only preview)
 
 
 class SendPacer:
@@ -83,6 +85,18 @@ class SendPacer:
         self.closed: Optional[str] = None          # THROTTLED | STOPPING | BUDGET
         self.retry_after_s: Optional[float] = None
         self.deferred = 0
+        # the owner's UX preview (`access.preview_owner_only`): automated sends reach only the owner. With the
+        # flag on and no owner id, nothing is sent (fail closed).
+        self.preview_only = False
+        self.preview_owner: Optional[int] = None
+
+    def set_preview(self, cfg: BetaConfig, owner_user_id: Optional[int]) -> "SendPacer":
+        self.preview_only = preview_owner_only(cfg)
+        self.preview_owner = int(owner_user_id) if owner_user_id is not None else None
+        return self
+
+    def preview_blocks(self, chat_id) -> bool:
+        return self.preview_only and (self.preview_owner is None or int(chat_id) != self.preview_owner)
 
     @classmethod
     def from_config(cls, cfg: BetaConfig, *, stop: Optional[asyncio.Event] = None,
@@ -135,6 +149,11 @@ class SendPacer:
 PER_CHAT_INTERVAL_S = 1.0
 
 
+def preview_owner_only(cfg: BetaConfig) -> bool:
+    """`access.preview_owner_only`: the owner's UX preview; automated messages reach only the owner."""
+    return bool(((getattr(cfg, "raw", None) or {}).get("access") or {}).get("preview_owner_only", False))
+
+
 def process_age_s() -> float:
     """Seconds since this process started (Linux /proc; 0 elsewhere): the notifier unit's timeout
     runs from the start, not from the moment the pacer is made."""
@@ -160,7 +179,15 @@ async def send_one(conn, sender, pacer: SendPacer, delivery_id: int, *, chat_id:
     """One outbox send: PENDING -> SENDING (committed) -> one API call -> SENT / FAILED /
     DELIVERY_UNKNOWN. Flood control puts the row back to PENDING until `next_attempt_at` and
     defers that chat; a closed pacer (checked again after the pause) leaves the row untouched.
-    Returns (outcome, message_id, sent_at)."""
+    Returns (outcome, message_id, sent_at).
+
+    The one gate of the owner's UX preview (`access.preview_owner_only`): every automated outbox send (pushes,
+    market alerts, briefings, the weekly report) passes here, and one to anyone but the owner becomes
+    SUPPRESSED / SUPPRESSED_PREVIEW, terminal, before any API call."""
+    if pacer.preview_blocks(chat_id):
+        await conn.transition_delivery(delivery_id, from_state=D_PENDING, to_state=D_SUPPRESSED, now=clock(),
+                                       suppression_reason=SUPPRESSED_PREVIEW)
+        return PREVIEW_BLOCKED, None, None
     if not pacer.may_send(chat_id):
         pacer.deferred += 1
         return DEFERRED, None, None
@@ -218,7 +245,8 @@ async def send_direct(sender, pacer: SendPacer, *, chat_id: int, html: str) -> s
 
 def count_outcome(report: dict, outcome: str) -> None:
     """The run report's counters for a non-SENT outcome (SENT is counted by the caller)."""
-    key = {FAILED: "failed", UNKNOWN: "unknown", THROTTLED: "throttled"}.get(outcome)
+    key = {FAILED: "failed", UNKNOWN: "unknown", THROTTLED: "throttled",
+           PREVIEW_BLOCKED: "suppressed_preview"}.get(outcome)
     if key:
         report[key] = report.get(key, 0) + 1
 
@@ -249,6 +277,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
         pacer = SendPacer.from_config(cfg, stop=stop)
     elif stop is not None and pacer.stop is None:
         pacer.stop = stop                        # a given pacer still sees the stop
+    pacer.set_preview(cfg, owner_user_id)        # every step of this run shares the owner-only preview gate
 
     def stopped() -> bool:
         return stop is not None and stop.is_set()
@@ -609,7 +638,7 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     b = cfg.section("briefing")
     out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "throttled": 0, "expired": 0, "suppressed": 0,
            "withheld": 0}
-    pacer = pacer if pacer is not None else SendPacer()
+    pacer = pacer if pacer is not None else SendPacer().set_preview(cfg, None)   # preview on: fail closed
     max_delay = timedelta(minutes=int(b["max_delay_min"]))
     withdrawn = brief_withdrawal_dates(b)
     now = clock()

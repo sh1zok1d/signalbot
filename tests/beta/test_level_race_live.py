@@ -51,8 +51,10 @@ OFF = {"journal_enabled": False, "display_enabled": False, "model_states_enabled
 
 
 def _cfg(**lr):
-    """The flags from all-off (the pre-Day-0 values), whatever the shipped config says."""
-    return BetaConfig.load().with_overrides(level_race={**OFF, **lr})
+    """The flags from all-off (the pre-Day-0 values), whatever the shipped config says; delivering to
+    participants (the shipped owner-only preview is tested in test_beta_preview_pg)."""
+    base = BetaConfig.load()
+    return base.with_overrides(level_race={**OFF, **lr}, access={**dict(base["access"]), "preview_owner_only": False})
 
 
 B = _bars()

@@ -20,7 +20,9 @@ from common.stage2_config import Stage2Config
 from storage.stage2_readers import ExchangeFeatureRawBundle
 
 S2 = Stage2Config.load()
-CFG = BetaConfig.load().with_overrides(enabled=True)
+_SHIPPED = BetaConfig.load()
+# the tests' baseline delivers to participants: the shipped owner-only preview is tested on its own
+CFG = _SHIPPED.with_overrides(enabled=True, access={**dict(_SHIPPED["access"]), "preview_owner_only": False})
 SYM, MT = "BTCUSDT", "perp"
 EXS = ("binance", "bybit", "okx")
 COV = {"binance": "snapshot", "bybit": "full", "okx": "aggregated"}

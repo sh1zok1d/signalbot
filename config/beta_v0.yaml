@@ -148,6 +148,11 @@ beta:
     u3_offer:
       price: null                         # e.g. "$15 в месяц / $15 a month"
       method: null                        # the manual transfer the owner accepts
+    # The owner's UX preview (2026-10-09): every automated message (pushes, market alerts, sharp moves,
+    # CPI/FOMC notices, briefings, the weekly report) reaches only the owner; anyone else's row is
+    # SUPPRESSED / SUPPRESSED_PREVIEW, terminal. Decisions, the claim journal, fuses and limits run as
+    # usual. Replies to a participant's own commands and the owner's /admin_reply, /admin_broadcast pass.
+    preview_owner_only: true
   # Per-user activity retention (beta plus 90 days). Not the rules digest.
   # Rejected /start rows (hashes or a daily count) are purged separately.
   telemetry:

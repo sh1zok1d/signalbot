@@ -572,7 +572,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
     m = d["market_alerts"]
     rep = {"detected": 0, "pushed": 0, "suppressed": 0, "materialized": 0, "sent": 0, "failed": 0,
            "unknown": 0, "throttled": 0, "expired": 0, "forecasts_recorded": 0, "forecasts_scored": 0}
-    pacer = pacer if pacer is not None else SendPacer()
+    pacer = pacer if pacer is not None else SendPacer().set_preview(cfg, None)   # preview on: fail closed
     now = clock()
     cap: dict = {}
     block = await build_decision(conn, cfg, now=now, capture=cap, regime=await _regime(conn, cfg, now=now))

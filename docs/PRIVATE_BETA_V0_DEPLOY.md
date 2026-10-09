@@ -525,6 +525,17 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `/admin_broadcast` uses the same paced, counted path.
 - Use it when an alert above means participants are seeing stale or missing data.
 
+**Owner-only preview (2026-10-09; `access.preview_owner_only`, `beta/preview.py`).**
+- **The flag.** While `access.preview_owner_only: true`, every automated message reaches only the owner: unusual-hour pushes, market alerts (level / structural touches, sharp moves, CPI/FOMC notices, personal `/alert` touches and approaches), briefings and the weekly report.
+  - Anyone else's outbox row becomes `SUPPRESSED` / `SUPPRESSED_PREVIEW`. It is terminal: never retried, never sent after the flag goes off.
+  - The gate is `beta/delivery.py` `send_one`, which every automated outbox send passes through. With the flag on and no owner id, nothing is sent.
+  - Decisions, the claim journal, fuses and limits run as usual.
+- **Unaffected:** replies to a participant's own commands, `/admin_reply`, `/admin_broadcast`, the owner's health alerts and the owner's weekly copy. `/admin_offer` still refuses while the price is empty.
+- **`/admin_preview [type]`.** With no type it lists the types. With a type it sends that notification to the owner only, prefixed «ПРЕВЬЮ»:
+  - `hour`, `level`, `move`, `event`, `price` and `approach` are rendered from the latest stored real decision of that kind, and give «ещё не было» when there is none;
+  - `brief` and `weekly` are rendered from the current state.
+  - It writes nothing but its `admin_preview` audit row: no outbox row, no claim display, no view, no activity, and no fuse or limit is used.
+
 **Delivery latency (backlog A4; `beta/latency.py`).** `/admin_latency [days]` (default 7, at most 90) reports, per class, how long delivered messages took from the moment their fact existed to delivery (`finished_at` of the SENT row). Each value is a nearest-rank P50, P95 and max with its N, plus detection (source → decision) and sending (decision → delivery) apart. Messages that expired undelivered are counted per class. The source time per class:
 - `level`, `price`: the close of the 1m or 5m bar that touched;
 - `move`: the close of the 5m bar that completed the move;
