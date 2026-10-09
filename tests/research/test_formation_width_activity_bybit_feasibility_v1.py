@@ -334,3 +334,37 @@ def test_official_support_file_is_outcome_blind_and_adequate():
     ).hexdigest()
     assert payload["grid"]["present_bars"] == 476254
     assert payload["grid"]["canonical_sha256"] == K.CANONICAL_SHA256
+
+
+def test_official_result_is_below_the_practical_bar():
+    payload = json.loads((
+        ROOT / "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_RESULT.json"
+    ).read_text(encoding="utf-8"))
+    assert payload["outcome_read"] is True
+    assert payload["future_association_read"] is True
+    assert payload["n"] == 1613
+    assert payload["iso_weeks"] == 240
+    assert payload["pre_outcome_evaluator_commit"] == "52b2c9b636ac5dee8c40f7ef701ed4dfbd06de37"
+    assert payload["evaluator_digest"] == support.code_digest()
+    assert payload["evaluator_digest"] == "bb15620b5b42d9ed1bc75697f4e10d931a859a71e94daa3f378082d5db2c6a70"
+    assert payload["primary"]["rho"] == pytest.approx(0.09903883442772482)
+    assert payload["primary"]["lower"] == pytest.approx(0.054006220155678755)
+    assert payload["primary"]["upper"] == pytest.approx(0.14134524904951853)
+    assert payload["primary"]["valid_draws"] == 2000
+    assert payload["primary"]["practical_bar_met"] is False
+    assert payload["primary"]["lower_bound_above_zero"] is True
+    assert payload["stability"]["fails"] is False
+    assert payload["stability"]["first_half"]["rho"] == pytest.approx(0.10159697837402562)
+    assert payload["stability"]["second_half"]["rho"] == pytest.approx(0.12956015931897297)
+    assert payload["lag_placebo"]["rho"] == pytest.approx(0.04492837139751369)
+    assert payload["lag_placebo"]["current_state_specific"] is True
+    assert payload["context"]["spearman_v_endpoint"] == pytest.approx(0.6768477424932198)
+    assert payload["context"]["spearman_v_covariate"] == pytest.approx(0.9270969399021481)
+    assert payload["context"]["route_input"] is False
+    assert payload["route"] == "POSITIVE_BUT_BELOW_PRACTICAL_SCALE"
+    assert payload["exposure_class"] == "SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION"
+    assert payload["atlas_state"] == "CLOSED_ON_SURFACE"
+    assert payload["bitmex_in_unit"] is False
+    assert payload["objects_2025_2026_used"] is False
+    assert payload["e1_touched"] is False
+    assert payload["read_at"] == "2026-10-09T07:56:02Z"

@@ -4316,23 +4316,27 @@ units:
     program: FORMATION_WIDTH_V1
     row: VOLATILITY_STATE.range_forecast
     col: CROSS_VENUE
-    state: CANDIDATE_UNTESTED
+    state: CLOSED_ON_SURFACE
     datasets:
     - BYBIT_BTCUSDT_PUBLIC_HISTORY
-    period: 'design frozen before the endpoint; Bybit BTCUSDT linear perpetual 5m 2020-04-01..2024-12-31; support census 1613 analysis days, 240 ISO weeks; endpoint not read'
-    units_n: 'N 1613, 240 ISO weeks; effective N about 645 under the width-lag week design effect; Fisher SE about 0.0395; 80% MDE about 0.098; power about 0.813 at the bar 0.10'
-    practical_bar: 'A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not in this unit. The bar is not lowered. A separate owner go is required first.'
-    mechanism: 'MODE=OUTCOME_BLIND_FEASIBILITY of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. The question is whether this pinned Bybit tape has enough outcome-blind support to test the frozen bar. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Same calendar as the Binance discovery window, different venue.'
-    function: 'Census of path presence and width only. Forecast is the confirmation unit width-lag AR(1) Kish model. Support census 2026-10-09T07:08:16Z. Power at association 0.10 clears the frozen 0.80 floor. Endpoint not computed. Evaluator refuses until a separate owner go.'
-    verdict: 'INFORMATION_ADEQUATE_FOR_LATER_OUTCOME (2026-10-09T07:08:16Z). Count floor met (N 1613, 240 weeks, halves 838 and 775). Power to exclude 0 at association 0.10 is about 0.813. MDE about 0.098. The next-hour endpoint was not read. owner_go_required_for_outcome stays true. No second surface. Discovery result on CORE 2020-2024 is unchanged. Not L3.'
-    forbidden: 'reading the next-hour endpoint inside this feasibility unit; treating the adequate forecast as the owner go; a BitMEX or 2025/2026 rescue inside this unit; a reread of CORE 2020-2024; lowering 0.10; adding displacement, another hour, or another covariate; a product forecast or a trading signal'
-    reopen: 'A separate owner go may authorize one outcome read of this same frozen claim on this same Bybit series. That read is a later unit of work, not this census. Declining that go leaves a prospective design, or a new historical unit, as a separate owner decision. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.'
+    period: 'one outcome read; Bybit BTCUSDT linear perpetual 5m 2020-04-01..2024-12-31; analysis sample 1613 days, 240 ISO weeks'
+    units_n: 'N 1613, 240 ISO weeks; partial Spearman about +0.099; one-sided lower about +0.054; descriptive upper about +0.141; practical bar +0.10 not met'
+    practical_bar: 'The cell passes only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. The bar is not lowered to the discovery point.'
+    mechanism: 'MODE=ONE_OUTCOME_READ of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Same calendar as the Binance discovery window, different venue. Not a time-disjoint confirmation.'
+    function: 'One cell. V=(high-low)/P0. ACTIVITY is next-hour RV. Covariate is RV_FORMATION. Week-block bootstrap B=2000 seed 20261108 quantile 0.05. Stability split 2022-08-17. One outcome read 2026-10-09T07:56:02Z. Evaluator 52b2c9b6. Rerun refused.'
+    verdict: 'EXECUTED ONCE (2026-10-09T07:56:02Z). Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Partial Spearman about +0.099, one-sided lower about +0.054, so the bound is above 0 and the point is below +0.10. Halves about +0.102 and +0.130, same sign. Lag placebo about +0.045, specific. The exact claim did not receive cross-venue support under the frozen rule. Discovery on CORE 2020-2024 is unchanged. Not L3. Not a time-disjoint confirmation.'
+    why_closed: 'The one allowed outcome read of this frozen cell was consumed on the pinned Bybit series. The pooled point is below the frozen practical bar. A second official run is refused. The bar is not lowered.'
+    forbidden: 'a second read of this estimand; lowering 0.10; treating the positive lower bound as a pass of the practical bar; using the half-sample points in place of the pooled point; a BitMEX or 2025/2026 rescue; a reread of CORE 2020-2024; adding displacement, another hour, or another covariate; a product forecast or a trading signal'
+    reopen: 'Not a rerun. A later question needs its own design and owner go. Not a lower bar. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.'
     records:
     - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_DESIGN.md
     - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.md
     - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_SUPPORT.json
     - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_MANIFEST.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_RESULT.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_RESULT.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_EVALUATOR_MANIFEST.json
     - docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'Feasibility stopped before the endpoint. Route INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. Surface class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Level-reaction reads on this file stay neighboring consumed contrasts. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.'
+    note: 'EXECUTED ONCE. Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Evaluator 52b2c9b6. Rerun REFUSING_RERUN. The support census row stays EXPOSED and the outcome line is CONSUMED. Not a time-disjoint confirmation and not a product signal.'

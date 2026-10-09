@@ -977,7 +977,7 @@
     {
      "function": "FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1",
      "id": "FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1",
-     "mechanism": "MODE=OUTCOME_BLIND_FEASIBILITY of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. The question is whether this (omitted) Bybit tape has enough outcome-blind support to test the frozen bar. Class (omitted) Same calendar as the Binance discovery window, different venue."
+     "mechanism": "MODE=ONE_OUTCOME_READ of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. Class (omitted) Same calendar as the Binance discovery window, different venue. Not a time-disjoint confirmation."
     }
    ],
    "row": "VOLATILITY_STATE.range_forecast"
@@ -7764,7 +7764,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "819b7bead59c5f1ca76d98d8189dac22cef08da0361ce701ff8b834f25b28a6a",
+ "SOURCES_DIGEST": "a0363749c9864288bba2110b6041de9d3b575217c5308317a3f9806e734ca48e",
  "SURFACES": [
   {
    "also_cols": [

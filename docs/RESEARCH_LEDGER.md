@@ -8824,3 +8824,20 @@ WINDOWS_EXPOSED = BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast 2
 OUTCOME_READ = no; ROUTE = INFORMATION_ADEQUATE_FOR_LATER_OUTCOME; CONFIRMATION = not run
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not in this unit; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1 one outcome read
+
+**Mode.** One authorized read of the frozen incremental ACTIVITY cell. Evidence class `SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION`. Claim ceiling L2. `outcome_read = true`.
+- **Evaluator.** Commit `52b2c9b636ac5dee8c40f7ef701ed4dfbd06de37`, digest `bb15620b5b42d9ed1bc75697f4e10d931a859a71e94daa3f378082d5db2c6a70`. Read `2026-10-09T07:56:02Z`. Design SHA256 `83e5a84de4606ec96ed1605690c2ba708970473c0626ca23b766d05a7ac4c642`. Support SHA256 `69bbe8384e9f1a029d700d306471ef70cd270ea97373404ea9991df1fb1d3118`. Surface SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`.
+- **Sample.** `LEVEL_CROSS_VENUE_PERP_5M_V0` / `bybit_btcusdt_linear_5m.csv.gz`, Bybit BTCUSDT linear perpetual, `[2020-04-01, 2025-01-01)`. N 1613. ISO weeks 240. Seed `20261108`. B 2000. Valid draws 2000.
+- **Primary.** Partial Spearman `+0.099039`. One-sided lower bound `+0.054006`. Descriptive upper quantile `+0.141345`. The lower bound is above 0. The point is below the frozen bar `+0.10`.
+- **Context.** Spearman(V, ACTIVITY) `+0.676848`. Spearman(V, RV_FORMATION) `+0.927097`. Neither is a route input.
+- **Stability.** Split `2022-08-17`. First half `+0.101597` (n 838). Second half `+0.129560` (n 775). Same sign. The frozen opposite-sign rule does not fail. The route uses the pooled point, not the half points.
+- **Lag placebo.** Partial Spearman of today's width with the previous analysis row's activity given today's `RV_FORMATION`: `+0.044928` on 1612 pairs. `current_state_specific` true.
+- **Route.** `POSITIVE_BUT_BELOW_PRACTICAL_SCALE`. The exact claim did not receive cross-venue support under the frozen confirmation rule. The Binance discovery result is unchanged. Rerun returns `REFUSING_RERUN`.
+
+```
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILITY_STATE.range_forecast 2020-04-01..2024-12-31, one read of the frozen incremental activity cell
+OUTCOME_READ = yes; ROUTE = POSITIVE_BUT_BELOW_PRACTICAL_SCALE; CONFIRMATION = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not in this unit; PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```
