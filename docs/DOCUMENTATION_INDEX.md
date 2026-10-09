@@ -730,6 +730,9 @@ When adding documentation:
 - `research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED; PRIMARY +0.0110 [+0.0021, +0.0199]; rerun refused**).
 - `research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 39e84dfc; final pre-outcome state 04cb1a4b: OCC_MEAN_4H on RP4H Unit B's canonical Binance 2025-26 surface; exposure audit; five routes**).
 - `research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: OCC_MODERN_NOT_REPLICATED; PRIMARY -0.0017 [-0.0162, +0.0119]; OCC status HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE; OCC line ended; rerun refused**).
+- `research/RP4H_TREND_REGIME_MODULATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 175c95e2: RP4H reversal by unsigned 24h trend-strength terciles, discovery on CORE**).
+- `research/RP4H_TREND_REGIME_MODULATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: TREND_REGIME_MODULATION_NOT_DETECTED; delta -0.0132 [-0.0320, +0.0046]; rerun refused**).
+- `research/ADAPTIVE_B1_FORECAST_V1_DESIGN.md` (**DRAFT, not frozen: adaptive-memory B1 forecast; synthetic power check shows the adaptation contrast has no power; superseded in order by option (b)**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

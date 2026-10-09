@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 3,
+    "CLOSED_ON_SURFACE": 4,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -203,7 +203,8 @@
     "DH1-X6",
     "H03",
     "RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1",
-    "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1"
+    "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
+    "RP4H-TREND-REGIME-MODULATION-V1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -211,8 +212,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -233,8 +234,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -255,8 +256,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -277,8 +278,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -299,8 +300,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -321,8 +322,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -343,8 +344,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -365,8 +366,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -10194,14 +10195,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 212,
+  "units": 213,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 35,
+   "CLOSED_ON_SURFACE": 36,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -11275,32 +11276,6 @@
    }
   },
   {
-   "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "VOLATILITY_STATE.compression",
    "value": {
@@ -12016,54 +11991,28 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "PRICE_STRUCTURE.impulse",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
   {
-   "col": "CROSS_VENUE",
+   "col": "SPOT",
    "row": "PRICE_STRUCTURE.impulse",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
@@ -12512,6 +12461,58 @@
   {
    "col": "SPOT",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_ASSET",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "PRICE_STRUCTURE.impulse",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "PRICE_STRUCTURE.impulse",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
@@ -13381,19 +13382,6 @@
    }
   },
   {
-   "col": "LIQUIDATIONS",
-   "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "CALENDAR.sessions",
    "value": {
@@ -13942,6 +13930,19 @@
   {
    "col": "LIQUIDATIONS",
    "row": "DERIVATIVES.oi_buildup",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "PRICE_STRUCTURE.impulse",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -15598,7 +15599,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "2ac8218cf88941c256841a43861123fca0a5064ce5bc004eec9493f1cab5b733",
+ "SOURCES_DIGEST": "69e6f00ced558419cf866d18034f398779c39f5d2e02599d7cb25b73b5bcc471",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15893,6 +15894,14 @@
        "PRICE_STRUCTURE.levels",
        "FLOW.flow_conditional_response",
        "CALENDAR.sessions"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "RP4H_TREND_REGIME_MODULATION_V1 one-shot discovery (2026-10-09): RP4H partial by TS_24H tercile (unsigned 24h trend strength) -> R_1H; 6 cells; NOT_DETECTED (delta -0.013, interval includes 0)",
+      "period": "2020-01-01..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
       ],
       "status": "CONSUMED"
      }
@@ -21737,6 +21746,37 @@
    "units_n": "one feature, one horizon, one primary control pair; two secondaries outside the route",
    "verdict": "RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED (question-fresh replication, not pristine). Raw -0.0760 [-0.0841, -0.0683]; primary partial given RET_4H, RV_4H -0.0474 [-0.0549, -0.0397]; every year negative (primary 2016 -0.070, 2017 -0.030, 2018 -0.046, 2019 -0.059). Secondary local-path partial (adds RET_1H, RET_15M) -0.0106 [-0.0186, -0.0024], not a route. Not a product line. Not a fee-aware edge.",
    "why_closed": "The one allowed read of this frozen design (SHA d9caaadd, commit 52734bfb, code a623371c) was completed; a second read is refused (REFUSING_RERUN)."
+  },
+  {
+   "blind_function": "Range position by trend regime",
+   "blind_mechanism": "Whether the position-in-range association depends on how strongly the market trended over the last day.",
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "a rerun; another regime variable, window, tercile cut, horizon or signed trend on CORE; reading the secondary as a new primary; a product line",
+   "function": "Fifteen-minute decisions on CORE 5m; RP4H partial on RET_4H and RV_4H within outcome-blind terciles of TS_24H.",
+   "id": "RP4H-TREND-REGIME-MODULATION-V1",
+   "mechanism": "Range-edge reversal should weaken in trending regimes (unsigned 24h trend strength in sigma units) and hold in ranging regimes.",
+   "note": "Adaptation candidate 1 of the owner decision 2026-10-09. Same anchors as DIRECTIONAL-STATE-SEARCH-V2.",
+   "period": "one CORE read; 2020-01-01 .. 2024-12-31; 175292 anchors; 262 ISO weeks; TS_24H terciles 0.3603 / 0.8529",
+   "practical_bar": "No magnitude floor. Route from the sign and interval of delta = RP4H partial (trending tercile) - (ranging tercile); promotion needs |z| >= 3.85.",
+   "program": "RP4H_TREND_REGIME_MODULATION_V1",
+   "records": [
+    "docs/research/RP4H_TREND_REGIME_MODULATION_V1_DESIGN.md",
+    "docs/research/RP4H_TREND_REGIME_MODULATION_V1.md",
+    "docs/research/RP4H_TREND_REGIME_MODULATION_V1.json",
+    "scripts/research/rp4h_trend_regime_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "A new mechanism or surface through its own design and owner go.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Range position reversal by trend regime",
+   "units_n": "one regime variable, one primary contrast; two secondaries",
+   "verdict": "TREND_REGIME_MODULATION_NOT_DETECTED (DISCOVERY_ONLY). T1 -0.0291, T2 -0.0165, T3 -0.0423; delta -0.0132 [-0.0320, +0.0046] (opposite to the declared mechanism, every year negative); continuous interaction -0.0119 [-0.0202, -0.0040]; beyond the local path T1 -0.0067 (~0), T3 -0.0195. No promotion.",
+   "why_closed": "The one allowed read of this frozen design (SHA c1343df4, commit 175c95e2) was completed; a second read is refused (REFUSING_RERUN)."
   },
   {
    "col": "CANDLES",

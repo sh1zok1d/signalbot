@@ -16,7 +16,7 @@
 
 | Surface | DIRECTION | LEVEL_RES | RANGE_VOL | PATH_STRESS | ACTIVITY | OTHER |
 |---|---|---|---|---|---|---|
-| CORE Binance perp BTC 2020–24 | **≈ 840\*** (≈317 recorded units + 496 PRE_IMPULSE_STATE_ATLAS_V1 cells + 27 DIRECTIONAL_STATE_SEARCH_V2 cells, 2026-10-09) | 140\* (≈1.8k counting declared material cells) | 110\* | 10 | 7\* | 4 |
+| CORE Binance perp BTC 2020–24 | **≈ 846\*** (≈317 recorded units + 496 PRE_IMPULSE_STATE_ATLAS_V1 cells + 27 DIRECTIONAL_STATE_SEARCH_V2 cells + 6 RP4H_TREND_REGIME_MODULATION_V1 cells, 2026-10-09) | 140\* (≈1.8k counting declared material cells) | 110\* | 10 | 7\* | 4 |
 | Binance perp BTC 2025–26 | ≈130\* (≈72 + ≈50 E1 development, §4 correction, + 4 RANGE_POSITION_4H Unit B + 4 OCC_MEAN_4H modern replication, 2026-10-09; Cursor's unmerged parallel RP4H read not yet counted) | 7\* | 8\* | 1 | 0 | 1 |
 | Binance alts 2020–24 (incl. pooled ETH) | ≈67\* | 0 | 3 | 1 | 0 | 2 |
 | Binance alts 2025–26 (divergence) | ≈60\* | 0 | 0 | 1 | 0 | 1 |

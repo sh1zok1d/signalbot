@@ -8879,3 +8879,36 @@ FINDINGS_REGISTRY = not updated (no product work)
 `RP4H_TREND_REGIME_MODULATION_V1 = design frozen 175c95e2 (SHA c1343df4a7399e9c5cb7bab475605c7b2b8feaa289bbbee953df47c8cc2d94d1) | discovery on CORE 2020-24 | TS_24H = |RET_24H|/RV_24H terciles 0.3603/0.8529 (outcome-blind) | PRIMARY delta = RP4H partial (T3 - T1) | N 175,292, 262 weeks | exposure ADJACENT; CORE DISCOVERY_REUSABLE (subgroup clause) | GO pending`
 `ADAPTIVE_B1_FORECAST_V1 = DRAFT, not frozen | walk-forward logistic on B1 over BitMEX -> CORE -> Binance 2025-26 (Unit B surface); 362,347 rows, 104 outer 4-week blocks from 2018-10-29; fold manifest b6bcb931 | SYNTHETIC POWER (outcome-free): P1 static-vs-climatology has power at an RP4H-size effect; P2 adaptive-vs-static is WORSE in every scenario, even a world with the signal switching on/off every 52 weeks -> P2 cannot show a benefit at this SNR | partial duplicate of Cursor's frozen unfit forecast prototype (483dc402; its 2025-26 file includes the E1-development slice) | owner decision pending`
 `OUTCOMES_READ = none`
+
+## 2026-10-09 — RP4H_TREND_REGIME_MODULATION_V1 executed once (discovery): NOT_DETECTED
+
+**Unit.**
+- **Design:** frozen at commit `175c95e2`, SHA256 `c1343df4a7399e9c5cb7bab475605c7b2b8feaa289bbbee953df47c8cc2d94d1`.
+- **Final pre-outcome state:** `72405807`, holding the pins: N 175,292, 262 weeks, TS_24H tercile edges 0.3603 / 0.8529.
+- **Evaluator digest:** `9da1b593…b8de`. Owner GO 2026-10-09.
+- **Result:** `docs/research/RP4H_TREND_REGIME_MODULATION_V1.json` / `.md` (sha256 `8ce5585ab2fdeb0b47edbf286b5ba8ca84686faf001a6a58730d95102248105b` / `ba99cd48614be97ed950fba7cd499eadf8505672b00526487ddfa12136fa47f7`). A second call exits `REFUSING_RERUN`.
+
+**Read.** CORE BTCUSDT perpetual 2020–24 only.
+
+**Evidence** (week-block 95 %, 2000/2000 draws):
+
+| Estimand | Point | 95 % interval |
+|---|---|---|
+| RP4H partial \| RET_4H, RV_4H, T1 (ranging) | −0.0291 | −0.0404 .. −0.0164 |
+| RP4H partial, T2 | −0.0165 | −0.0293 .. −0.0038 |
+| RP4H partial, T3 (trending) | −0.0423 | −0.0539 .. −0.0303 |
+| **PRIMARY Δ = T3 − T1** | **−0.0132** | **−0.0320 .. +0.0046** |
+| Δ with the local path | −0.0128 | −0.0313 .. +0.0044 |
+| T1 with the local path | −0.0067 | −0.0170 .. +0.0040 |
+| T3 with the local path | −0.0195 | −0.0320 .. −0.0075 |
+| Continuous rank interaction RP4H × TS | −0.0119 | −0.0202 .. −0.0040 |
+
+- **Δ by year** (all negative): 2020 −0.014, 2021 −0.018, 2022 −0.020, 2023 −0.006, 2024 −0.009.
+- **The pre-declared mechanism (weaker reversal in trends, Δ > 0) is not supported.** The points lean the other way: a stronger reversal at higher trend strength. The primary interval includes zero; z −1.44 is far below the bar of 3.85.
+- **Secondary** (no route): beyond the local path, RP4H's residual is ≈ 0 in the ranging tercile and remains in the trending tercile.
+
+```
+ROUTE = TREND_REGIME_MODULATION_NOT_DETECTED | DISCOVERY_ONLY | no promotion
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-01-01..2024-12-31 x R_1H: 6 cells (three tercile partials, delta B0, delta B1, interaction)
+NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variables or horizons | no successor
+```
