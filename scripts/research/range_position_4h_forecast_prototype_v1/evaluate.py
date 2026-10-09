@@ -527,16 +527,26 @@ def evaluate_frame(segments: list[dict], *, draws: int = K.BOOT_DRAWS, seed: int
 
 
 def run_market() -> None:
-    """Market prices stay unread until a later owner go wires this entry."""
+    """Exit before prices, features, or the scorer while the owner go is off.
+
+    The import sits below the guard so this process does not construct the market
+    frame on the waiting path.
+    """
     if not K.OWNER_GO:
         raise SystemExit("AWAITING_OWNER_GO")
-    raise SystemExit("FORECAST_IMPLEMENTATION_INVALID")
+    from .market import execute_pinned_market_fit
+
+    execute_pinned_market_fit(None)
 
 
 def main() -> None:
     if not K.OWNER_GO:
         raise SystemExit("AWAITING_OWNER_GO")
-    run_market()
+    import sys
+
+    from .market import execute_pinned_market_fit, options_from_argv
+
+    execute_pinned_market_fit(options_from_argv(sys.argv[1:]))
 
 
 if __name__ == "__main__":

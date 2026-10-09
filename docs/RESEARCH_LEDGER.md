@@ -8999,6 +8999,20 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 market adapter ready, fit not run
+
+**Mode.** Engineering preparation of the pinned market adapter. `market_fit = false`. `OWNER_GO = false`. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7` and amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf` are unchanged. No market probability, coefficient, Brier score, log loss, AUROC, or bootstrap was computed.
+- **Adapter.** BitMEX 2016–2019, Binance 2020–2024 (`CORE_BTC_BINANCE_V0`, snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`), and Binance 2025–2026 are connected through the existing loaders, `features()`, and the prototype eligibility mask. Training sources stay on the frozen map. The 2025 block does not train on BitMEX. Grids are not stitched. The August hole is not filled.
+- **Guard.** `main`, `run_market`, `load_pinned_grids`, and `execute_pinned_market_fit` exit `AWAITING_OWNER_GO` before a price read, a feature build, or a scorer call. Provenance flags become true only after that future load and score. The evidence class of a future result is `RETROSPECTIVE_FORECAST_PROTOTYPE`.
+- **Coverage pin.** Primary test rows and weeks: BitMEX `113210` / `171`, Binance 2020–2024 `162084` / `242`, Binance 2025–2026 `60999` / `92`, total `336293` / `505`. A mismatch is `FORECAST_IMPLEMENTATION_INVALID`. The pin matches the amended census. It was not recomputed from a new price read.
+- **Manifest.** `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_ADAPTER.json`. SHA256 `62a7ef5bd8f74e0c6ba70fa9bbdb5deb5f012752aff73317e199d64249be6f70`.
+
+```
+WINDOWS_CONSUMED = none; the adapter was not executed on market prices
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = MARKET_ADAPTER_READY_AWAITING_OWNER_FIT_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 amendment A1, model not fit
 
 **Mode.** Pre-outcome repair of the training clock. `model_fit = false`. `OWNER_GO = false`. The original design file is unchanged. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`. Design commit `483dc4028f3baa0ed5c4ef4d382639926f249937`.

@@ -10,8 +10,13 @@ import numpy as np
 import pytest
 
 from scripts.research.range_position_4h_forecast_prototype_v1 import constants as K
-from scripts.research.range_position_4h_forecast_prototype_v1 import evaluate, support
-from scripts.research.range_position_4h_forecast_prototype_v1.eligibility import phase_residue
+from scripts.research.range_position_4h_forecast_prototype_v1 import evaluate, market, support
+from scripts.research.range_position_4h_forecast_prototype_v1.eligibility import (
+    local_returns,
+    phase_residue,
+    replication_eligible,
+)
+from scripts.research.range_position_4h_incremental_replication_v1.grid import features
 from scripts.research.range_position_4h_forecast_prototype_v1.folds import assign_folds, label_available_at
 from scripts.research.range_position_4h_forecast_prototype_v1.model import (
     ImplementationInvalid,
@@ -41,6 +46,7 @@ def test_frozen_files_match_the_pinned_hashes():
     assert _sha(K.AMENDMENT_A1) == K.AMENDMENT_A1_SHA256
     assert _sha(K.SUPPORT) == K.SUPPORT_SHA256
     assert _sha(K.FOLDS) == K.FOLDS_SHA256
+    assert _sha(K.ADAPTER_MANIFEST) == K.ADAPTER_MANIFEST_SHA256
 
 
 def test_design_json_matches_the_code_bounds():
@@ -678,3 +684,289 @@ def test_a_second_census_rewrite_is_refused(monkeypatch):
     monkeypatch.setattr("sys.argv", ["support", "--rewrite-a1"])
     with pytest.raises(SystemExit, match="CENSUS_REWRITE_REFUSED"):
         support.main()
+
+
+def _price_grid(origin: int, n: int, hole: int | None = None) -> dict:
+    opened = int(origin) + np.arange(n, dtype=np.int64) * K.BAR_MS
+    close = 10000.0 + np.arange(n, dtype=np.float64) * 0.5
+    high = close + 2.0
+    low = close - 1.0
+    if hole is not None:
+        close = close.copy()
+        high = high.copy()
+        low = low.copy()
+        close[hole] = np.nan
+        high[hole] = np.nan
+        low[hole] = np.nan
+    return {"grid_open": opened, "high": high, "low": low, "close": close}
+
+
+def _three_tables() -> dict:
+    specs = {
+        "BITMEX_2016_2019": _price_grid(K.BITMEX_END_MS - 120 * K.BAR_MS, 100),
+        "BINANCE_2020_2024": _price_grid(K.CORE_START_MS, 90),
+        "BINANCE_2025_2026": _price_grid(K.BINANCE_START_MS, 90),
+    }
+    tables = {}
+    for name, grid in specs.items():
+        mask = replication_eligible(
+            grid["grid_open"], grid["high"], grid["low"], grid["close"], market.SURFACE_END[name],
+        )
+        tables[name] = market.adapt_segment(name, grid, mask)
+    return tables
+
+
+def test_three_synthetic_adapters_build_the_frame_without_scoring(monkeypatch):
+    def boom(*_args, **_kwargs):
+        raise AssertionError("scorer")
+
+    monkeypatch.setattr(evaluate, "evaluate_frame", boom)
+    tables = _three_tables()
+    core = tables["BINANCE_2020_2024"]
+    grid = _price_grid(K.CORE_START_MS, 90)
+    feat = features(grid["high"], grid["low"], grid["close"])
+    ret_1h, ret_15m = local_returns(grid["close"])
+    mask = core["labeled_mask"]
+    expected = np.column_stack([
+        feat["ret4"][mask], feat["rv4"][mask], ret_1h[mask], ret_15m[mask], feat["rp"][mask],
+    ])
+    assert np.array_equal(core["x"], expected)
+    assert market.FEATURE_ORDER == K.CANDIDATE_FEATURES
+    flat = _price_grid(K.CORE_START_MS, 90)
+    flat["close"] = np.full(90, 10000.0)
+    flat["high"] = flat["close"] + 2.0
+    flat["low"] = flat["close"] - 1.0
+    zeros = market.adapt_segment("BINANCE_2020_2024", flat)
+    assert zeros["n_zero"] > 0
+    assert zeros["close_ms"].size == 0
+    segments, counts = market.validate_and_construct(tables)
+    by_name = {segment["name"]: segment for segment in segments}
+    assert set(by_name) == set(market.SEGMENT_ORDER)
+    assert set(by_name["BITMEX_2016_2019"]["train_segment"]) == {"BITMEX_2016_2019"}
+    assert set(by_name["BINANCE_2020_2024"]["train_segment"]) == {"BINANCE_2020_2024"}
+    assert set(by_name["BINANCE_2025_2026"]["train_segment"]) == {"BINANCE_2020_2024", "BINANCE_2025_2026"}
+    for segment in segments:
+        assert "allowed_train_segments" not in segment
+    stitched = _price_grid(K.CORE_START_MS - 30 * K.BAR_MS, 90)
+    with pytest.raises(ImplementationInvalid, match="SEGMENT_CLOCK"):
+        market.adapt_segment("BINANCE_2020_2024", stitched)
+    with pytest.raises(ImplementationInvalid, match="COVERAGE_MISMATCH"):
+        market.score_prepared(segments, counts, market.MarketExecution())
+    assert counts["total_rows"] != K.EXPECTED_TOTAL_TEST_ROWS
+
+
+@pytest.mark.parametrize("name,origin,n", [
+    ("BITMEX_2016_2019", K.BITMEX_END_MS - 120 * K.BAR_MS, 100),
+    ("BINANCE_2020_2024", K.CORE_START_MS, 90),
+    ("BINANCE_2025_2026", K.BINANCE_START_MS, 90),
+])
+def test_each_synthetic_adapter_rejects_a_different_eligibility_mask(name, origin, n):
+    grid = _price_grid(origin, n)
+    mask = replication_eligible(
+        grid["grid_open"], grid["high"], grid["low"], grid["close"], market.SURFACE_END[name],
+    )
+    table = market.adapt_segment(name, grid, mask)
+    assert table["close_ms"].size > 0
+    bad = mask.copy()
+    bad[0] = not bool(bad[0])
+    with pytest.raises(ImplementationInvalid, match="ELIGIBILITY_DIVERGED"):
+        market.adapt_segment(name, grid, bad)
+
+
+def test_a_mismatched_sha256_is_invalid(tmp_path):
+    path = tmp_path / "series.jsonl"
+    payload = b"not the pinned series"
+    path.write_bytes(payload)
+    with pytest.raises(ImplementationInvalid, match="HASH_MISMATCH"):
+        market.require_digest(path, K.BITMEX_SHA256)
+    market.require_digest(path, hashlib.sha256(payload).hexdigest())
+    with pytest.raises(ImplementationInvalid, match="CORE_SNAPSHOT_MISMATCH"):
+        market.assert_core_snapshot("0" * 64)
+    market.assert_core_snapshot(K.CORE_SNAPSHOT)
+
+
+def test_training_sources_cannot_be_replaced_from_market_input():
+    tables = _three_tables()
+    tables["BINANCE_2025_2026"]["allowed_train_segments"] = ("BITMEX_2016_2019",)
+    with pytest.raises(ImplementationInvalid, match="TRAINING_SOURCE_OVERRIDE"):
+        market.construct_segments(tables)
+    with pytest.raises(ImplementationInvalid, match="TRAINING_SOURCE_OVERRIDE"):
+        market.train_sources_for("BINANCE_2025_2026", {"BINANCE_2025_2026": ("BITMEX_2016_2019",)})
+    with pytest.raises(ImplementationInvalid, match="TRAINING_SOURCE_OVERRIDE"):
+        market.reject_overrides({"allowed_train_segments": ("BITMEX_2016_2019", "BINANCE_2020_2024")})
+    clean = _three_tables()
+    leaked = clean["BINANCE_2020_2024"]
+    leaked["close_ms"] = leaked["close_ms"].copy()
+    leaked["close_ms"][0] = K.BITMEX_END_MS - K.BAR_MS
+    with pytest.raises(ImplementationInvalid, match="SEGMENT_CLOCK"):
+        market.construct_segments(clean)
+    assert market.train_sources_for("BINANCE_2025_2026") == ("BINANCE_2020_2024", "BINANCE_2025_2026")
+
+
+def test_duplicate_timestamps_are_invalid():
+    tables = _three_tables()
+    bitmex = tables["BITMEX_2016_2019"]
+    bitmex["close_ms"] = np.concatenate([bitmex["close_ms"], bitmex["close_ms"][:1]])
+    bitmex["x"] = np.vstack([bitmex["x"], bitmex["x"][:1]])
+    bitmex["y"] = np.concatenate([bitmex["y"], bitmex["y"][:1]])
+    with pytest.raises(ImplementationInvalid, match="DUPLICATE_TIMESTAMP"):
+        market.construct_segments(tables)
+
+
+def test_a_missing_bar_stays_missing_and_a_non_finite_label_is_invalid():
+    hole = 70
+    grid = _price_grid(K.BINANCE_START_MS, 90, hole=hole)
+    table = market.adapt_segment("BINANCE_2025_2026", grid)
+    hole_t = int(grid["grid_open"][hole] + K.BAR_MS)
+    assert np.isnan(grid["close"][hole])
+    assert hole_t not in set(table["close_ms"].tolist())
+    assert grid["close"][hole] != grid["close"][hole - 1]
+    tables = _three_tables()
+    tables["BITMEX_2016_2019"]["x"] = tables["BITMEX_2016_2019"]["x"].copy()
+    tables["BITMEX_2016_2019"]["x"][0, 0] = np.inf
+    with pytest.raises(ImplementationInvalid, match="NON_FINITE_LABELED_VALUE"):
+        market.construct_segments(tables)
+
+
+def test_fold_counts_must_match_the_pinned_coverage():
+    market.assert_pinned_census_coverage()
+    market.validate_coverage(market.expected_coverage())
+    shifted = market.expected_coverage()
+    shifted["BITMEX_2016_2019"] = {"test_rows": 113211, "test_weeks": 171}
+    with pytest.raises(ImplementationInvalid, match="COVERAGE_MISMATCH"):
+        market.validate_coverage(shifted)
+    weeks = market.expected_coverage()
+    weeks["BINANCE_2025_2026"] = {"test_rows": 60999, "test_weeks": 91}
+    weeks["total_weeks"] = 504
+    with pytest.raises(ImplementationInvalid, match="COVERAGE_MISMATCH"):
+        market.validate_coverage(weeks)
+    _segments, counts = market.validate_and_construct(_three_tables())
+    with pytest.raises(ImplementationInvalid, match="COVERAGE_MISMATCH"):
+        market.validate_coverage(counts)
+    support_doc = json.loads((ROOT / K.SUPPORT).read_text(encoding="utf-8"))
+    assert support_doc["segments"]["BITMEX_2016_2019"]["primary_test_rows"] == 113210
+    assert support_doc["segments"]["BINANCE_2020_2024"]["primary_test_rows"] == 162084
+    assert support_doc["segments"]["BINANCE_2025_2026"]["primary_test_rows"] == 60999
+    assert K.EXPECTED_TOTAL_TEST_ROWS == 336293
+    assert K.EXPECTED_TOTAL_TEST_WEEKS == 505
+
+
+def test_frozen_parameters_cannot_be_overridden_on_the_market_path():
+    market.reject_overrides(None)
+    market.reject_overrides({})
+    market.reject_overrides({"min_train_rows": 1000, "bootstrap_seed": K.BOOT_SEED, "horizon": 12, "bar_ms": 300000})
+    for options in (
+        {"min_train_rows": 10},
+        {"min_train_weeks": 1},
+        {"bootstrap_draws": 10},
+        {"bootstrap_seed": 0},
+        {"horizon": 11},
+        {"bar_ms": 60_000},
+        {"penalty": "l2"},
+    ):
+        with pytest.raises(ImplementationInvalid, match="FROZEN_PARAMETER_OVERRIDE"):
+            market.reject_overrides(options)
+    parsed = market.options_from_argv(["--bootstrap-seed", "1", "--min-train-rows", "1000"])
+    with pytest.raises(ImplementationInvalid, match="FROZEN_PARAMETER_OVERRIDE"):
+        market.reject_overrides(parsed)
+    with pytest.raises(ImplementationInvalid, match="FROZEN_PARAMETER_OVERRIDE"):
+        market.options_from_argv(["--C", "1"])
+    market.assert_protocol_locked()
+
+
+def test_the_guard_exits_before_prices_features_or_the_scorer(monkeypatch):
+    def boom(*_args, **_kwargs):
+        raise AssertionError("market load")
+
+    monkeypatch.setattr(support, "_bitmex_grid", boom)
+    monkeypatch.setattr(support, "_core_grid", boom)
+    monkeypatch.setattr(support, "_modern_grid", boom)
+    monkeypatch.setattr(market, "options_from_argv", boom)
+    monkeypatch.setattr(evaluate, "evaluate_frame", boom)
+    monkeypatch.setattr("sys.argv", ["evaluate", "--bootstrap-seed", "0", "--min-train-rows", "1"])
+    with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
+        market.load_pinned_grids()
+    with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
+        market.execute_pinned_market_fit({"bootstrap_seed": 0})
+    with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
+        evaluate.main()
+    with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
+        evaluate.run_market()
+
+
+def test_provenance_flags_follow_execution_not_the_caller():
+    execution = market.MarketExecution()
+    report = market.build_report(
+        execution,
+        {"route": "PROSPECTIVE", "stored_probabilities": object()},
+        market_series_loaded=True,
+        probabilities_computed_on_market=True,
+        model_metrics_computed=True,
+        evidence_class="LIVE_VALIDATED",
+    )
+    assert report["market_series_loaded"] is False
+    assert report["probabilities_computed_on_market"] is False
+    assert report["model_metrics_computed"] is False
+    assert report["market_fit_executed"] is False
+    assert report["evidence_class"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    assert report["claim_ceiling"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    assert report["product_ready"] is False
+    assert report["live_validated"] is False
+    assert report["prospective"] is False
+    assert "route" not in report
+    with pytest.raises(ImplementationInvalid, match="PROVENANCE_OVERRIDE"):
+        execution.mark_loaded(object())
+    with pytest.raises(ImplementationInvalid, match="PROVENANCE_OVERRIDE"):
+        execution.mark_scored(market._SCORE_TOKEN)
+    execution.mark_loaded(market._LOAD_TOKEN)
+    loaded = market.build_report(execution)
+    assert loaded["market_series_loaded"] is True
+    assert loaded["probabilities_computed_on_market"] is False
+    assert loaded["model_metrics_computed"] is False
+    execution.mark_scored(market._SCORE_TOKEN)
+    scored = market.build_report(execution, {"route": K.ROUTE_NONE, "implementation_ok": True})
+    assert scored["probabilities_computed_on_market"] is True
+    assert scored["model_metrics_computed"] is True
+    assert scored["evidence_class"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    fresh = evaluate.evaluate_frame([], draws=1, seed=0, min_rows=1, min_weeks=1)
+    assert fresh["market_series_loaded"] is False
+    assert fresh["probabilities_computed_on_market"] is False
+
+
+def test_owner_go_false_does_not_run_a_market_fit(monkeypatch):
+    def boom(*_args, **_kwargs):
+        raise AssertionError("market load")
+
+    monkeypatch.setattr(evaluate, "evaluate_frame", boom)
+    assert K.OWNER_GO is False
+    with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
+        market.execute_pinned_market_fit()
+    report = market.build_report(market.MarketExecution())
+    assert report["market_fit_executed"] is False
+    assert report["model_metrics_computed"] is False
+    assert not (ROOT / "docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_MARKET_RESULT.json").exists()
+    manifest = json.loads((ROOT / K.ADAPTER_MANIFEST).read_text(encoding="utf-8"))
+    assert manifest["evidence_class"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    assert manifest["claim_ceiling"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    assert manifest["owner_go"] is False
+    assert manifest["market_fit_executed"] is False
+    assert manifest["market_series_loaded"] is False
+    assert manifest["probabilities_computed_on_market"] is False
+    assert manifest["model_metrics_computed"] is False
+    assert manifest["product_ready"] is False
+    assert manifest["live_validated"] is False
+    assert manifest["prospective"] is False
+    assert manifest["expected_primary"]["total_test_rows"] == 336293
+    assert manifest["expected_primary"]["total_test_weeks"] == 505
+    assert manifest["sources"]["BITMEX_2016_2019"]["sha256"] == K.BITMEX_SHA256
+    assert manifest["sources"]["BINANCE_2020_2024"]["snapshot"] == K.CORE_SNAPSHOT
+    assert manifest["sources"]["BINANCE_2025_2026"]["sha256"] == K.BINANCE_SHA256
+    assert manifest["amendment_a1_sha256"] == K.AMENDMENT_A1_SHA256
+
+
+def test_amendment_a1_hash_is_pinned(tmp_path):
+    market.assert_amendment_pinned()
+    bad = tmp_path / "amendment.md"
+    bad.write_text("changed\n", encoding="utf-8")
+    with pytest.raises(ImplementationInvalid, match="AMENDMENT_HASH_MISMATCH"):
+        market.assert_amendment_pinned(bad)

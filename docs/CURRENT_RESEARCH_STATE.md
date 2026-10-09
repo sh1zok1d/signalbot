@@ -1,3 +1,16 @@
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — market adapter ready, fit not run — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | MARKET_ADAPTER_READY_AWAITING_OWNER_FIT_GO`
+`ADAPTER = three pinned sources wired to evaluate_frame | load and score stay behind the owner go | synthetic contract tests only`
+`COVERAGE PIN = BitMEX 113210 / 171 | Binance 2020-2024 162084 / 242 | Binance 2025-2026 60999 / 92 | total 336293 rows / 505 weeks`
+`NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
+`ADAPTER SHA256 = 62a7ef5bd8f74e0c6ba70fa9bbdb5deb5f012752aff73317e199d64249be6f70`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf | unchanged`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Adapter manifest: `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_ADAPTER.json`.
+
 ## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — amendment A1, model not fit — 2026-10-09
 
 `MODE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES | model_fit = false | OWNER_GO = false`

@@ -1,0 +1,99 @@
+{
+  "amendment_a1_sha256": "6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf",
+  "august_hole_preserved": true,
+  "bar_ms": 300000,
+  "baseline_features": [
+    "RET_4H",
+    "RV_4H",
+    "RET_1H",
+    "RET_15M"
+  ],
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261120,
+  "candidate_features": [
+    "RET_4H",
+    "RV_4H",
+    "RET_1H",
+    "RET_15M",
+    "RANGE_POSITION_4H"
+  ],
+  "claim_ceiling": "RETROSPECTIVE_FORECAST_PROTOTYPE",
+  "design_sha256": "7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7",
+  "e1_objects_requested": false,
+  "evidence_class": "RETROSPECTIVE_FORECAST_PROTOTYPE",
+  "expected_primary": {
+    "BINANCE_2020_2024": {
+      "test_rows": 162084,
+      "test_weeks": 242
+    },
+    "BINANCE_2025_2026": {
+      "test_rows": 60999,
+      "test_weeks": 92
+    },
+    "BITMEX_2016_2019": {
+      "test_rows": 113210,
+      "test_weeks": 171
+    },
+    "total_test_rows": 336293,
+    "total_test_weeks": 505
+  },
+  "folds_sha256": "798ee69e4bd6b7effd1c586c810214b76624a5aedf1bef986b884499dfca2ee2",
+  "grids_stitched": false,
+  "horizon": 12,
+  "label_rule": "label_available_at <= block_start",
+  "live_validated": false,
+  "market_fit_executed": false,
+  "market_series_loaded": false,
+  "min_train_rows": 1000,
+  "min_train_weeks": 20,
+  "model_metrics_computed": false,
+  "owner_go": false,
+  "primary_cadence": "15m",
+  "probabilities_computed_on_market": false,
+  "product_ready": false,
+  "prospective": false,
+  "secondary_cadence": "hourly_diagnostic_only",
+  "sources": {
+    "BINANCE_2020_2024": {
+      "aggregation": "complete_5m_bins_from_pinned_1m",
+      "dataset": "CORE_BTC_BINANCE_V0",
+      "snapshot": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+      "train_sources": [
+        "BINANCE_2020_2024"
+      ]
+    },
+    "BINANCE_2025_2026": {
+      "august_hole_preserved": true,
+      "grids_stitched_for_features": false,
+      "path": "docs/research_data/RANGE_POSITION_4H_BINANCE_2025_2026_V1/canonical_5m.jsonl.gz",
+      "sha256": "64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9",
+      "train_sources": [
+        "BINANCE_2020_2024",
+        "BINANCE_2025_2026"
+      ]
+    },
+    "BITMEX_2016_2019": {
+      "path": "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz",
+      "price_transform": "last_trade_price_space_no_inverse",
+      "sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+      "train_sources": [
+        "BITMEX_2016_2019"
+      ]
+    }
+  },
+  "support_sha256": "f63f7f970e8689a1b0f6290984278eab4a907f75efdea5d72f91c3d5ac7a2ebd",
+  "train_sources": {
+    "BINANCE_2020_2024": [
+      "BINANCE_2020_2024"
+    ],
+    "BINANCE_2025_2026": [
+      "BINANCE_2020_2024",
+      "BINANCE_2025_2026"
+    ],
+    "BITMEX_2016_2019": [
+      "BITMEX_2016_2019"
+    ]
+  },
+  "unit": "RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1",
+  "zero_return_rule": "ZERO_RETURN_EXCLUDED"
+}
