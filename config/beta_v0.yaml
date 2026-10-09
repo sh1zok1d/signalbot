@@ -153,6 +153,9 @@ beta:
     # SUPPRESSED / SUPPRESSED_PREVIEW, terminal. Decisions, the claim journal, fuses and limits run as
     # usual. Replies to a participant's own commands and the owner's /admin_reply, /admin_broadcast pass.
     preview_owner_only: true
+    # Pulsy UX V2 (P0): /admin_preview v2 <screen> renders the V2 templates on live data to the owner only,
+    # and its level buttons resolve only for the owner while this is on. Nothing is written; no user surface.
+    ux_v2_preview: true
   # Per-user activity retention (beta plus 90 days). Not the rules digest.
   # Rejected /start rows (hashes or a daily count) are purged separately.
   telemetry:

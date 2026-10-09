@@ -46,6 +46,7 @@ class Outgoing:
     mass: Optional[tuple] = None                # (audit action, label): one owner mass send, counted
     sticker: Optional[str] = None               # kind 'sticker': the Telegram file_id the owner sent
     forward_of: Optional[tuple] = None          # an owner copy: (user_pk, kind), mapped by its message_id once sent
+    document: Optional[tuple] = None            # kind 'document': (filename, bytes), an owner-only file
 
 
 # Owner mass sends (/admin_broadcast, /admin_outage; A3 review): one paced path, and the owner is told
@@ -101,6 +102,26 @@ class BetaTelegramSender(TelegramSender):
                                     RetryAfter, TelegramError, TimedOut)
         try:
             msg = await self._ensure_bot().send_sticker(chat_id=chat_id, sticker=sticker)
+        except RetryAfter as exc:
+            raise DeliveryThrottled(retry_after_seconds(exc)) from exc
+        except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+        except (TimedOut, NetworkError) as exc:
+            raise DeliveryAmbiguous(type(exc).__name__) from exc
+        except TelegramError as exc:
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+        return msg.message_id
+
+    async def send_document(self, *, chat_id: int, filename: str, data: bytes) -> int:
+        """sendDocument (the owner's export file), with send()'s error mapping."""
+        from telegram import InputFile
+        from telegram.error import (BadRequest, ChatMigrated, Forbidden, InvalidToken, NetworkError,
+                                    RetryAfter, TelegramError, TimedOut)
+        try:
+            msg = await self._ensure_bot().send_document(chat_id=chat_id,
+                                                         document=InputFile(data, filename=filename))
         except RetryAfter as exc:
             raise DeliveryThrottled(retry_after_seconds(exc)) from exc
         except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
@@ -290,6 +311,8 @@ class BetaBotHandler:
             reply = await handle_owner_command(conn, cmd, args, now=now)
             return [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
                     for part in owner_parts(reply)]
+        if cmd == "admin_preview" and (args or "").strip().lower().split()[:1] == ["v2"] and is_owner(self.owner, uid):
+            return await self._preview_v2(conn, uid, chat_id, (args or "").split()[1:], now)
         if cmd and cmd.startswith("admin_"):
             res = await handle_admin(conn, self.cfg, self.switches(), owner_user_id=self.owner,
                                      actor_user_id=uid, command=cmd, args=args, now=now,
@@ -308,6 +331,8 @@ class BetaBotHandler:
             for item in res.get("direct") or []:
                 dest, text, *rest = item
                 out.append(replace(_msg(int(dest), text, lang=rest[0] if rest else "ru"), mass=mass))
+            if res.get("document"):                  # an owner-only file (/admin_export_views)
+                out.append(Outgoing(kind="document", chat_id=chat_id, document=res["document"]))
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
@@ -874,11 +899,53 @@ class BetaBotHandler:
                                          html=html_text, buttons=buttons)]
         return [answer(""), _msg(chat_id, html_text, buttons, lang=lang)]
 
+    async def _preview_v2(self, conn, uid: int, chat_id: int, rest: list, now: datetime) -> list:
+        """/admin_preview v2 <screen> (Pulsy UX V2, P0): the V2 templates on live data to the owner, level L1,
+        behind `access.ux_v2_preview`. Writes only its audit row."""
+        from beta import ux_preview as V2
+        screen = rest[0].lower() if rest else ""
+        result, detail, buttons = "OK", {"type": f"v2:{screen}"}, None
+        if not V2.enabled(self.cfg):
+            result, text = "REFUSED", "refused: access.ux_v2_preview is off"
+        elif screen not in V2.SCREENS:
+            result, text = "INVALID_ARGUMENT", "usage: /admin_preview v2 <" + "|".join(V2.SCREENS) + ">"
+        else:
+            try:
+                rendered = await V2.render_v2(conn, self.cfg, screen, 1, now=now)
+            except Exception as exc:  # noqa: BLE001 - a P0 template gap is reported to the owner, never raised
+                rendered, result, text = None, "ERROR", f"v2 {screen}: render failed ({type(exc).__name__})"
+            if result == "ERROR":
+                pass
+            elif rendered is None:
+                result, text = "NONE", f"v2 {screen}: ещё не было"
+            else:
+                text, buttons = rendered
+        await conn.insert_audit(action="admin_preview", authorized=True, actor_fingerprint=fingerprint(uid),
+                                target_fingerprint=None, result=result, detail=detail)
+        if buttons is None and result != "OK":
+            return [Outgoing(kind="message", chat_id=chat_id, html=html.escape(text, quote=False))]
+        return [Outgoing(kind="message", chat_id=chat_id, html=text, buttons=buttons)]
+
     async def _callback(self, conn, cq) -> list:
         uid = int((cq.get("from") or {}).get("id", 0))
         chat_id = int(((cq.get("message") or {}).get("chat") or {}).get("id", uid))
         data, cid = cq.get("data") or "", cq.get("id")
         answer = lambda text: Outgoing(kind="answer", callback_id=cid, html=text)  # noqa: E731
+        if data.startswith("ux:") and is_owner(self.owner, uid):   # Pulsy UX V2 preview: the owner only, flag on
+            from beta import ux_preview as V2
+            target = V2.parse_callback(data)
+            if target is None or not V2.enabled(self.cfg):
+                return [answer("")]
+            try:
+                rendered = await V2.render_v2(conn, self.cfg, target[0], target[1], now=self.clock())
+            except Exception as exc:  # noqa: BLE001 - a P0 template gap: the tap does nothing
+                logger.warning("v2 preview render failed: %s", type(exc).__name__)
+                rendered = None
+            message_id = (cq.get("message") or {}).get("message_id")
+            if rendered is None or message_id is None:
+                return [answer("")]
+            return [answer(""), Outgoing(kind="edit", chat_id=chat_id, message_id=int(message_id),
+                                         html=rendered[0], buttons=rendered[1])]
         if data == "wl:ask":
             if await self._allowed(conn, uid):
                 return [answer("")]
@@ -1108,6 +1175,8 @@ async def _deliver_one(sender, o: Outgoing, *, sleep, sent_ids: Optional[list] =
                 await sender.edit(chat_id=o.chat_id, message_id=o.message_id, html=o.html, buttons=o.buttons)
             elif o.kind == "sticker":
                 await sender.send_sticker(chat_id=o.chat_id, sticker=o.sticker)
+            elif o.kind == "document":
+                await sender.send_document(chat_id=o.chat_id, filename=o.document[0], data=o.document[1])
             else:
                 mid = await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
                 if sent_ids is not None:

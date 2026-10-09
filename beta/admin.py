@@ -22,7 +22,7 @@ ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "a
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
                   "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known",
-                  "admin_latency", "admin_offer", "admin_test_open", "admin_preview")
+                  "admin_latency", "admin_offer", "admin_test_open", "admin_preview", "admin_export_views")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -177,6 +177,7 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         return {"reply": None, "broadcast": None, "direct": None, "mass": None, "authorized": False}
     actor = fingerprint(actor_user_id)
     target, result, detail, reply, broadcast, direct, mass = None, "OK", {}, "", None, None, None
+    document = None
     cap = int(cfg["access"]["max_active_users"])
     if command == "admin_status":
         st = await collect_status(conn, cfg, now)
@@ -433,6 +434,18 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 reply = f"preview {kind}: sent to you only"
                 direct = [(int(owner_user_id), text)]
             detail = {"type": kind}
+    elif command == "admin_export_views":
+        # Pulsy UX V2 (P0): the gallery's input, market data only, scrubbed; read-only
+        from .ux_export import MAX_N, export_bytes, export_views, parse_n
+        n = parse_n(args)
+        if n is None:
+            result, reply = "INVALID_ARGUMENT", f"usage: /admin_export_views [n 1..{MAX_N}]"
+        else:
+            doc = await export_views(conn, n, now=now)
+            document = (f"pulsy_views_{now.strftime('%Y%m%dT%H%M%SZ')}.json", export_bytes(doc))
+            reply = (f"export: {len(doc['views'])} views, {len(doc['alerts'])} alerts, {len(doc['pushes'])} pushes "
+                     "(market data only)")
+            detail = {"n": n, "views": len(doc["views"]), "alerts": len(doc["alerts"]), "pushes": len(doc["pushes"])}
     elif command == "admin_stats":
         from .usage import build_usage_report, format_usage_report
         report = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner_user_id)
@@ -444,4 +457,5 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
     await conn.insert_audit(action=command if command in ADMIN_COMMANDS else "admin_status",
                             authorized=True, actor_fingerprint=actor, target_fingerprint=target,
                             result=result, detail=detail)
-    return {"reply": reply, "broadcast": broadcast, "direct": direct, "mass": mass, "authorized": True}
+    return {"reply": reply, "broadcast": broadcast, "direct": direct, "mass": mass, "authorized": True,
+            "document": document}

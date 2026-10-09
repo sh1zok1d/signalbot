@@ -533,7 +533,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- the owner's sticker reply to a participant's message (owner decision 2026-10-08)
     'admin_sticker',
     -- the owner's UX preview of one notification type, to the owner only (2026-10-09)
-    'admin_preview'));
+    'admin_preview',
+    -- Pulsy UX V2 (P0): the owner's scrubbed JSON of recent views and alert / push payloads
+    'admin_export_views'));
 
 -- The minimal deletion record (owner, 2026-10-08; BETA_MEASUREMENT_CONTRACT_V1 §1.5): how many unknown
 -- participants who joined at or after the test opening were deleted, per Kyiv join date. The enrolled
