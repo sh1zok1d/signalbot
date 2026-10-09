@@ -8999,6 +8999,22 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 design and support frozen
+
+**Mode.** Outcome-blind freeze of one modern-time replication. `outcome_read = false`. Evidence class `MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. The 2025–2026 product surface has been used for other questions. This relation was not among them. It is not a pristine holdout.
+- **Question.** On Binance USD-M BTCUSDT 2025–2026, does `RANGE_POSITION_4H` still associate with `R_1H` after `RET_4H` and `RV_4H`.
+- **Surface.** Vision klines planned as of `2026-10-09`, from `2025-01-01` through `2026-10-08`. Canonical SHA256 `64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9`. Object ledger SHA256 `6f659f541440ff60469cf1f8e4c78aaa5b3eaf81b1e73951bcf765b7ab074138`. 49 objects verified. None missing.
+- **E1.** `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)` was not requested. The August 2026 monthly object and the ten daily objects `2026-08-16` through `2026-08-25` were refused. The stored hole is `2026-08-16T00:00:00Z` through `2026-08-25T23:55:00Z`, 2880 bars.
+- **Support.** Eligible anchors `61016`. ISO weeks `92`. Phase anchors `62015`. Lost to the object hole `980`. Lost to incomplete lookback `16`. Lost to incomplete future `3`. `T` from `2025-01-01T04:15:00Z` through `2026-10-08T23:00:00Z`. No rank correlation is in the census. Support SHA256 `84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab`.
+- **Primary.** Partial Spearman imported from the Bybit successor. Bootstrap `B = 2000`, seed `20261119`, ISO weeks. Design SHA256 `9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370`.
+- **Not in this unit.** A second horizon, rejection, bars-since, fees, a product line, a forecast-engine prototype.
+
+```
+WINDOWS_CONSUMED = none for the association; the support census counted anchors only
+OUTCOME_READ = no; STATUS = DESIGN_AND_SUPPORT_FROZEN
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 one BitMEX read
 
 **Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. Design commit `2e62a1fe8dccfcbccf3a0aa7428ca9b7e0be474b`. Design SHA256 `124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`. Support SHA256 `a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`. Evaluator digest `d0079c773c6662fbf966fe4c921aa4488950071df08a9b6ed4b6560a94c44ca6`. A second read returns `REFUSING_RERUN`.

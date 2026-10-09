@@ -1,3 +1,18 @@
+## RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 — design and support frozen, outcome unread — 2026-10-09
+
+`MODE = MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = false | claim ceiling HISTORICAL_ONLY`
+`QUESTION = does RANGE_POSITION_4H keep a negative next-1h association after RET_4H and RV_4H on Binance 2025-2026`
+`SURFACE = Binance Vision USD-M BTCUSDT 5m | canonical SHA256 64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9 | objects SHA256 6f659f541440ff60469cf1f8e4c78aaa5b3eaf81b1e73951bcf765b7ab074138`
+`E1 = [2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z) not requested | August monthly and 2026-08-16 through 2026-08-25 daily objects refused`
+`SUPPORT = eligible 61016 | ISO weeks 92 | phase anchors 62015 | object-hole exclusions 980 | lookback exclusions 16 | future exclusions 3 | T 2025-01-01T04:15:00Z through 2026-10-08T23:00:00Z | relation_computed = false`
+`PRIMARY = partial Spearman of RP4H with R_1H given RET_4H and RV_4H | seed 20261119 | B 2000 | ISO weeks`
+`NOT OPENED = the Binance 2025-2026 association, rejection, bars-since, a second horizon, fees, a product line`
+`DESIGN SHA256 = 9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370`
+`SUPPORT SHA256 = 84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.md`.
+
 ## RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 — one BitMEX read — 2026-10-09
 
 `MODE = HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = true | claim ceiling HISTORICAL_ONLY`
