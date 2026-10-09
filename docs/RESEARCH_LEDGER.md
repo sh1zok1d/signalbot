@@ -8999,6 +8999,19 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 independent review
+
+**Mode.** Review of the finished scan. `outcome_read = false` for this note. No feature was recomputed. The scanner was not rerun. Claim ceiling of the scan stays `DISCOVERY_ONLY`.
+- **Verdict.** `INTERESTING_BUT_TRIVIAL_CONFOUND_UNRESOLVED`. Canonical object `RANGE_POSITION_4H`: `close_pos_4h = dist_lower_4h`, `dist_upper_4h = 1 - close_pos_4h` when the 4h span is positive. The decision bar is inside the window. Future closes are not inside the feature.
+- **Catalog.** `MARKET_PHENOMENA_CATALOG_V1` is not in the repository. Range position is `EMPIRICALLY_DISCOVERED_OUTSIDE_TOP_CATALOG` relative to the named A1 / A5 / B / F labels. H02 and B2-02 stay adjacent and closed. Their verdicts are unchanged.
+- **Not executed.** Partial of `RANGE_POSITION_4H` on the 4h signed log return and `rv_4h`. Boundary partial given position. Bybit. BitMEX.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no; REVIEW_OF = PRE_IMPULSE_STATE_ATLAS_V1; VERDICT = INTERESTING_BUT_TRIVIAL_CONFOUND_UNRESOLVED
+OBJECTS_2025_2026_USED = none; E1 = not touched; OI = not opened; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 one discovery scan
 
 **Mode.** One official scan of the frozen list. `outcome_read = true`. Evidence class `HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH`. Claim ceiling `DISCOVERY_ONLY`. Read `2026-10-09T13:38:33Z`. Evaluator digest `b6e8d83f2d6f680b219edcfa3dab5ce96cfe0b3a4230b04e5c2952966acdb733`. Ledger SHA256 `29fbc898fd7ddea73407be5a417be40509d981a9f247c977b08c160ce3773a1b`. A second scan returns `REFUSING_RERUN`.
