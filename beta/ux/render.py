@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional
 
 from . import select as sel
-from .phrases import EMOJI, text
+from .phrases import EMOJI, EPISODES, text
 
 UX_VERSION = "PULSY_UX_V2_P0"
 SCREENS = {"btc": (1, 2, 3), "levels": (1,), "level_card": (1,), "hour": (1,), "level": (1,), "move": (1,),
@@ -67,6 +67,11 @@ def clock(iso: str) -> str:
     return fmt_kyiv_hm(datetime.fromisoformat(iso.replace("Z", "+00:00")))
 
 
+def episode_name(event_type: str, lang: str) -> str:
+    """The episode's short trader name (phrases epn_*); every EVENT_TYPE has one."""
+    return text("epn_" + EPISODES[event_type], lang)
+
+
 def level_name(member: Mapping[str, Any], lang: str) -> str:
     """The level's name from its data (decision_format.level_name, the old render's own map)."""
     from beta.decision_format import level_name as name
@@ -117,6 +122,8 @@ def _side(z: Mapping[str, Any], f: Mapping[str, Any]) -> int:
 
 
 def _level_line(key: str, z: Mapping[str, Any], f, lang: str) -> str:
+    if z is (f.get("levels") or {}).get("at"):
+        return text("lv_at_line", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang))
     return text(key, lang, arrow="↑" if _side(z, f) > 0 else "↓", name=level_name(z["members"][0], lang),
                 edge=price(z["edge"], lang), dist=spct(float(z["distance_pct"]), lang))
 
@@ -214,8 +221,7 @@ def _state_lines(keys, f, lang: str) -> list:
         lines = [text("st_move", lang, emoji=emoji, pct=spct(pct, lang)) if pct is not None else text("nt_hour_any", lang)]
         frag = []
         if "episode" in keys:
-            from beta.formatter import plain_name
-            frag.append(text("cx_episode", lang, name=plain_name(f["episode"]["event_type"], lang)))
+            frag.append(text("cx_episode", lang, name=episode_name(f["episode"]["event_type"], lang)))
         for k in ("range_extreme", "range_high", "volume_high", "corridor_edge"):
             if k in keys:
                 frag.append(text("cx_" + k, lang))
@@ -269,9 +275,7 @@ def _now_lines(keys, f, lang: str) -> list:
             out.append(text("now_stale", lang) if sel.stale_only(f) else
                        text("now_degraded", lang, inputs=_inputs(f, lang)))
         elif k == "episode":
-            from beta.formatter import plain_name
-            name = plain_name(f["episode"]["event_type"], lang)
-            out.append(text("now_episode", lang, name=name if lang == "ru" else name[:1].upper() + name[1:]))
+            out.append(text("ep_" + EPISODES[f["episode"]["event_type"]], lang))
         elif k == "level_at":
             z = f["levels"]["at"]
             out.append(text("now_level_at", lang, name=level_name(z["members"][0], lang), edge=price(z["edge"], lang)))
@@ -451,6 +455,7 @@ def _level_alert(lang: str, f) -> tuple:
 def _move(lang: str, f) -> tuple:
     return (_join([[H(text("nt_move", lang, pct=spct(f["move_pct"], lang)))],
                    [text("nt_move_why", lang, open=price(f["open"], lang), close=price(f["close"], lang)),
+                    text("nt_move_rule", lang),
                     text("nt_window", lang, start=clock(f["start"]), end=clock(f["at"]))]]),
             [[(text("btn_levels", lang), callback("levels", 1))]])
 
@@ -464,8 +469,7 @@ def _brief(lang: str, f) -> tuple:
     keys = sel.salient(f)
     frag = []
     if "episode" in keys:
-        from beta.formatter import plain_name
-        frag.append(text("cx_episode", lang, name=plain_name(f["episode"]["event_type"], lang)))
+        frag.append(text("cx_episode", lang, name=episode_name(f["episode"]["event_type"], lang)))
     frag += [text("cx_" + k, lang) for k in ("range_extreme", "range_high", "volume_high", "corridor_edge") if k in keys]
     body = [_sentence(frag)] if frag else []
     if w.get("low") is not None and w.get("high") is not None:

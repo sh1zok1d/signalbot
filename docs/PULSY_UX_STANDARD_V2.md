@@ -12,7 +12,7 @@ Every screen has up to three levels, and each level allows only certain claims:
 | Level | Name | What it may say | What it may not say |
 |---|---|---|---|
 | **L1** | summary | Current observations only, as words from frozen rules (§4, §5), each with its own current number. | Any **historical number**: no percent of history, no «× обычного», no N, no chance, no interval. |
-| **L2** | «Почему так?» | Trader language in 2–3 blocks: «Что видно сейчас» (one line per L1 observation), «Что было в похожих ситуациях» (verdict words only), «Чего это не значит» (only when a misreading is likely). | New observations that are not on L1. Historical numbers (they are on L3). |
+| **L2** | «Почему так?» | Trader language in 2–3 blocks: «Что видно сейчас» (one line per L1 observation; an episode reads its own line `ep_*`: the name with the right verb agreement and a one-clause meaning in trader language, consistent with the rule but with no thresholds), «Что было в похожих ситуациях» (verdict words only), «Чего это не значит» (only when a misreading is likely). | New observations that are not on L1. Historical numbers (they are on L3). |
 | **L3** | «Данные» | Numbers in bold groups «Цена и диапазон», «Позиции и поток», «Уровни», «История похожих», each with its baseline («обычно (медиана 30 дн.)»); directional history with N, the random-level baseline and the 95 % interval. | A number without its baseline. A chance without its exact calibration (P1). |
 
 ### 1.1 L1 anatomy
@@ -43,7 +43,7 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 Сейчас резкое падение, цена ходит намного шире обычного для этого часа.
 
 🎯 Рядом
-↑ минимум вчера 62 490 · 0,00%
+🎯 у цены: минимум вчера 62 490
 ↑ максимум вчера 62 950 · +0,75%
 ```
 
@@ -51,15 +51,15 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 ```
 🔎 Почему так
 
-📊 Что видно сейчас
-Сейчас резкое падение: его условия выполняются прямо сейчас.
+Что видно сейчас
+Идёт резкое падение: цена за пять минут упала сильнее обычного, а открытых позиций стало меньше — на нескольких биржах.
 Цена стоит у уровня: минимум вчера 62 490.
 За последний час цена прошла намного больше, чем обычно в это время суток.
 
-🔎 Что было в похожих ситуациях
+Что было в похожих ситуациях
 У уровня «максимум вчера» через час цена была выше него так же часто, как у случайного уровня.
 
-💬 Чего это не значит
+Чего это не значит
 Это описание того, что уже произошло, а не прогноз, куда пойдёт цена.
 ```
 
@@ -71,7 +71,7 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 За час: −0,84%
 Диапазон за час: 1,12% · обычно 0,49% (медиана 30 дн.)
 За 24 ч: максимум 113 900, минимум 110 800
-Обычный диапазон на 24 ч: 60 230–64 730
+Оценка диапазона на 24 ч: 60 230–64 730
 
 📊 Позиции и поток
 Объём за час: $1,9 млрд · обычно $905 млн (медиана 30 дн.)
@@ -88,10 +88,10 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 
 ## 2. Components
 - **Block:** a bold header with one emoji, then its lines. Blocks are separated by one blank line.
-- **Level line** (one shared form for «Рядом», `/levels`, L3 and the level card): «{↑/↓} {name} {price} · {distance}».
+- **Level line** (one shared form for «Рядом», `/levels`, L3 and the level card): «{↑/↓} {name} {price} · {distance}». The level at the price reads «🎯 у цены: {name} {price}», with no arrow and no «0,00 %».
   - The name comes from the level's data (`decision_format.level_name` on its member kind), never from free text.
   - P1 adds the card's chance line, with its exact calibration.
-- **Notification** (hour / level / move / brief): one bold headline with its number, a blank line, one sentence, the time or window line («08:00–09:00 Киев»), then one row of buttons.
+- **Notification** (hour / level / move / brief): one bold headline with its number, a blank line, one sentence, the time or window line («08:00–09:00 Киев»), then one row of buttons. The move push adds one rule-backed sentence whose predicate is the alert itself: «Для 15 минут это резкое движение.»
 
 **Example (RU), unusual-hour push:**
 ```
@@ -105,7 +105,7 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 ## 3. Telegram format
 - **HTML only:** `<b>` for headers; every other line is escaped text. No tables, no monospace, no Markdown.
 - **Spacing:** blank lines between blocks, never inside one.
-- **Fixed emoji set**, one per block header: ₿ (the /btc header) 💤 calm, ⚡ sharp move or episode, 📈 / 📉 the hour's direction, 🎯 levels, 📅 calendar and brief, 💬 «Чего это не значит», 🔎 «Почему так» and history, 📊 data. No other emoji.
+- **Fixed emoji set**, at most one per header: ₿ (the /btc header) 💤 calm, ⚡ sharp move or episode, 📈 / 📉 the hour's direction, 🎯 levels (and the «у цены» line), 📅 calendar and brief, 🔎 the «Почему так» header and L3 history, 📊 **data only** (the L3 header and its data groups), 💬 reserved. L2 block titles («Что видно сейчас», «Что было в похожих ситуациях», «Чего это не значит») are plain bold, with no emoji. No other emoji.
 - **Numbers:** thousands are separated by a **narrow no-break space** (U+202F) in RU. Number and unit are joined by a **no-break space** (U+00A0). Signs use the true minus «−».
 - **No machine language:** no rule, salience or predicate words, no snake_case or CONSTANT ids, no None / null / braces. A lint test checks every rendered output.
 - **EN** reads as a native product («strong buying», «as of»), not a translation of internal names.
@@ -128,7 +128,7 @@ The rules are evaluated in this order. L1 shows the first **3** that fire, and L
 | 8 | `corridor_edge` | The price is within **10 %** of the 24h half-width from a 24h corridor bound (`CORRIDOR_EDGE_SHARE`). |
 | — | `nothing` | None fires: the calm sentence («💤 Спокойно. …»). |
 
-**The corridor** is not on /btc L1, except for that one `corridor_edge` line. Its numbers are on L3. Accuracy appears only on L3, and only as the exact comparison (P1).
+**The corridor** is named «оценка диапазона на 24 ч» / «24h range estimate», never «обычный диапазон». It is not on /btc L1, except for that one `corridor_edge` line («у края оценки суточного диапазона»). Its numbers are on L3. Accuracy appears only on L3, and only as the exact comparison (P1).
 
 ## 5. Phrase dictionary (`beta/ux/phrases.py`, authoritative)
 Every user-visible phrase, with its formal predicate (the predicate is for the standard and tests; users never see it). A test keeps this table equal to the code.
@@ -161,39 +161,53 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `in_calc` | расчёт последнего часа | the last hour's calculation | status reason MATERIALIZATION_FAILED, STALE_COHERENCE_BARRIER or EVALUATION_NOT_FRESH |
 | `in_any` | часть входных данных | some inputs | DATA DEGRADED with no known reason |
 | `win_line` | 📅 За {hours} ч ({start}–{end} Киев): BTC {pct}, диапазон {low}–{high}. | 📅 Last {hours} h ({start}–{end} Kyiv): BTC {pct}, range {low}–{high}. | the view carries a complete market window (the brief / catchup view): market.window |
-| `cx_episode` | сейчас {name} | {name} is on | an active episode in state TRIGGERED |
+| `cx_episode` | сейчас {name} | {name} is on | an active episode in state TRIGGERED; name from epn_* |
 | `cx_range_extreme` | цена ходит намного шире обычного для этого часа | the price swings far wider than usual for this hour | 1h range rank >= context.label_extreme, tier mature |
 | `cx_range_high` | цена ходит шире обычного для этого часа | the price swings wider than usual for this hour | 1h range rank >= context.label_high (below extreme), tier mature |
 | `cx_volume_high` | объём выше обычного | volume is above usual | 1h volume rank >= context.label_high, tier mature |
-| `cx_corridor_edge` | цена у края обычного суточного диапазона | the price is near the edge of its usual daily range | price within CORRIDOR_EDGE_SHARE of the 24h half-width from a 24h corridor bound |
+| `cx_corridor_edge` | цена у края оценки суточного диапазона | the price is near the edge of the 24h range estimate | price within CORRIDOR_EDGE_SHARE of the 24h half-width from a 24h corridor bound |
+| `lv_at_line` | 🎯 у цены: {name} {edge} | 🎯 at the price: {name} {edge} | the level zone decision.levels.at (the price is inside it): no arrow, no distance |
 | `near_hdr` | 🎯 Рядом | 🎯 Nearby | decision.levels has at least one level |
 | `near_line` | {arrow} {name} {edge} · {dist} | {arrow} {name} {edge} · {dist} | a level zone: name from its member kind (decision_format.level_name), edge, distance_pct; ↑ above the price, ↓ below |
 | `ev_today` | 📅 Сегодня в {clock} — {event}. | 📅 Today at {clock} — {event}. | the next CPI / FOMC in the calendar is within 24 h |
 | `ev_cpi` | CPI (инфляция США) | CPI (US inflation) | event kind CPI |
 | `ev_fomc` | решение ФРС | the Fed decision | event kind FOMC |
 | `hdr_why` | 🔎 Почему так | 🔎 Why | L2 of the screen |
-| `b_now` | 📊 Что видно сейчас | 📊 What we see now | always on L2 |
+| `b_now` | Что видно сейчас | What we see now | always on L2 |
 | `now_stale` | Новых данных давно не было, поэтому текущих цифр нет. | No new data has arrived for a while, so there are no current numbers. | st_stale |
 | `now_degraded` | Неполные: {inputs}. Цифры по ним не показываю, остальные — по полным данным. | Partial: {inputs}. Their numbers are not shown; the rest comes from complete data. | st_degraded |
-| `now_episode` | Сейчас {name}: его условия выполняются прямо сейчас. | {name} is on: its conditions hold right now. | cx_episode |
+| `ep_down` | Идёт резкое падение: цена за пять минут упала сильнее обычного, а открытых позиций стало меньше — на нескольких биржах. | Sharp drop: the price fell more than usual in five minutes while open positions shrank, on several exchanges. | episode PRICE_OI_CONTRACTION_DOWN: 5m price move in its bottom 5% (30d) while OI fell in its bottom 10%, on >= 2 exchanges |
+| `ep_up` | Идёт резкий рост: цена за пять минут выросла сильнее обычного, а открытых позиций стало меньше — на нескольких биржах. | Sharp rise: the price rose more than usual in five minutes while open positions shrank, on several exchanges. | episode PRICE_OI_CONTRACTION_UP: 5m price move in its top 5% (30d) while OI fell in its bottom 10%, on >= 2 exchanges |
+| `ep_buildup` | Идёт набор позиций в узком диапазоне: открытых позиций всё больше, а цена почти стоит при объёме не ниже обычного. | Positions building in a narrow range: open positions keep growing while the price barely moves on at least usual volume. | episode POSITION_BUILDUP_COMPRESSION: OI growth in its top 20% (30d), 5m range in its bottom 40%, volume >= median, for 45 minutes |
+| `ep_buy` | Идут агрессивные покупки: покупки по рынку сильнее обычного две пятиминутки подряд. | Strong buying: market buys stronger than usual for two 5-minute periods in a row. | episode TAKER_FLOW_EXTREME_BUY: taker delta in its top 5% (30d) for two consecutive 5m buckets |
+| `ep_sell` | Идут агрессивные продажи: продажи по рынку сильнее обычного две пятиминутки подряд. | Strong selling: market sells stronger than usual for two 5-minute periods in a row. | episode TAKER_FLOW_EXTREME_SELL: taker delta in its bottom 5% (30d) for two consecutive 5m buckets |
+| `ep_liq_long` | Идут ликвидации лонгов: лонгов закрывают принудительно намного больше обычного — на нескольких биржах. | Long liquidations: far more longs are force-closed than usual, on several exchanges. | episode LIQUIDATION_STRESS_LONG: long liquidation notional in its top 5% (30d) on >= 2 live exchanges in one 5m bucket (OKX excluded) |
+| `ep_liq_short` | Идут ликвидации шортов: шортов закрывают принудительно намного больше обычного — на нескольких биржах. | Short liquidations: far more shorts are force-closed than usual, on several exchanges. | episode LIQUIDATION_STRESS_SHORT: short liquidation notional in its top 5% (30d) on >= 2 live exchanges in one 5m bucket (OKX excluded) |
+| `epn_down` | резкое падение | a sharp drop | PRICE_OI_CONTRACTION_DOWN |
+| `epn_up` | резкий рост | a sharp rise | PRICE_OI_CONTRACTION_UP |
+| `epn_buildup` | набор позиций в узком диапазоне | positions building in a narrow range | POSITION_BUILDUP_COMPRESSION |
+| `epn_buy` | агрессивные покупки | strong buying | TAKER_FLOW_EXTREME_BUY |
+| `epn_sell` | агрессивные продажи | strong selling | TAKER_FLOW_EXTREME_SELL |
+| `epn_liq_long` | ликвидации лонгов | long liquidations | LIQUIDATION_STRESS_LONG |
+| `epn_liq_short` | ликвидации шортов | short liquidations | LIQUIDATION_STRESS_SHORT |
 | `now_level_at` | Цена стоит у уровня: {name} {edge}. | The price is at a level: {name} {edge}. | decision.levels.at is set |
 | `now_range_extreme` | За последний час цена прошла намного больше, чем обычно в это время суток. | In the last hour the price covered far more ground than usual for this time of day. | cx_range_extreme |
 | `now_range_high` | За последний час цена прошла больше, чем обычно в это время суток. | In the last hour the price covered more ground than usual for this time of day. | cx_range_high |
 | `now_volume_high` | Торгуют активнее, чем обычно в это время суток. | Trading is busier than usual for this time of day. | cx_volume_high |
 | `now_event` | В {clock} выходит {event}. | {event} is out at {clock}. | ev_today |
-| `now_corridor_edge` | Цена у края диапазона, в котором она обычно проводит сутки. | The price is near the edge of the range it usually stays in over a day. | cx_corridor_edge |
+| `now_corridor_edge` | Цена у края оценки суточного диапазона. | The price is near the edge of the 24h range estimate. | cx_corridor_edge |
 | `now_calm` | Диапазон и объём за час — как обычно в это время суток. | Range and volume over the hour are as usual for this time of day. | calm_both_usual |
 | `now_range_low` | За час цена прошла меньше, чем обычно в это время суток. | Over the hour the price covered less ground than usual for this time of day. | calm_range_low |
 | `now_volume_low` | Торгуют меньше, чем обычно в это время суток. | Trading is thinner than usual for this time of day. | calm_volume_low |
 | `now_calm_young` | Сравнить с обычным пока не с чем: истории этого часа ещё мало. | Nothing to compare with yet: this hour's history is still short. | nothing fires and a 1h label is unknown (history not mature) |
-| `b_hist` | 🔎 Что было в похожих ситуациях | 🔎 What happened in similar cases | a nearby level with a stored first-touch history |
+| `b_hist` | Что было в похожих ситуациях | What happened in similar cases | a nearby level with a stored first-touch history |
 | `hist_same` | У уровня «{name}» через час цена была {side} него так же часто, как у случайного уровня. | At «{name}», an hour later the price was {side} it about as often as at a random level. | history.verdicts.1h == as_usual (levels.py, Holm-adjusted) |
 | `hist_more` | У уровня «{name}» через час цена была {side} него чаще, чем у случайного уровня. | At «{name}», an hour later the price was {side} it more often than at a random level. | history.verdicts.1h == differs and real hold_rate > control hold_rate |
 | `hist_less` | У уровня «{name}» через час цена была {side} него реже, чем у случайного уровня. | At «{name}», an hour later the price was {side} it less often than at a random level. | history.verdicts.1h == differs and real hold_rate < control hold_rate |
 | `hist_few` | По уровню «{name}» истории пока мало для вывода. | There is too little history at «{name}» to say. | history.verdicts.1h == insufficient |
 | `side_above` | выше | above | the level is above the price |
 | `side_below` | ниже | below | the level is below the price |
-| `b_not` | 💬 Чего это не значит | 💬 What it does not mean | an episode, a wide range, high volume or a level at the price is shown |
+| `b_not` | Чего это не значит | What it does not mean | an episode, a wide range, high volume or a level at the price is shown |
 | `not_forecast` | Это описание того, что уже произошло, а не прогноз, куда пойдёт цена. | This describes what has happened; it is not a forecast of where the price goes. | b_not |
 | `hdr_data` | 📊 Данные | 📊 Data | L3 of the screen |
 | `g_price` | 📊 Цена и диапазон | 📊 Price and range | always on L3 |
@@ -203,7 +217,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `l3_price_1h` | За час: {pct} | Over the hour: {pct} | horizons.1h.price_move_pct |
 | `l3_range_1h` | Диапазон за час: {val} · обычно {base} (медиана {n} дн.) | 1h range: {val} · usually {base} (median of {n} days) | horizons.1h.range_width_pct, baseline_median.range_width_pct_median, baseline_days |
 | `l3_hilo_24h` | За 24 ч: максимум {high}, минимум {low} | 24h: high {high}, low {low} | horizons.24h.high / low (price_complete) |
-| `l3_corridor` | Обычный диапазон на 24 ч: {lower}–{upper} | Usual 24h range: {lower}–{upper} | decision.corridor.horizons.24h lower / upper |
+| `l3_corridor` | Оценка диапазона на 24 ч: {lower}–{upper} | 24h range estimate: {lower}–{upper} | decision.corridor.horizons.24h lower / upper |
 | `l3_volume_1h` | Объём за час: {val} · обычно {base} (медиана {n} дн.) | 1h volume: {val} · usually {base} (median of {n} days) | horizons.1h.volume_notional_usd, baseline_median.volume_notional_usd_sum, baseline_days |
 | `l3_oi_down` | Открытых позиций стало меньше: {pct} за час | Open positions fell: {pct} over the hour | horizons.1h.oi_change_pct < 0 |
 | `l3_oi_up` | Открытых позиций стало больше: {pct} за час | Open positions rose: {pct} over the hour | horizons.1h.oi_change_pct > 0 |
@@ -222,6 +236,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `period_week` | неделю | this week | payload.period == week |
 | `period_month` | месяц | this month | payload.period == month |
 | `nt_move` | ⚡ BTC {pct} за 15 минут | ⚡ BTC {pct} in 15 minutes | a market alert of kind move (\|15m move\| over the 1h scale threshold, market_alerts.detect_move) |
+| `nt_move_rule` | Для 15 минут это резкое движение. | For 15 minutes, this is a sharp move. | the move alert itself: \|15m move\| over the 1h-scale threshold (market_alerts.detect_move) |
 | `nt_move_why` | Цена прошла от {open} до {close}. | The price went from {open} to {close}. | payload.open / close |
 | `nt_brief` | 📅 Сводка за {hours} ч: BTC {pct} | 📅 Last {hours} h: BTC {pct} | the morning brief (catchup view): market.window.price_move_pct |
 | `nt_brief_range` | Диапазон {low}–{high}. | Range {low}–{high}. | market.window low / high |
@@ -246,6 +261,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | **G** lively words only by rule | Every phrase has a predicate; the renderer prints only dictionary phrases and fact values | `test_rule_G_every_phrase_has_a_rule_and_the_doc_lists_them` |
 | **H** no machine language | No internal tokens in any rendered output | `test_no_machine_language_reaches_a_user` |
 | **J** distinct states | The calm family (usual, compression, thin, weekend, night window) and stale vs degraded read differently | `test_calm_family_states_read_differently`, `test_stale_shows_nothing_current_and_degraded_names_the_partial_input` |
+| **K** architect text fixes | One trader line per event type (`ep_*`, `epn_*`), no rule thresholds; «у цены» level line; «оценка диапазона»; the move push's rule sentence; 📊 data only | `test_architect_text_fixes`, `test_every_event_type_has_a_trader_line_without_thresholds` |
 | **I** anatomy | L1 header / state / «Рядом» ≤ 2; L3 bold groups; notifications: headline with number, one sentence, window, buttons | `test_l1_anatomy_and_l3_groups`, `test_notifications_have_one_headline_one_sentence_and_a_window` |
 
 Also tested:
