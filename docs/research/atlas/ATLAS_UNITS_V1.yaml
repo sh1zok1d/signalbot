@@ -4509,20 +4509,26 @@ units:
     program: PRE_IMPULSE_STATE_ATLAS_V1
     row: PRICE_STRUCTURE.impulse
     col: CANDLES
-    state: CANDIDATE_UNTESTED
+    state: CLOSED_ON_SURFACE
     datasets:
     - CORE_BTC_BINANCE_V0
     - BYBIT_BTCUSDT_PUBLIC_HISTORY
     - OKX_OFFICIAL_ARCHIVES
-    period: 'design frozen 2026-10-09; discovery unread; decision times before 2025-01-01'
-    units_n: 'feature list frozen; analysis N not yet formed'
+    period: 'one discovery scan 2026-10-09T13:38:33Z; T from 2020-01-01T08:15:00Z through 2024-12-31T23:45:00Z; anchor N 175359; 262 ISO weeks; 496 logged cells'
+    units_n: '62 series; top score about 0.058 on close location inside the trailing 4h range versus the next 1h signed return; the lower-boundary distance is the same ratio'
     practical_bar: 'No magnitude floor. A correlation cutoff is not an admission rule. Magnitude is an output of the logged scan.'
     mechanism: 'A bounded past-only scan of path geometry, local boundary pressure, clock interaction and cross-venue timing against later signed return. One discovery pass. Not a confirmation.'
     function: 'Fifteen-minute decisions. Past-only path geometry, rolling-boundary pressure, session interaction and cross-venue timing. Later signed return at several horizons. Full search ledger. Discovery only.'
-    verdict: 'DESIGN FROZEN (2026-10-09). Discovery unread. Claim ceiling DISCOVERY_ONLY. No product line.'
-    reopen: 'The one scan of this frozen list is still allowed. After that scan the cell is closed on the surface. A successor needs a new design. Not a product change. Not 2025/2026.'
+    verdict: 'DISCOVERY SCAN COMPLETE (2026-10-09T13:38:33Z). Claim ceiling DISCOVERY_ONLY. Highest score is close location inside the trailing 4-hour range versus the next 1h signed return, Spearman about -0.058, same sign in every year. Lower-boundary distance is that same ratio. Upper-boundary distance is its complement. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'The one allowed scan of this frozen list was completed and the full ledger was kept. A second scan is refused. No cell is a confirmation.'
+    forbidden: 'a second scan of this list; treating a shortlisted cell as confirmed or as a current probability; dropping a logged loser; tuning the near band or the speed distance after this read; opening 2025/2026 or open interest; a product line'
+    reopen: 'A successor needs a new frozen design on a tape this scan did not use for that formula. Not a rerun. Not a product change. Not 2025/2026.'
     records:
     - docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md
+    - docs/research/PRE_IMPULSE_STATE_ATLAS_V1.md
+    - docs/research/PRE_IMPULSE_STATE_ATLAS_V1.json
+    - docs/research/PRE_IMPULSE_STATE_ATLAS_V1_LEDGER.json
+    - docs/research/PRE_IMPULSE_STATE_ATLAS_V1.png
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN FROZEN. Discovery unread. Claim ceiling DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    note: 'ONE DISCOVERY SCAN. Claim ceiling DISCOVERY_ONLY. Close location and lower-boundary distance are the same ratio. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'

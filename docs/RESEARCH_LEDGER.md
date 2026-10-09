@@ -8999,6 +8999,23 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 one discovery scan
+
+**Mode.** One official scan of the frozen list. `outcome_read = true`. Evidence class `HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH`. Claim ceiling `DISCOVERY_ONLY`. Read `2026-10-09T13:38:33Z`. Evaluator digest `b6e8d83f2d6f680b219edcfa3dab5ce96cfe0b3a4230b04e5c2952966acdb733`. Ledger SHA256 `29fbc898fd7ddea73407be5a417be40509d981a9f247c977b08c160ce3773a1b`. A second scan returns `REFUSING_RERUN`.
+- **Sample.** `CORE_BTC_BINANCE_V0`. Anchors `175359`, from `2020-01-01T08:15:00Z` through `2024-12-31T23:45:00Z`. ISO weeks `262`. Finite 1h / 4h / 8h / 24h targets: `175356` / `175344` / `175328` / `175264`. Cells `496`.
+- **Lead.** `close_pos_4h` at 1h, Spearman `-0.057773446228651215`. Bottom quintile P(UP) `0.5626300932394286`, baseline `0.5085312164967266`, delta P `0.05409887674270197`. All five years negative. `dist_lower_4h` is the same ratio. `dist_upper_4h` is the complement.
+- **Next distinct cells.** `last_rejection_lower_4h` at 4h, Spearman `-0.05076682453380103`, N `136018`. `bars_since_lower_4h` at 1h, Spearman `-0.047963537765399133`, N `136030`. Mirrors agree.
+- **Not a candidate.** `speed_ratio_up_down` absolute Spearman `0.17188215739868304` on N `27`. Score `0`.
+- **Small families.** Compression peak absolute Spearman `0.00595195784292189`. Countertrend peak `0.011749914497548065`.
+- **Flow and venues.** Flow stays ineligible. Strongest flow cell `flow_beta_1h` at 8h, Spearman `0.020214202146930194`. Strongest cross-venue cell `bybit_leader_signed` at 1h, Spearman `-0.017098754584277478`, quintiles degenerate. Open interest was not opened.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. Successors were not executed.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 further use for PRICE_STRUCTURE.impulse; Bybit and OKX 5m closes further use for 15-minute timing only, not a confirmation of the level-reaction reads
+OUTCOME_READ = yes; CLAIM_CEILING = DISCOVERY_ONLY; CONFIRMATION = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; OI = not opened; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 design frozen before the scan
 
 **Mode.** Outcome-blind freeze of a bounded discovery atlas. `outcome_read = false`. Evidence class `HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH`. Claim ceiling `DISCOVERY_ONLY`.

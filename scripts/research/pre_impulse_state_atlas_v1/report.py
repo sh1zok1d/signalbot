@@ -52,9 +52,13 @@ def write_markdown(result: dict, path: Path) -> None:
         "## UP-associated structures",
         "",
     ]
-    lines.extend(_candidate_block(row) for row in result["up_associated"][:5])
-    lines += ["", "## DOWN-associated structures", ""]
-    lines.extend(_candidate_block(row) for row in result["down_associated"][:5])
+    for row in result["up_associated"][:5]:
+        lines.extend(_candidate_block(row))
+        lines.append("")
+    lines += ["## DOWN-associated structures", ""]
+    for row in result["down_associated"][:5]:
+        lines.extend(_candidate_block(row))
+        lines.append("")
     lines += ["", "## Symmetric and null structures", "", result["narrative"]["nulls"], ""]
     lines += ["## Clock-conditioned structures", "", result["narrative"]["clock"], ""]
     lines += ["## Boundary and acceptance structures", "", result["narrative"]["boundary"], ""]

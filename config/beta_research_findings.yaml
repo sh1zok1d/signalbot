@@ -25,10 +25,10 @@
 version: BETA_RESEARCH_FINDINGS_V1
 no_bot_context:
   - program: PRE_IMPULSE_STATE_ATLAS_V1 (atlas PRE-IMPULSE-STATE-ATLAS-V1)
-    status: DESIGN_FROZEN
+    status: DISCOVERY_ONLY
     bot_context: NONE
-    reason: "discovery design frozen; outcomes unread; claim ceiling DISCOVERY_ONLY; no product line"
-    record: "docs/research/PRE_IMPULSE_STATE_ATLAS_V1_DESIGN.md"
+    reason: "one bounded discovery scan; claim ceiling DISCOVERY_ONLY; close location inside the trailing 4h range is the leading candidate and is not a confirmation; PRODUCT_INTEGRATION_CANDIDATE = NO; no /btc line"
+    record: "docs/research/PRE_IMPULSE_STATE_ATLAS_V1.md"
   - program: AUTOGEN_G01
     status: CLOSED_NO_SURVIVORS
     bot_context: NONE

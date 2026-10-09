@@ -1,3 +1,17 @@
+## PRE_IMPULSE_STATE_ATLAS_V1 — one discovery scan — 2026-10-09
+
+`MODE = HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH | outcome_read = true | claim ceiling DISCOVERY_ONLY`
+`READ AT = 2026-10-09T13:38:33Z | design SHA256 01b7eafb7d2231388503a0c523e1443eceba7666b774ec8d0c1dc5fb055c3a5b | evaluator b6e8d83f2d6f680b219edcfa3dab5ce96cfe0b3a4230b04e5c2952966acdb733`
+`SAMPLE = CORE_BTC_BINANCE_V0 | T from 2020-01-01T08:15:00Z through 2024-12-31T23:45:00Z | 15-minute anchors N 175359 | ISO weeks 262`
+`CELLS = 62 series | 496 feature x horizon x representation cells | ledger SHA256 29fbc898fd7ddea73407be5a417be40509d981a9f247c977b08c160ce3773a1b`
+`LEAD = close location inside the trailing 4h range versus the next 1h signed return | Spearman -0.057773446228651215 | bottom-quintile P(UP) 0.5626300932394286 | baseline 0.5085312164967266 | delta P 0.05409887674270197 | same sign in every year`
+`IDENTITY = dist_lower_4h is that same ratio | dist_upper_4h is the complement | not three separate discoveries`
+`NOT A CANDIDATE = speed_ratio_up_down absolute Spearman 0.17188215739868304 on N 27 | score 0`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO | no product code change`
+`NOT OPENED = 2025/2026, E1, open interest, level-engine levels, funding | rerun REFUSING_RERUN | successors not executed`
+
+Result: `docs/research/PRE_IMPULSE_STATE_ATLAS_V1.md`.
+
 ## PRE_IMPULSE_STATE_ATLAS_V1 — design frozen, discovery unread — 2026-10-09
 
 `MODE = HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH | outcome_read = false | claim ceiling DISCOVERY_ONLY`

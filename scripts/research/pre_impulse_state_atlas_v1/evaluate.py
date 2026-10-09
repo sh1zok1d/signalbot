@@ -88,6 +88,8 @@ def _jsonable(value):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
         return [_jsonable(v) for v in value]
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
     if isinstance(value, (np.floating, float)):
         number = float(value)
         return number if math.isfinite(number) else None
