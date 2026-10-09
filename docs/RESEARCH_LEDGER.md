@@ -8999,6 +8999,20 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 design frozen
+
+**Mode.** Outcome-blind freeze of one cross-venue successor. `outcome_read = false`. Evidence class `CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT`. Claim ceiling `HISTORICAL_ONLY`.
+- **Question.** On Bybit, does `RANGE_POSITION_4H` still associate with `R_1H` after `RET_4H` and `RV_4H`.
+- **Surface.** `bybit_btcusdt_linear_5m.csv.gz`, SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`. `T < 2025-01-01`. Holes stay missing. Binance outcomes are not loaded.
+- **Primary.** Partial Spearman, rank residuals, OLS with an intercept. Bootstrap `B = 2000`, seed `20261117`, ISO weeks. Design SHA256 `8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`.
+- **Not in this unit.** Rejection, bars-since, a second horizon, fees, a new discovery scan.
+
+```
+WINDOWS_CONSUMED = none
+OUTCOME_READ = no; STATUS = DESIGN_FROZEN
+OBJECTS_2025_2026_USED = none; BINANCE_OUTCOMES = not loaded; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — PRE_IMPULSE_STATE_ATLAS_V1 independent review
 
 **Mode.** Review of the finished scan. `outcome_read = false` for this note. No feature was recomputed. The scanner was not rerun. Claim ceiling of the scan stays `DISCOVERY_ONLY`.
