@@ -1,3 +1,15 @@
+## PRE_IMPULSE_STATE_ATLAS_V1 — independent review — 2026-10-09
+
+`MODE = REVIEW | outcome_read = false | scan claim ceiling unchanged DISCOVERY_ONLY`
+`VERDICT = INTERESTING_BUT_TRIVIAL_CONFOUND_UNRESOLVED`
+`OBJECT = RANGE_POSITION_4H | close_pos_4h = dist_lower_4h | dist_upper_4h = 1 - close_pos_4h`
+`OPEN CONFOUND = partial on the trailing 4h signed log return was not in the scan | rv_4h partial does not remove the Spearman`
+`NOT EXECUTED = Bybit conditional successor | boundary partial given position | BitMEX`
+`CATALOG FILE = MARKET_PHENOMENA_CATALOG_V1 absent from the repo | position classified EMPIRICALLY_DISCOVERED_OUTSIDE_TOP_CATALOG relative to the named A1/A5/B/F labels`
+`PRODUCT = PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Review: `docs/research/PRE_IMPULSE_STATE_ATLAS_V1_INDEPENDENT_REVIEW.md`.
+
 ## PRE_IMPULSE_STATE_ATLAS_V1 — one discovery scan — 2026-10-09
 
 `MODE = HISTORICAL_DIRECTIONAL_DISCOVERY / ADAPTIVE_SEARCH | outcome_read = true | claim ceiling DISCOVERY_ONLY`
