@@ -21,6 +21,7 @@
   "design_sha256": "7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7",
   "e1_objects_requested": false,
   "evidence_class": "RETROSPECTIVE_FORECAST_PROTOTYPE",
+  "execution_journal": "one_shot_ATTEMPT_before_model_results",
   "expected_primary": {
     "BINANCE_2020_2024": {
       "test_rows": 162084,
@@ -52,7 +53,9 @@
   "probabilities_computed_on_market": false,
   "product_ready": false,
   "prospective": false,
+  "rerun_policy": "REFUSING_RERUN",
   "secondary_cadence": "hourly_diagnostic_only",
+  "segment_clock": "5m_open_half_open_interval",
   "sources": {
     "BINANCE_2020_2024": {
       "aggregation": "complete_5m_bins_from_pinned_1m",

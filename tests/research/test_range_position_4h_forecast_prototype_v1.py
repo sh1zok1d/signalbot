@@ -882,6 +882,7 @@ def test_the_guard_exits_before_prices_features_or_the_scorer(monkeypatch):
     monkeypatch.setattr(support, "_core_grid", boom)
     monkeypatch.setattr(support, "_modern_grid", boom)
     monkeypatch.setattr(market, "options_from_argv", boom)
+    monkeypatch.setattr(market, "begin_attempt", boom)
     monkeypatch.setattr(evaluate, "evaluate_frame", boom)
     monkeypatch.setattr("sys.argv", ["evaluate", "--bootstrap-seed", "0", "--min-train-rows", "1"])
     with pytest.raises(SystemExit, match="AWAITING_OWNER_GO"):
@@ -898,7 +899,12 @@ def test_provenance_flags_follow_execution_not_the_caller():
     execution = market.MarketExecution()
     report = market.build_report(
         execution,
-        {"route": "PROSPECTIVE", "stored_probabilities": object()},
+        {
+            "route": K.ROUTE_INVALID,
+            "implementation_ok": False,
+            "reason": "NON_FINITE_TEST_VALUE",
+            "pooled": {"brier_candidate": np.float64(0.25)},
+        },
         market_series_loaded=True,
         probabilities_computed_on_market=True,
         model_metrics_computed=True,
@@ -913,7 +919,10 @@ def test_provenance_flags_follow_execution_not_the_caller():
     assert report["product_ready"] is False
     assert report["live_validated"] is False
     assert report["prospective"] is False
-    assert "route" not in report
+    assert report["route"] == K.ROUTE_INVALID
+    assert report["reason"] == "NON_FINITE_TEST_VALUE"
+    assert report["primary"]["pooled"]["brier_candidate"] == 0.25
+    json.dumps(report)
     with pytest.raises(ImplementationInvalid, match="PROVENANCE_OVERRIDE"):
         execution.mark_loaded(object())
     with pytest.raises(ImplementationInvalid, match="PROVENANCE_OVERRIDE"):
@@ -970,3 +979,174 @@ def test_amendment_a1_hash_is_pinned(tmp_path):
     bad.write_text("changed\n", encoding="utf-8")
     with pytest.raises(ImplementationInvalid, match="AMENDMENT_HASH_MISMATCH"):
         market.assert_amendment_pinned(bad)
+
+
+def _manual_row(close_ms: int) -> dict:
+    return {
+        "close_ms": np.array([close_ms], dtype=np.int64),
+        "x": np.ones((1, 5), dtype=np.float64),
+        "y": np.ones(1, dtype=np.float64),
+    }
+
+
+@pytest.mark.parametrize("name,surface_end,surface_start", [
+    ("BITMEX_2016_2019", K.BITMEX_END_MS, None),
+    ("BINANCE_2020_2024", K.CORE_END_MS, K.CORE_START_MS),
+    ("BINANCE_2025_2026", K.BINANCE_END_MS, K.BINANCE_START_MS),
+])
+def test_segment_clock_uses_the_open_and_keeps_the_bar_that_closes_on_the_end(name, surface_end, surface_start):
+    last_open = surface_end - K.BAR_MS
+    kept = market.adapt_segment(name, _price_grid(last_open, 1))
+    assert kept["name"] == name
+    assert int(kept["close_ms"].size) == 0
+    market.validate_labeled_table(name, _manual_row(surface_end))
+    with pytest.raises(ImplementationInvalid, match="SEGMENT_CLOCK"):
+        market.adapt_segment(name, _price_grid(surface_end, 1))
+    with pytest.raises(ImplementationInvalid, match="SEGMENT_CLOCK"):
+        market.validate_labeled_table(name, _manual_row(surface_end + K.BAR_MS))
+    if surface_start is not None:
+        market.adapt_segment(name, _price_grid(surface_start, 1))
+        with pytest.raises(ImplementationInvalid, match="SEGMENT_CLOCK"):
+            market.adapt_segment(name, _price_grid(surface_start - K.BAR_MS, 1))
+
+
+def _fixture_tables() -> dict:
+    rng = np.random.default_rng(1)
+    origins = {
+        "BITMEX_2016_2019": "2019-09-02T00:00:00",
+        "BINANCE_2020_2024": "2020-01-06T00:00:00",
+        "BINANCE_2025_2026": "2025-01-06T00:00:00",
+    }
+    tables = {}
+    for name, origin in origins.items():
+        close_ms, matrix, target = _series(12, 16, origin, rng)
+        tables[name] = {"close_ms": close_ms, "x": matrix, "y": target, "name": name}
+    return tables
+
+
+def _watch_scorer(monkeypatch):
+    calls = []
+    real = evaluate.evaluate_frame
+
+    def wrapped(*args, **kwargs):
+        calls.append(kwargs.get("cadence"))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(evaluate, "evaluate_frame", wrapped)
+    return calls
+
+
+def test_numpy_scorer_payload_survives_json(tmp_path):
+    journal = tmp_path / "success"
+    report = market.execute_fixture_sequence(
+        _fixture_tables(), journal, draws=K.BOOT_DRAWS, seed=0, min_rows=8, min_weeks=2,
+    )
+    text = (journal / "RESULT.json").read_text(encoding="utf-8")
+    loaded = json.loads(text)
+    assert loaded["evidence_class"] == "RETROSPECTIVE_FORECAST_PROTOTYPE"
+    assert loaded["market_series_loaded"] is False
+    assert loaded["probabilities_computed_on_market"] is False
+    assert loaded["implementation_ok"] is True
+    assert loaded["hourly_diagnostic_ran"] is True
+    assert loaded["hourly"]["diagnostic_only"] is True
+    assert loaded["hourly"]["route"] is None
+    pooled = loaded["primary"]["pooled"]
+    for key in (
+        "brier_climatology", "brier_baseline", "brier_candidate",
+        "logloss_climatology", "logloss_baseline", "logloss_candidate",
+        "delta_brier", "delta_logloss",
+    ):
+        assert isinstance(pooled[key], float)
+    bootstrap = loaded["primary"]["bootstrap"]
+    for key in ("brier_lo", "brier_hi", "logloss_lo", "logloss_hi"):
+        assert isinstance(bootstrap[key], float)
+    assert loaded["primary"]["auroc_candidate"] is not None
+    assert isinstance(loaded["primary"]["calibration_slope"], float)
+    assert loaded["primary"]["reliability"]
+    assert loaded["primary"]["segment_losses"]
+    assert loaded["primary"]["era"]
+    stored = loaded["primary"]["stored_probabilities"]
+    y = np.asarray(stored["y"], dtype=np.float64)
+    p_clim = np.asarray(stored["p_climatology"], dtype=np.float64)
+    p_base = np.asarray(stored["p_baseline"], dtype=np.float64)
+    p_cand = np.asarray(stored["p_candidate"], dtype=np.float64)
+    assert brier(y, p_clim) == pytest.approx(pooled["brier_climatology"])
+    assert brier(y, p_base) == pytest.approx(pooled["brier_baseline"])
+    assert brier(y, p_cand) == pytest.approx(pooled["brier_candidate"])
+    assert log_loss(y, p_base) == pytest.approx(pooled["logloss_baseline"])
+    assert log_loss(y, p_cand) == pytest.approx(pooled["logloss_candidate"])
+    assert pooled["delta_brier"] == pytest.approx(pooled["brier_candidate"] - pooled["brier_baseline"])
+    assert loaded["hashes"]["amendment_a1_sha256"] == K.AMENDMENT_A1_SHA256
+    assert loaded["hashes"]["adapter_manifest_sha256"] == K.ADAPTER_MANIFEST_SHA256
+    assert report["route"] == loaded["route"]
+    artifact = Path("/opt/cursor/artifacts")
+    artifact.mkdir(parents=True, exist_ok=True)
+    (artifact / "synthetic_forecast_result.json").write_text(text, encoding="utf-8")
+
+
+def test_fixture_sequence_persists_then_refuses_a_rerun(monkeypatch, tmp_path):
+    calls = _watch_scorer(monkeypatch)
+    journal = tmp_path / "sequence"
+    report = market.execute_fixture_sequence(
+        _fixture_tables(), journal, draws=K.BOOT_DRAWS, seed=0, min_rows=8, min_weeks=2,
+    )
+    assert calls == ["primary_15m", "secondary_hourly"]
+    assert report["implementation_ok"] is True
+    assert report["hourly_diagnostic_ran"] is True
+    assert (journal / "ATTEMPT.json").is_file()
+    assert json.loads((journal / "ATTEMPT.json").read_text(encoding="utf-8"))["status"] == "STARTED"
+    with pytest.raises(SystemExit, match="REFUSING_RERUN"):
+        market.execute_fixture_sequence(
+            _fixture_tables(), journal, draws=K.BOOT_DRAWS, seed=0, min_rows=8, min_weeks=2,
+        )
+    assert calls == ["primary_15m", "secondary_hourly"]
+    assert json.loads((journal / "RESULT.json").read_text(encoding="utf-8"))["route"] == report["route"]
+
+
+def test_primary_invalid_is_persisted_and_hourly_does_not_run(monkeypatch, tmp_path):
+    calls = _watch_scorer(monkeypatch)
+    journal = tmp_path / "invalid"
+    tables = _fixture_tables()
+    for table in tables.values():
+        table["x"] = np.ones_like(table["x"])
+    report = market.execute_fixture_sequence(
+        tables, journal, draws=K.BOOT_DRAWS, seed=0, min_rows=8, min_weeks=2,
+    )
+    assert calls == ["primary_15m"]
+    assert report["route"] == K.ROUTE_INVALID
+    assert report["implementation_ok"] is False
+    assert report["reason"] == "SCALER_DEGENERATE"
+    assert report["stopped_before_hourly"] is True
+    assert report["hourly_diagnostic_ran"] is False
+    assert "hourly" not in report
+    stored = json.loads((journal / "RESULT.json").read_text(encoding="utf-8"))
+    assert stored["route"] == K.ROUTE_INVALID
+    assert stored["reason"] == "SCALER_DEGENERATE"
+    assert stored["hourly_diagnostic_ran"] is False
+    assert stored["market_fit_executed"] is False
+    with pytest.raises(SystemExit, match="REFUSING_RERUN"):
+        market.execute_fixture_sequence(
+            _fixture_tables(), journal, draws=K.BOOT_DRAWS, seed=0, min_rows=8, min_weeks=2,
+        )
+    assert calls == ["primary_15m"]
+    artifact = Path("/opt/cursor/artifacts")
+    artifact.mkdir(parents=True, exist_ok=True)
+    (artifact / "synthetic_forecast_primary_invalid.json").write_text(
+        (journal / "RESULT.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+
+def test_an_interrupted_attempt_refuses_without_reading_a_result(monkeypatch, tmp_path):
+    def boom(*_args, **_kwargs):
+        raise AssertionError("scorer")
+
+    monkeypatch.setattr(evaluate, "evaluate_frame", boom)
+    journal = tmp_path / "interrupted"
+    journal.mkdir()
+    (journal / "ATTEMPT.json").write_text("", encoding="utf-8")
+    with pytest.raises(SystemExit, match="REFUSING_RERUN"):
+        market.execute_fixture_sequence(
+            _fixture_tables(), journal, draws=1, seed=0, min_rows=1, min_weeks=1,
+        )
+    assert not (journal / "RESULT.json").exists()

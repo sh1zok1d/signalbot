@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +24,7 @@ from .folds import assign_folds
 from .model import ImplementationInvalid
 
 ROOT = Path(__file__).resolve().parents[3]
+EXECUTION_JOURNAL = ROOT / "docs/research/range_position_4h_forecast_prototype_v1_execution"
 SEGMENT_ORDER = ("BITMEX_2016_2019", "BINANCE_2020_2024", "BINANCE_2025_2026")
 SURFACE_END = {
     "BITMEX_2016_2019": K.BITMEX_END_MS,
@@ -150,16 +152,21 @@ def options_from_argv(argv: list[str] | None) -> dict:
     return options
 
 
-def _clock_ok(name: str, close_ms: np.ndarray) -> bool:
-    close_ms = np.asarray(close_ms, dtype=np.int64)
-    if close_ms.size == 0:
+def _clock_ok(name: str, open_ms: np.ndarray) -> bool:
+    """Half-open interval on the 5m open. A bar that closes on `surface_end` stays in.
+
+    The last admitted open is `surface_end - BAR_MS`. The first refused open is
+    `surface_end`. Feature eligibility is a separate rule and is not applied here.
+    """
+    open_ms = np.asarray(open_ms, dtype=np.int64)
+    if open_ms.size == 0:
         return True
     if name == "BITMEX_2016_2019":
-        return bool(np.all(close_ms < K.BITMEX_END_MS))
+        return bool(np.all(open_ms < K.BITMEX_END_MS))
     if name == "BINANCE_2020_2024":
-        return bool(np.all((close_ms >= K.CORE_START_MS) & (close_ms < K.CORE_END_MS)))
+        return bool(np.all((open_ms >= K.CORE_START_MS) & (open_ms < K.CORE_END_MS)))
     if name == "BINANCE_2025_2026":
-        return bool(np.all((close_ms >= K.BINANCE_START_MS) & (close_ms < K.BINANCE_END_MS)))
+        return bool(np.all((open_ms >= K.BINANCE_START_MS) & (open_ms < K.BINANCE_END_MS)))
     return False
 
 
@@ -219,8 +226,8 @@ def adapt_segment(name: str, grid: dict, official_eligible: np.ndarray | None = 
     table = labeled_rows(grid, SURFACE_END[name], official_eligible)
     finite_close = np.asarray(grid["close"], dtype=np.float64)
     finite_open = np.asarray(grid["grid_open"], dtype=np.int64)
-    present = finite_open[np.isfinite(finite_close)] + np.int64(K.BAR_MS)
-    if not _clock_ok(name, present):
+    present_open = finite_open[np.isfinite(finite_close)]
+    if not _clock_ok(name, present_open):
         raise ImplementationInvalid("SEGMENT_CLOCK")
     table["name"] = name
     validate_labeled_table(name, table)
@@ -241,9 +248,10 @@ def validate_labeled_table(name: str, table: dict) -> None:
         raise ImplementationInvalid("FEATURE_WIDTH")
     if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(target)):
         raise ImplementationInvalid("NON_FINITE_LABELED_VALUE")
-    if not _clock_ok(name, close_ms):
+    open_ms = close_ms - np.int64(K.BAR_MS)
+    if not _clock_ok(name, open_ms):
         raise ImplementationInvalid("SEGMENT_CLOCK")
-    if name != "BITMEX_2016_2019" and np.any(close_ms < K.BITMEX_END_MS):
+    if name != "BITMEX_2016_2019" and np.any(open_ms < K.BITMEX_END_MS):
         raise ImplementationInvalid("SEGMENT_CLOCK")
 
 
@@ -407,8 +415,49 @@ class MarketExecution:
         self._scored = True
 
 
-def build_report(execution: MarketExecution, result: dict | None = None, **_caller) -> dict:
-    """Flags follow the execution marks. Caller keywords are discarded."""
+def jsonable(value):
+    """Convert scorer output to JSON values. An unknown type is a hard failure."""
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, dict):
+        return {str(key): jsonable(child) for key, child in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [jsonable(child) for child in value]
+    if isinstance(value, np.ndarray):
+        return jsonable(value.tolist())
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        number = float(value)
+        if not np.isfinite(number):
+            raise ImplementationInvalid("RESULT_NOT_SERIALIZABLE")
+        return number
+    raise ImplementationInvalid("RESULT_NOT_SERIALIZABLE")
+
+
+def _hashes() -> dict:
+    return {
+        "design_sha256": K.DESIGN_SHA256,
+        "design_json_sha256": K.DESIGN_JSON_SHA256,
+        "amendment_a1_sha256": K.AMENDMENT_A1_SHA256,
+        "support_sha256": K.SUPPORT_SHA256,
+        "folds_sha256": K.FOLDS_SHA256,
+        "adapter_manifest_sha256": K.ADAPTER_MANIFEST_SHA256,
+        "bitmex_series_sha256": K.BITMEX_SHA256,
+        "binance_series_sha256": K.BINANCE_SHA256,
+        "core_snapshot": K.CORE_SNAPSHOT,
+    }
+
+
+def build_report(execution: MarketExecution, result: dict | None = None, hourly: dict | None = None,
+                 **_caller) -> dict:
+    """Flags follow the execution marks. The scorer payload is kept in full.
+
+    Caller keywords are discarded. NumPy values are converted so the report can
+    be written without dropping a metric or a stored probability.
+    """
     loaded = bool(execution.series_loaded)
     scored = bool(execution.scored) and loaded
     report = {
@@ -425,10 +474,18 @@ def build_report(execution: MarketExecution, result: dict | None = None, **_call
         "prospective": False,
         "regularization_added": False,
         "fallback_fit": False,
+        "hashes": _hashes(),
     }
-    if scored and result is not None:
-        report["route"] = result.get("route")
-        report["implementation_ok"] = bool(result.get("implementation_ok"))
+    if result is not None:
+        primary = jsonable(result)
+        report["primary"] = primary
+        report["route"] = primary.get("route")
+        report["implementation_ok"] = bool(primary.get("implementation_ok"))
+        report["reason"] = primary.get("reason")
+    if hourly is not None:
+        report["hourly"] = jsonable(hourly)
+        report["hourly_diagnostic_only"] = True
+        report["hourly_route"] = report["hourly"].get("route")
     return report
 
 
@@ -440,19 +497,135 @@ def score_prepared(segments: list[dict], counts: dict, execution: MarketExecutio
     validate_coverage(counts)
     if not execution.series_loaded:
         raise ImplementationInvalid("MARKET_SERIES_NOT_LOADED")
-    from . import evaluate
-
-    result = evaluate.evaluate_frame(
+    return _score_frame(
         segments,
+        execution,
         draws=K.BOOT_DRAWS,
         seed=K.BOOT_SEED,
         min_rows=K.MIN_TRAIN_ROWS,
         min_weeks=K.MIN_TRAIN_WEEKS,
+    )
+
+
+def _primary_failed(primary: dict) -> bool:
+    return (not primary.get("implementation_ok")) or primary.get("route") == K.ROUTE_INVALID
+
+
+def _score_frame(segments: list[dict], execution: MarketExecution, *, draws: int, seed: int,
+                 min_rows: int, min_weeks: int) -> dict:
+    """Primary first. An invalid primary is returned as-is and does not start hourly."""
+    from . import evaluate
+
+    primary = evaluate.evaluate_frame(
+        segments,
+        draws=int(draws),
+        seed=int(seed),
+        min_rows=int(min_rows),
+        min_weeks=int(min_weeks),
         cadence="primary_15m",
     )
-    if result.get("implementation_ok") and result.get("stored_probabilities") is not None:
+    if _primary_failed(primary):
+        report = build_report(execution, primary, hourly=None)
+        report["hourly_diagnostic_ran"] = False
+        report["stopped_before_hourly"] = True
+        return report
+    if execution.series_loaded and primary.get("stored_probabilities") is not None:
         execution.mark_scored(_SCORE_TOKEN)
-    return build_report(execution, result)
+    hourly = evaluate.evaluate_frame(
+        segments,
+        draws=int(draws),
+        seed=int(seed),
+        min_rows=int(min_rows),
+        min_weeks=int(min_weeks),
+        cadence="secondary_hourly",
+    )
+    report = build_report(execution, primary, hourly=hourly)
+    report["hourly_diagnostic_ran"] = True
+    report["stopped_before_hourly"] = False
+    if _primary_failed(hourly) or hourly.get("route") is not None:
+        report["hourly_diagnostic_failed"] = True
+    return report
+
+
+def begin_attempt(journal_dir: Path) -> None:
+    """Claim the one-shot attempt before any model result is read.
+
+    `O_EXCL` is the lock. A file left by an interrupted attempt refuses the next
+    start. This function does not read `RESULT.json`.
+    """
+    directory = Path(journal_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    lock = directory / "ATTEMPT.json"
+    payload = json.dumps({
+        "evidence_class": K.CLAIM_CEILING,
+        "owner_go": bool(K.OWNER_GO),
+        "started_before_model_results": True,
+        "status": "STARTED",
+        "unit": K.UNIT,
+    }, indent=2, sort_keys=True) + "\n"
+    try:
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+    except FileExistsError as exc:
+        raise SystemExit("REFUSING_RERUN") from exc
+    try:
+        os.write(fd, payload.encode("utf-8"))
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def write_result(journal_dir: Path, report: dict) -> Path:
+    """Atomically publish one result. The attempt lock stays in place."""
+    directory = Path(journal_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / "RESULT.json"
+    temporary = directory / f".RESULT.{os.getpid()}.json.tmp"
+    text = json.dumps(jsonable(report), indent=2, sort_keys=True) + "\n"
+    with temporary.open("w", encoding="utf-8") as handle:
+        handle.write(text)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, target)
+    return target
+
+
+def _persist_failure(journal_dir: Path, reason: BaseException) -> None:
+    report = build_report(MarketExecution())
+    report["route"] = K.ROUTE_INVALID
+    report["implementation_ok"] = False
+    report["reason"] = str(reason)
+    report["hourly_diagnostic_ran"] = False
+    report["stopped_before_hourly"] = True
+    try:
+        write_result(journal_dir, report)
+    except Exception:
+        return
+
+
+def execute_fixture_sequence(tables: dict, journal_dir: Path, *, draws: int, seed: int,
+                             min_rows: int, min_weeks: int) -> dict:
+    """Validate, score, and persist one prepared frame.
+
+    The attempt is claimed before `evaluate_frame`. A second call raises
+    `REFUSING_RERUN` and does not score again.
+    """
+    begin_attempt(journal_dir)
+    try:
+        segments = construct_segments(tables)
+        execution = MarketExecution()
+        report = _score_frame(
+            segments,
+            execution,
+            draws=draws,
+            seed=seed,
+            min_rows=min_rows,
+            min_weeks=min_weeks,
+        )
+        write_result(journal_dir, report)
+        return report
+    except Exception as exc:
+        _persist_failure(journal_dir, exc)
+        raise
 
 
 def _guard_owner() -> None:
@@ -488,31 +661,33 @@ def load_pinned_grids(execution: MarketExecution | None = None) -> dict:
 
 
 def execute_pinned_market_fit(options: dict | None = None) -> dict:
-    """Future market sequence. It returns before any price read while the go is off."""
+    """Future market sequence. It returns before any price read while the go is off.
+
+    After the go, the attempt file is created before prices are read and before
+    `evaluate_frame`. An existing attempt returns `REFUSING_RERUN`.
+    """
     _guard_owner()
     reject_overrides(options)
     assert_protocol_locked()
     assert_amendment_pinned()
     assert_pinned_census_coverage()
-    execution = MarketExecution()
-    grids = load_pinned_grids(execution)
-    tables = {name: adapt_segment(name, grids[name]) for name in SEGMENT_ORDER}
-    segments, counts = validate_and_construct(tables)
-    report = score_prepared(segments, counts, execution)
-    if not execution.series_loaded:
+    begin_attempt(EXECUTION_JOURNAL)
+    try:
+        execution = MarketExecution()
+        grids = load_pinned_grids(execution)
+        tables = {name: adapt_segment(name, grids[name]) for name in SEGMENT_ORDER}
+        segments, counts = validate_and_construct(tables)
+        validate_coverage(counts)
+        report = _score_frame(
+            segments,
+            execution,
+            draws=K.BOOT_DRAWS,
+            seed=K.BOOT_SEED,
+            min_rows=K.MIN_TRAIN_ROWS,
+            min_weeks=K.MIN_TRAIN_WEEKS,
+        )
+        write_result(EXECUTION_JOURNAL, report)
         return report
-    from . import evaluate
-
-    hourly = evaluate.evaluate_frame(
-        segments,
-        draws=K.BOOT_DRAWS,
-        seed=K.BOOT_SEED,
-        min_rows=K.MIN_TRAIN_ROWS,
-        min_weeks=K.MIN_TRAIN_WEEKS,
-        cadence="secondary_hourly",
-    )
-    if not hourly.get("implementation_ok") or hourly.get("route") is not None:
-        raise ImplementationInvalid(str(hourly.get("reason") or "HOURLY_ROUTE_ASSIGNED"))
-    report["hourly_diagnostic_only"] = True
-    report["hourly_route"] = None
-    return report
+    except Exception as exc:
+        _persist_failure(EXECUTION_JOURNAL, exc)
+        raise

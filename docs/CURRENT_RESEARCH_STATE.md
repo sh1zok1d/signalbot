@@ -1,3 +1,14 @@
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-fit repair, fit not run — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | STOP / AWAITING_OWNER_FIT_GO`
+`REPAIR = segment clock is the 5m open | full scorer payload is serialized | one-shot attempt file is claimed before evaluate_frame`
+`RERUN = an existing attempt returns REFUSING_RERUN | a primary FORECAST_IMPLEMENTATION_INVALID stops before hourly`
+`NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
+`ADAPTER SHA256 = 3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf | unchanged`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
 ## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — market adapter ready, fit not run — 2026-10-09
 
 `MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | MARKET_ADAPTER_READY_AWAITING_OWNER_FIT_GO`

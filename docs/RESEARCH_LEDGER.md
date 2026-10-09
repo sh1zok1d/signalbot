@@ -8999,6 +8999,20 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 pre-fit repair, fit not run
+
+**Mode.** Engineering repair of the market adapter. `market_fit = false`. `OWNER_GO = false`. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7` and amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf` are unchanged. `model.py` is unchanged. No market probability or market metric was computed.
+- **Clock.** Segment membership uses the 5m open. A bar with `open < surface_end` and `close == surface_end` stays in the segment. The next open is refused. Feature eligibility is unchanged.
+- **Result.** A persisted report keeps the primary payload, the hourly diagnostic, stored probabilities, hashes, and provenance flags. Metrics can be recomputed from the stored probabilities. NumPy values are written as JSON numbers.
+- **One shot.** `ATTEMPT.json` is created with `O_EXCL` before `evaluate_frame`. A second start returns `REFUSING_RERUN`. A primary `FORECAST_IMPLEMENTATION_INVALID` is written and hourly does not run. The market entry still exits `AWAITING_OWNER_GO` before that claim.
+- **Manifest.** SHA256 `3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`.
+
+```
+WINDOWS_CONSUMED = none; synthetic fixtures only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = STOP / AWAITING_OWNER_FIT_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 market adapter ready, fit not run
 
 **Mode.** Engineering preparation of the pinned market adapter. `market_fit = false`. `OWNER_GO = false`. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7` and amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf` are unchanged. No market probability, coefficient, Brier score, log loss, AUROC, or bootstrap was computed.
