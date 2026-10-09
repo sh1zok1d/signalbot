@@ -3833,10 +3833,11 @@
   {
    "col": "CROSS_VENUE",
    "counts": {
-    "BLOCKED_DATA": 1
+    "BLOCKED_DATA": 1,
+    "CANDIDATE_UNTESTED": 1
    },
    "frontier_eligible": true,
-   "mixed": false,
+   "mixed": true,
    "native": false,
    "region": "DERIVATIVES",
    "revisit": [],
@@ -3844,7 +3845,8 @@
    "row_name": "Funding, premium and basis",
    "state": "BLOCKED_DATA",
    "units": [
-    "FUNDING-TAIL-RISK-CROSS-VENUE-V1"
+    "FUNDING-TAIL-RISK-CROSS-VENUE-V1",
+    "FUNDING-TAIL-RISK-OKX-REPLICATION-V1"
    ],
    "value": {
     "confirmation_path": 1,
@@ -10210,12 +10212,12 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 217,
+  "units": 218,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 2,
    "CLOSED_ON_SURFACE": 36,
    "CONFIRMED": 1,
@@ -15577,7 +15579,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "09c1df5436650896efdaf303204c2cf039772cc40eacad3ac22b561a75ef74ba",
+ "SOURCES_DIGEST": "230dad2dfa7f99fef3b5649661cf541eb87116fe4a5b5181ce8de2c09033e62c",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16399,6 +16401,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FUNDING-TAIL-RISK-OKX-REPLICATION-V1: official module-3 daily settled funding_rate for BTC-USDT-SWAP only, 3329 rows, canonical SHA256 4d8a132e286dc8135138672428673ca5d9740af3f106add22d259d7e36b175f9; archive hole and one off-grid print audited; outcome not joined",
+      "period": "2021-08-31T16:00Z..2024-12-31T08:00Z",
+      "rows": [
+       "DERIVATIVES.funding_basis"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "OKX_OFFICIAL_ARCHIVES",
@@ -18741,6 +18751,33 @@
    "title": "FUNDING_TAIL_RISK_CROSS_VENUE_V1",
    "units_n": "funding rows acquired 0; price bars 476254 on the pinned file; analysis N not formed",
    "verdict": "BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE (2026-10-09). Official funding history returned HTTP 403 on both documented hosts. The public file archive has no funding directory. Premium was not substituted. Parent label INCREMENTAL_ASSOCIATION_UNCERTAIN is unchanged. Outcome not read."
+  },
+  {
+   "col": "CROSS_VENUE",
+   "datasets": [
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "function": "Past-only rank of settled funding. Extremity is distance from the center of that rank. Primary horizon is one funding interval. Control is realized volatility ending at the decision. Rank correlation and a partial rank correlation. Week-block resampling. One historical read.",
+   "id": "FUNDING-TAIL-RISK-OKX-REPLICATION-V1",
+   "mechanism": "Same-venue settled funding extremity and later direction-neutral path stress, beyond the contemporaneous realized-volatility state.",
+   "note": "DESIGN FROZEN. outcome_read false. Feasibility of the official OKX settled-funding archive passed. Price path not joined. PRODUCT_INTEGRATION_CANDIDATE not assigned.",
+   "period": "design frozen before the path is joined; official settled funding 2021-08-31T16:00Z through 2024-12-31T08:00Z; 3329 events; outcome not read",
+   "practical_bar": "No magnitude floor. An effect-size cutoff, a correlation floor, and the external percentile rule are not applied. The market determines magnitude, sign, and usefulness.",
+   "program": "FUNDING_STATE_V1",
+   "records": [
+    "docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.md",
+    "docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.json",
+    "docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_PRE_OUTCOME_MANIFEST.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "The one official read uses this frozen design. Not a rerun of the Binance parent. Not a substitute for the blocked Bybit series. Not premium. Not open interest. Not 2025/2026. Not a product change before the route is known.",
+   "row": "DERIVATIVES.funding_basis",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "OKX funding extremity path stress",
+   "units_n": "funding identity N 3329; on-grid 3328; one schedule exception kept in the rank history and not scored; analysis N not yet formed",
+   "verdict": "DESIGN FROZEN. Official settled-funding archive audited on timestamps and rates only. The same-venue price path is not yet joined. Parent label unchanged. Bybit blocker unchanged."
   },
   {
    "col": "POSITIONING",

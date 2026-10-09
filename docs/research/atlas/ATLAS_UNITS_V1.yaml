@@ -4475,3 +4475,26 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE. Funding rows 0. Outcome not read. Parent verdict unchanged. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+
+  - id: FUNDING-TAIL-RISK-OKX-REPLICATION-V1
+    title: OKX funding extremity path stress
+    program: FUNDING_STATE_V1
+    row: DERIVATIVES.funding_basis
+    col: CROSS_VENUE
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - OKX_OFFICIAL_ARCHIVES
+    period: 'design frozen before the path is joined; official settled funding 2021-08-31T16:00Z through 2024-12-31T08:00Z; 3329 events; outcome not read'
+    units_n: 'funding identity N 3329; on-grid 3328; one schedule exception kept in the rank history and not scored; analysis N not yet formed'
+    practical_bar: 'No magnitude floor. An effect-size cutoff, a correlation floor, and the external percentile rule are not applied. The market determines magnitude, sign, and usefulness.'
+    mechanism: 'Same-venue settled funding extremity and later direction-neutral path stress, beyond the contemporaneous realized-volatility state.'
+    function: 'Past-only rank of settled funding. Extremity is distance from the center of that rank. Primary horizon is one funding interval. Control is realized volatility ending at the decision. Rank correlation and a partial rank correlation. Week-block resampling. One historical read.'
+    verdict: 'DESIGN FROZEN. Official settled-funding archive audited on timestamps and rates only. The same-venue price path is not yet joined. Parent label unchanged. Bybit blocker unchanged.'
+    reopen: 'The one official read uses this frozen design. Not a rerun of the Binance parent. Not a substitute for the blocked Bybit series. Not premium. Not open interest. Not 2025/2026. Not a product change before the route is known.'
+    records:
+    - docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.md
+    - docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.json
+    - docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_PRE_OUTCOME_MANIFEST.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN FROZEN. outcome_read false. Feasibility of the official OKX settled-funding archive passed. Price path not joined. PRODUCT_INTEGRATION_CANDIDATE not assigned.'

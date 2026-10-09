@@ -8999,6 +8999,20 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — FUNDING_TAIL_RISK_OKX_REPLICATION_V1 design frozen before any outcome
+
+**Mode.** Outcome-blind feasibility passed, then the design was frozen. `outcome_read = false`. Evidence class `CROSS_VENUE_RETROSPECTIVE_REPLICATION / AVAILABILITY_LIMITED`. The parent label stays `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The Bybit unit stays `BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE`.
+- **Funding.** Official OKX module-3 daily `allswap-fundingrates` archive. Instrument `BTC-USDT-SWAP` only. Field `funding_rate` at `funding_time`. `1110` files, `3329` unique rows, duplicate timestamps `0`, conflicting rates `0`. First `2021-08-31T16:00:00Z`. Last `2024-12-31T08:00:00Z`. Canonical SHA256 `4d8a132e286dc8135138672428673ca5d9740af3f106add22d259d7e36b175f9`. Source-zip manifest SHA256 `43990a6613dc8dc50fcc5e35480b99109157aabf8a8e598950540a162fd65a9b`. Archive hole after `2021-09-30T08:00:00Z` until `2022-01-16T16:00:00Z`. One off-grid print `2022-12-18T18:54:00Z`. One print one second after `2022-12-29T08:00:00Z`. No row at or after `2025-01-01`. REST history was empty for the bounded pre-2025 query and was not used. Premium was not used.
+- **Price.** `okx_btc_usdt_swap_5m.csv.gz` SHA256 `b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8`. Open-time census only at this commit. High, low, and close were not used.
+- **Frozen rule.** Past-only rank, warmup `90`, extremity `abs(rank - 0.5)`, `T` the UTC settlement hour, parent absolute 8-hour excursion, `RV_8H` ending at `T`, partial Spearman, ISO-week bootstrap `B=2000` seed `20261115`. No magnitude floor. Threshold `55` is not applied.
+- **Not computed.** The path, the volatility control, Spearman, bins, and the bootstrap. The seed is reserved and not yet spent.
+
+```
+WINDOWS_CONSUMED = none; OKX funding timestamps and rates exposed; OKX price outcome not consumed
+OUTCOME_READ = no; STATUS = DESIGN_FROZEN; PARENT_RERUN = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — FUNDING_TAIL_RISK_CROSS_VENUE_V1 blocked before any Bybit outcome
 
 **Mode.** Outcome-blind feasibility of a same-venue Bybit check. `outcome_read = false`. Status `BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE`. The parent `FUNDING_STATE_HISTORICAL_STRUCTURE_V1` is not reread. Its label stays `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The Binance tail shape is not promoted to a confirmed effect.

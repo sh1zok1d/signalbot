@@ -49,6 +49,11 @@ no_bot_context:
     bot_context: NONE
     reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; the WIDTH line is closed with no product line"
     record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
+  - program: FUNDING_TAIL_RISK_OKX_REPLICATION_V1 (atlas FUNDING-TAIL-RISK-OKX-REPLICATION-V1)
+    status: DESIGN_FROZEN_OUTCOME_UNREAD
+    bot_context: NONE
+    reason: "OKX settled-funding extremity design frozen before the path is joined; no score; parent label unchanged; PRODUCT_INTEGRATION_CANDIDATE not assigned"
+    record: "docs/research/FUNDING_TAIL_RISK_OKX_REPLICATION_V1_DESIGN.md"
   - program: FUNDING_TAIL_RISK_CROSS_VENUE_V1 (atlas FUNDING-TAIL-RISK-CROSS-VENUE-V1)
     status: BLOCKED_BEFORE_OUTCOME
     bot_context: NONE

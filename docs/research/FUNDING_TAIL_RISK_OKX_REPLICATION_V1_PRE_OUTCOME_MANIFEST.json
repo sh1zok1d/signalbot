@@ -1,0 +1,17 @@
+{
+  "boot_draws": 2000,
+  "boot_seed": 20261115,
+  "design_json_sha256": "76cb696e350b7423c73785f8deb1022f46e89b35ca0627362eee12b54dc8d39a",
+  "design_sha256": "1e0fcce7760e829a4c28b1ee3f10626f970a9304b8f7912a4b9e73ef26c99459",
+  "evaluator_digest": "6a4b4f09c747428a889115b3d8b89df81275aa420c40f65f52c7cd4afecd44c9",
+  "funding_n": 3329,
+  "min_past": 90,
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": false,
+  "practical_rho_applied": false,
+  "premium_scored": false,
+  "product_integration_candidate_assigned": false,
+  "threshold_55_applied": false,
+  "unit": "FUNDING_TAIL_RISK_OKX_REPLICATION_V1"
+}
