@@ -1,0 +1,82 @@
+{
+  "anchor": "UTC_00",
+  "atlas_state": "CLOSED_ON_SURFACE",
+  "bitmex_in_unit": false,
+  "boot_draws": 2000,
+  "boot_quantile_hi": 0.95,
+  "boot_quantile_lo": 0.05,
+  "boot_seed": 20261108,
+  "canonical_sha256": "f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+  "claim_ceiling": "L2",
+  "context": {
+    "route_input": false,
+    "spearman_v_covariate": 0.9270969399021481,
+    "spearman_v_endpoint": 0.6768477424932198
+  },
+  "contract_type": "linear perpetual",
+  "design_sha256": "83e5a84de4606ec96ed1605690c2ba708970473c0626ca23b766d05a7ac4c642",
+  "discovery_result_sha256": "333f5a778bf56207c3d6f8261d528a2d3271cdc523aba1239c3f013022466669",
+  "e1_touched": false,
+  "endpoint_name": "ACTIVITY",
+  "evaluator_digest": "bb15620b5b42d9ed1bc75697f4e10d931a859a71e94daa3f378082d5db2c6a70",
+  "event_start": "2020-04-01",
+  "exposure_class": "SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION",
+  "forecast_changed": false,
+  "future_association_read": true,
+  "incremental_covariate": "RV_FORMATION",
+  "instrument": "BTCUSDT",
+  "interpretation": "The exact claim did not receive cross-venue support on Bybit under the frozen confirmation rule.",
+  "iso_weeks": 240,
+  "lag_placebo": {
+    "current_state_specific": true,
+    "min_pairs": 100,
+    "n": 1612,
+    "rho": 0.04492837139751369
+  },
+  "min_valid_fraction": 0.9,
+  "mode": "ONE_OUTCOME_READ",
+  "n": 1613,
+  "not_established": "Cross-venue replication support on this exposed same-calendar tape is L2 historical evidence when the route passes. It is not a time-disjoint confirmation, not L3, not a forecast, not a live probability, not an edge, not a causal claim, and not a product signal. The Binance discovery result is not rewritten.",
+  "objects_2025_2026_used": false,
+  "outcome_read": true,
+  "practical_rho": 0.1,
+  "pre_outcome_evaluator_commit": "52b2c9b636ac5dee8c40f7ef701ed4dfbd06de37",
+  "primary": {
+    "interpretable": true,
+    "lower": 0.054006220155678755,
+    "lower_bound_above_zero": true,
+    "practical_bar_met": false,
+    "rho": 0.09903883442772482,
+    "upper": 0.14134524904951853,
+    "valid_draws": 2000,
+    "valid_fraction": 1.0
+  },
+  "pristine": false,
+  "product_change": false,
+  "prospective_opened": false,
+  "read_at": "2026-10-09T07:56:02Z",
+  "route": "POSITIVE_BUT_BELOW_PRACTICAL_SCALE",
+  "route_reason": null,
+  "series": "bybit_btcusdt_linear_5m.csv.gz",
+  "stability": {
+    "fails": false,
+    "first_half": {
+      "n": 838,
+      "rho": 0.10159697837402562
+    },
+    "rule": "OPPOSITE_SIGNS_WHEN_BOTH_HALVES_MEET_MIN_N",
+    "second_half": {
+      "n": 775,
+      "rho": 0.12956015931897297
+    },
+    "split": "2022-08-17"
+  },
+  "state": "V=(high-low)/P0",
+  "successor_started": false,
+  "support_sha256": "69bbe8384e9f1a029d700d306471ef70cd270ea97373404ea9991df1fb1d3118",
+  "surface": "LEVEL_CROSS_VENUE_PERP_5M_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "time_disjoint_from_discovery": false,
+  "unit": "FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1",
+  "venue": "Bybit"
+}

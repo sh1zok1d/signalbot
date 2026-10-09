@@ -1,0 +1,21 @@
+{
+  "analysis_iso_weeks": 240,
+  "analysis_n": 1613,
+  "bitmex_in_unit": false,
+  "canonical_sha256": "f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+  "code_digest": "49ef4758a2728ae585f32a3a39b5aeb3584ab744a5153e851a6f4530c7ed4ec7",
+  "design_sha256": "83e5a84de4606ec96ed1605690c2ba708970473c0626ca23b766d05a7ac4c642",
+  "e1_touched": false,
+  "exposure_class": "SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION",
+  "future_association_read": false,
+  "later_outcome_permitted_after_separate_go": true,
+  "objects_2025_2026_used": false,
+  "outcome_read": false,
+  "owner_go_required_for_outcome": true,
+  "pre_outcome_route": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+  "read_at": "2026-10-09T07:08:16Z",
+  "support_sha256": "69bbe8384e9f1a029d700d306471ef70cd270ea97373404ea9991df1fb1d3118",
+  "this_unit_reads_outcome": false,
+  "time_disjoint_from_discovery": false,
+  "unit": "FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1"
+}
