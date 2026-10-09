@@ -47,4 +47,5 @@ Rule: crowd short → long, crowd long → short; entry at close; exit at ±X or
 ## What this means
 - The crowd-positioning effect from 2020–2024 did not repeat at its discovered size on 2025–2026. What remains is at most a small effect that this data cannot separate from zero.
 - As a trade rule it has no gross edge on new data, and it loses after any realistic fee.
-- This was the strongest directional lead in the project. No directional result in the project now supports a trade signal.
+- Scope: this result is about one state (crowd positioning by the global long/short account ratio, DH3-P3) on one endpoint. It says nothing about other directional market states.
+- No validated directional edge has been found yet. The search for directional market states continues (owner priority `FIND_DIRECTIONAL_MARKET_STATES`, 2026-10-09; `MARKET_PHENOMENA_CATALOG_V1.md`).
