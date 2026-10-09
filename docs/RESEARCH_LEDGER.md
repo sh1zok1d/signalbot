@@ -8788,3 +8788,11 @@ NOT_READ = Binance 2025/2026, OI, funding, spot, BitMEX, Bybit, books; no succes
 PROPOSED (needs owner GO) = OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 on BitMEX XBTUSD 5m 2016-05..2019-12, with the B0 + RET_1H + RET_15M partial declared before the outcome
 FINDINGS_REGISTRY = not updated (owner: no product work)
 ```
+
+## 2026-10-09 — OCC_MEAN_4H_TEMPORAL_REPLICATION_V1: exposure audit, design frozen, outcome-blind preflight (no outcome read)
+
+`PARENT = DIRECTIONAL_STATE_SEARCH_V2 F2a (TOP 3 = {F2a}); discovery partial | B0 +0.0202 [+0.0130, +0.0277]; the local-path-controlled discovery point is not computed (owner)`
+`EXPOSURE_AUDIT = OCC_MEAN_4H -> R_1H and equivalents never read on BitMEX XBTUSD 2016-19 -> QUESTION_FRESH_REPLICATION, not pristine; Unit A (RP4H and local path on identical anchors) disclosed`
+`DESIGN = frozen commit e7f88ad8 | SHA256 788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d | PRIMARY partial | B1 = RP4H, RET_4H, RV_4H, RET_1H, RET_15M`
+`PREFLIGHT = series SHA 8e027433 ok | rows 382,033, holes 288 (documented gap), zero-trade bars 22,728 | N 127,303, ISO weeks 191 (= Unit A sample) | identity: OCC - RP4H = -(close - SMA47)/(H - L), residual 1.2e-11; R2 rank(OCC) on B1 ranks 0.273 -> not redundant`
+`OUTCOMES_READ = none | GO = pending owner`

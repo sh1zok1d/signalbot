@@ -36,6 +36,6 @@ FLAG_PRIMARY_OPPOSES = "PRIMARY_SIGN_OPPOSES"
 
 # ---- pins (design SHA set in the freeze commit; support pinned after the outcome-blind preflight)
 DESIGN_SHA256 = "788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d"
-DESIGN_COMMIT = "PENDING"
-EXPECTED_N = None
-EXPECTED_WEEKS = None
+DESIGN_COMMIT = "e7f88ad8"
+EXPECTED_N = 127_303
+EXPECTED_WEEKS = 191
