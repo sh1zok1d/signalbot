@@ -42,6 +42,7 @@ Check them on the VPS: `/admin_health` prints `switches`, and `/admin_status` pr
 | The claim journal | `decision.claim_journal: true` (internal; rows of the preview are reported as the preview period) |
 | The owner-only signature index `/hypotheses`, `/pin` | `decision.signature_index: true` |
 | «Другие монеты» (the U5 fake door) under `/help` | always on |
+| D7 «High impact» line on `/btc` | **on during preview via `/admin_d7_on`** (architect, 2026-10-09). `regime_d7.enabled: true` is the hard allow; the durable owner state defaults off, so the owner turns it on in the route (step 6). Whether it stays on at the official start is an open item for the freeze (below). |
 
 **OFF**
 
@@ -52,9 +53,12 @@ Check them on the VPS: `/admin_health` prints `switches`, and `/admin_status` pr
 | Research lines on the main surfaces | `decision.research_evidence.main_surfaces_enabled: false` (`PRE_BETA_SCOPE_DECISION_V1` §6.1); they appear only in the 🔬 tab and `/research` |
 | Tiers (free/paid gating) | `access.tiers_enforced: false` |
 | The U3 offer `/admin_offer` | `access.u3_offer.price: null`, `method: null`: the command refuses |
-| D7 «High impact» line on `/btc` | `regime_d7.enabled: true` is only the hard allow; the line also needs `/admin_d7_on`, whose durable state defaults off. **Turning it on is the architect's decision.** |
 | Live hysteresis | `episodization.live_hysteresis_enabled: false` (cannot be enabled) |
 | The test and Day 0 | `/admin_test_open` is not run, so the test is `NOT_OPEN`; `briefing.withdrawal.day0_kyiv: null`, so there is no U1a withdrawal day |
+
+## Open items for the freeze
+Decided at the official start, not in the preview:
+- **D7 «High impact» line.** It is on during the preview via `/admin_d7_on`. Whether it stays on at the official start is open; switching it on or off after the start is a display-only flag whose code is in the starting deploy (`ORCHESTRATION_V1.md` §4a).
 
 ## (b) Маршрут проверки для владельца (по шагам)
 
@@ -116,8 +120,10 @@ Check them on the VPS: `/admin_health` prints `switches`, and `/admin_status` pr
 
 **6. Владелец: просмотр каждого типа автоматических сообщений.**
 1. `/admin_preview` — список типов. Затем `/admin_preview <тип>` для каждого: сводка, недельный отчёт, касание уровня, резкое движение, напоминание о событии, push о необычном часе (точные имена типов — в ответе команды; track B, `<SHA>`).
-2. `/admin_health` — алерты здоровья (ожидается пусто), переключатели и строка `test NOT_OPEN … Day 0 None`. `/admin_status` — `push effective` и `d7 effective`. `/admin_stats` — статистика (в превью не считается тестом).
-3. `/hypotheses` — индекс сигнатур (только смотреть, см. «Важно до начала»).
+2. `/admin_d7_on` — включить строку D7 «High impact» на `/btc` (решение архитектора: в превью включена). Затем `/admin_status` должен показать `d7 effective True`; снова `/btc` — строка видна, когда текущий час её даёт. Выключить — `/admin_d7_off`.
+3. `/admin_health` — алерты здоровья (ожидается пусто), переключатели и строка `test NOT_OPEN … Day 0 None`. `/admin_status` — `push effective` и `d7 effective`. `/admin_stats` — статистика (в превью не считается тестом).
+4. `/hypotheses` — индекс сигнатур (только смотреть, см. «Важно до начала»).
+5. Ответ стикером (#417): ответьте стикером на копию сообщения участника, которую прислал бот (например, на копию `/feedback` тестового аккаунта). Стикер уйдёт этому участнику. Работает только для копий, созданных **после деплоя 3a (2026-10-09 06:47Z)**; на более старые бот ответит `NOT_MAPPED`.
 
 **7. Пауза и удаление (последними, только тестовый аккаунт).**
 1. `/stop` — пауза: автоматические сообщения прекращаются, бот спросит причину (кнопки). Вернуться: `/start` → «Вступить».
@@ -149,7 +155,7 @@ Run them as the `signalbot` user from `/opt/signalbot` with the venv python, in 
 **Checks.**
 - `--beta-health` stays clean.
 - `/admin_health` shows `alerts []`, the switches, `test NOT_OPEN` and `Day 0 None`.
-- `/admin_status` shows `push effective True` and `d7 effective False`.
+- `/admin_status` shows `push effective True`, and `d7 effective False` until the owner's `/admin_d7_on` in the route.
 - `cat /opt/signalbot/BUILD_SHA` prints `<SHA>`.
 - An OKX heartbeat row arrives within a minute.
 - `/btc` answers. One `/admin_preview <тип>` reaches the owner, and **nothing reaches the test account** unasked.
