@@ -96,6 +96,7 @@ datasets:
       - {period: 2016-2019, rows: [VOLATILITY_STATE.tail_risk, VOLATILITY_STATE.execution_impact], status: CONSUMED, note: "D2 replication and D7 confirmatory primary; read in bulk, aggregates published"}
       - {period: 2016-2019, rows: [EVENTS], status: EXPOSED, note: "NOT_PROVABLY_INDEPENDENT for event semantics (event corridor design record §6)"}
       - {period: 2016-05-13..2019-12-31, rows: [PRICE_STRUCTURE.impulse], status: CONSUMED, note: "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 one-shot (2026-10-09): RP4H -> R_1H after RET_4H, RV_4H; four cells (raw, primary, two secondaries); route SUPPORTED"}
+      - {period: 2016-05-13..2019-12-31, rows: [PRICE_STRUCTURE.path_shape], status: CONSUMED, note: "OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 one-shot (2026-10-09): OCC_MEAN_4H -> R_1H; raw, | B0, | B0 + RET_1H, PRIMARY | B0 + RET_1H + RET_15M; four cells; route INCREMENTAL_SUPPORTED"}
     records: [docs/research_data/D2_BITMEX_PRE2020_XBTUSD]
   - id: D7_BITMEX_ACTIVITY_V0
     col: PERP_FLOW

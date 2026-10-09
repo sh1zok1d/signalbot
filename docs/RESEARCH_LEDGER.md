@@ -8796,3 +8796,36 @@ FINDINGS_REGISTRY = not updated (owner: no product work)
 `DESIGN = frozen commit e7f88ad8 | SHA256 788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d | PRIMARY partial | B1 = RP4H, RET_4H, RV_4H, RET_1H, RET_15M`
 `PREFLIGHT = series SHA 8e027433 ok | rows 382,033, holes 288 (documented gap), zero-trade bars 22,728 | N 127,303, ISO weeks 191 (= Unit A sample) | identity: OCC - RP4H = -(close - SMA47)/(H - L), residual 1.2e-11; R2 rank(OCC) on B1 ranks 0.273 -> not redundant`
 `OUTCOMES_READ = none | GO = pending owner`
+
+## 2026-10-09 — OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 executed once: INCREMENTAL_SUPPORTED
+
+**Unit.**
+- **Design:** frozen at commit `e7f88ad8`, SHA256 `788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d`.
+- **Final pre-outcome state:** `ea477f5a`. It contains the frozen census and support bindings (N 127,303, 191 weeks) pinned after the design freeze. Nothing changed between `ea477f5a` and the run.
+- **Evaluator digest:** `225449cdfdfba68a6defe56786cbd128a1cfc134718c7c0135ac9e3388961e72`. Owner GO 2026-10-09.
+- **Result:** `docs/research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.json` / `.md` (sha256 `43a6fbd53d20f8256a326fdb4c585c0070ffdb31ded53546909a11c8ec76073b` / `03fe523a188c8ffcd1c629658eba1bd6c2b104218f83091ecb94e6578a159287`). A second call exits `REFUSING_RERUN`.
+
+**Read.** BitMEX XBTUSD canonical 5m 2016-05-13 .. 2019-12-31 only, on Unit A's sample: N 127,303 over 191 ISO weeks, the one documented gap, and 22,728 zero-trade bars kept.
+
+**Evidence** (week-block 95 %, 2000/2000 draws each):
+
+| Estimand | Point | 95 % interval | Step from the previous row |
+|---|---|---|---|
+| Raw Spearman(OCC, R_1H) | +0.0355 | +0.0274 .. +0.0435 | — |
+| Partial \| B0 (RP4H, RET_4H, RV_4H) | +0.0299 | +0.0209 .. +0.0391 | −0.0056 (−16 % of raw) |
+| Partial \| B0 + RET_1H | +0.0125 | +0.0038 .. +0.0212 | −0.0174 (−58 % of B0) |
+| **PRIMARY partial \| B1 = B0 + RET_1H + RET_15M** | **+0.0110** | **+0.0021 .. +0.0199** | −0.0015 (−5 % of B0); keeps 37 % of B0 |
+
+- **PRIMARY by year:** 2016 −0.000, 2017 −0.002, 2018 +0.016, 2019 +0.020. Halves +0.002 / +0.018.
+- **B0 by year:** +0.019 / +0.014 / +0.039 / +0.042.
+- **Quintiles of OCC's rank residual on B1 (description only):** P(UP) 0.498 / 0.500 / 0.514 / 0.523 / 0.523; medians 0 … +2.2 bp; means not monotone.
+- **Discovery** (Binance 2020–24, not recomputed): partial | B0 +0.0202 [+0.0130, +0.0277]. The local-path-controlled discovery point was never computed.
+
+```
+ROUTE = OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED (question-fresh replication, not pristine) | flags none
+STATUS = SECOND_INDEPENDENT_DIRECTIONAL_STATE_CANDIDATE / HISTORICAL_ONLY (not a forecast-engine component)
+CAVEAT = the B1 estimand was read on this one surface only; 2016-17 PRIMARY points ~0; most of the B0 association is the last-hour reversal
+WINDOWS_CONSUMED = D2_BITMEX_PRE2020_XBTUSD 2016-05-13..2019-12-31 PRICE_STRUCTURE.path_shape (OCC_MEAN_4H -> R_1H), 4 DIRECTION cells
+NOT_READ = Binance 2025/2026, spot, CORE (no recomputation), OCC variants, horizons, interactions, OI, E1 | no successor
+FINDINGS_REGISTRY = not updated (no product work)
+```

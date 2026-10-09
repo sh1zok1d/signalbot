@@ -725,7 +725,9 @@ When adding documentation:
 - `research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 99205a3a: one bounded discovery cycle of new directional states beyond RANGE_POSITION_4H on CORE 2020-24; collision audit, inventory, method, frozen TOP-3 rule**).
 - `research/DIRECTIONAL_STATE_SEARCH_V2_LEDGER.json` (**search ledger: pre-outcome inventory and abandoned formulations, post-outcome reads (27 cells)**).
 - `research/DIRECTIONAL_STATE_SEARCH_V2_RESULT.md` / `.json` (**RESULT, frozen evaluator output 2026-10-09; DISCOVERY_ONLY; only OCC_MEAN_4H clears the search bar; rerun refused**).
-- `research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md` (**interpretation, claim decision and the proposed OCC_MEAN_4H replication unit; not executed**).
+- `research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md` (**interpretation, claim decision and the proposed OCC_MEAN_4H replication unit**).
+- `research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit e7f88ad8; final pre-outcome state ea477f5a: OCC_MEAN_4H on BitMEX 2016-19, PRIMARY with the local-path control B1; exposure and identity audits**).
+- `research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED; PRIMARY +0.0110 [+0.0021, +0.0199]; rerun refused**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

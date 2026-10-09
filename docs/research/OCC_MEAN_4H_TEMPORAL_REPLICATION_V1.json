@@ -1,0 +1,272 @@
+{
+ "census": {
+  "first_open_ms": 1463140500000,
+  "holes": 288,
+  "last_open_ms": 1577836500000,
+  "rows": 382033,
+  "zero_trade_bars": 22728
+ },
+ "claim_ceiling": "HISTORICAL_ONLY",
+ "design_commit": "e7f88ad8",
+ "design_sha256": "788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d",
+ "discovery": {
+  "b0_ci": [
+   0.012984199578650586,
+   0.02766591147029018
+  ],
+  "b0_point": 0.020158649974251052,
+  "local_path_controlled_point": "not computed (discovery surface untouched by owner instruction)",
+  "object": "F2a OCC_MEAN_4H",
+  "result_sha256": "25e67a162515678cb1a89d91d3fdd8b8404346d6ea82a75b08e5bc62b0193389",
+  "unit": "DIRECTIONAL_STATE_SEARCH_V2"
+ },
+ "estimands": {
+  "b0": [
+   "rp",
+   "ret4",
+   "rv4"
+  ],
+  "b0_ret1h": [
+   "rp",
+   "ret4",
+   "rv4",
+   "ret1h"
+  ],
+  "primary_b1": [
+   "rp",
+   "ret4",
+   "rv4",
+   "ret1h",
+   "ret15"
+  ],
+  "raw": []
+ },
+ "evaluator_digest": "225449cdfdfba68a6defe56786cbd128a1cfc134718c7c0135ac9e3388961e72",
+ "evidence_class": "HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION",
+ "halves": {
+  "median_t_ms": 1520547300000.0,
+  "pieces": [
+   {
+    "b0": 0.016248268696234698,
+    "b0_ret1h": 0.003439303403596206,
+    "n": 63652,
+    "piece": "first",
+    "primary_b1": 0.0023147044282356,
+    "raw": 0.027540586603405103
+   },
+   {
+    "b0": 0.04358711451876621,
+    "b0_ret1h": 0.019554066168419044,
+    "n": 63651,
+    "piece": "second",
+    "primary_b1": 0.017658425783832372,
+    "raw": 0.04296692588422492
+   }
+  ]
+ },
+ "identity_audit": {
+  "max_abs_algebra_residual": 1.2336187626971196e-11,
+  "r2_occ_on_B0_values": 0.07581818910063809,
+  "r2_occ_on_B1_values": 0.1548368971070927,
+  "r2_rank_occ_on_B0": 0.15008371299466328,
+  "r2_rank_occ_on_B1": 0.2725532275247061,
+  "spearman_occ_minus_rp_vs_close_minus_sma": 0.9999999998882351,
+  "spearman_occ_rp4h": -0.020653818531597652
+ },
+ "intervals": {
+  "b0": {
+   "draws": 2000,
+   "hi": 0.03906176939004216,
+   "lo": 0.02087412876406042,
+   "valid": 2000
+  },
+  "b0_ret1h": {
+   "draws": 2000,
+   "hi": 0.021173642025649506,
+   "lo": 0.003790067117092149,
+   "valid": 2000
+  },
+  "primary_b1": {
+   "draws": 2000,
+   "hi": 0.019867445725083945,
+   "lo": 0.002143345973101068,
+   "valid": 2000
+  },
+  "raw": {
+   "draws": 2000,
+   "hi": 0.04354659758860754,
+   "lo": 0.027351329842726462,
+   "valid": 2000
+  }
+ },
+ "mean_bp_all": 0.8637939163137831,
+ "median_bp_all": 1.2225686181853026,
+ "not_read": [
+  "spot",
+  "Binance 2025/2026",
+  "CORE",
+  "OCC variants",
+  "other horizons",
+  "interactions",
+  "OI",
+  "E1"
+ ],
+ "p_up_all": 0.5115276152172377,
+ "points": {
+  "b0": 0.029897153827809594,
+  "b0_ret1h": 0.012488130735629896,
+  "primary_b1": 0.010960659934742866,
+  "raw": 0.03550319461621031
+ },
+ "primary": "primary_b1",
+ "product_integration_candidate": false,
+ "quintiles_occ": {
+  "bins": [
+   {
+    "bin": 1,
+    "mean_bp": 0.5654549018663724,
+    "median_bp": 0.0,
+    "n": 25460,
+    "p_up": 0.487745483110762
+   },
+   {
+    "bin": 2,
+    "mean_bp": -1.1878206791545474,
+    "median_bp": 0.0,
+    "n": 25461,
+    "p_up": 0.4927536231884058
+   },
+   {
+    "bin": 3,
+    "mean_bp": 0.8431144782137578,
+    "median_bp": 1.4926487078995059,
+    "n": 25461,
+    "p_up": 0.5163976277443934
+   },
+   {
+    "bin": 4,
+    "mean_bp": 2.7506580309641073,
+    "median_bp": 2.072610462757545,
+    "n": 25460,
+    "p_up": 0.5215239591516103
+   },
+   {
+    "bin": 5,
+    "mean_bp": 1.3476252402019948,
+    "median_bp": 3.2675925136109325,
+    "n": 25461,
+    "p_up": 0.5392168414437768
+   }
+  ],
+  "degenerate": false,
+  "edges": [
+   0.42008906481939634,
+   0.49120757000605114,
+   0.5497265975165271,
+   0.6165582675110889
+  ]
+ },
+ "quintiles_occ_residual_on_b1": {
+  "bins": [
+   {
+    "bin": 1,
+    "mean_bp": 0.5293784411587377,
+    "median_bp": 0.0,
+    "n": 25461,
+    "p_up": 0.4980558501237186
+   },
+   {
+    "bin": 2,
+    "mean_bp": 1.2489235563802437,
+    "median_bp": 0.0,
+    "n": 25460,
+    "p_up": 0.499528672427337
+   },
+   {
+    "bin": 3,
+    "mean_bp": 1.013018417758717,
+    "median_bp": 1.4213630895935385,
+    "n": 25461,
+    "p_up": 0.5142767369702682
+   },
+   {
+    "bin": 4,
+    "mean_bp": 1.7871841644968405,
+    "median_bp": 2.2297579519940163,
+    "n": 25460,
+    "p_up": 0.5228986645718775
+   },
+   {
+    "bin": 5,
+    "mean_bp": -0.2594836051189785,
+    "median_bp": 1.8060766318150119,
+    "n": 25461,
+    "p_up": 0.522878127331998
+   }
+  ],
+  "degenerate": false,
+  "edges": [
+   -29498.460906842654,
+   -10566.326186783679,
+   10009.08145533418,
+   29768.002066948025
+  ]
+ },
+ "route": "OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED",
+ "route_flags": [],
+ "series": "docs/research_data/D2_BITMEX_PRE2020_XBTUSD/canonical_5m.jsonl.gz",
+ "series_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+ "support": {
+  "by_year": {
+   "2016": 22188,
+   "2017": 35038,
+   "2018": 35040,
+   "2019": 35037
+  },
+  "first_t": "2016-05-13T16:00:00Z",
+  "grid": {
+   "holes": 288,
+   "occupied": 382033,
+   "slots": 382321
+  },
+  "iso_weeks": 191,
+  "last_t": "2019-12-31T23:00:00Z",
+  "n": 127303,
+  "phase_anchors": 127440
+ },
+ "unit": "OCC_MEAN_4H_TEMPORAL_REPLICATION_V1",
+ "years": [
+  {
+   "b0": 0.01889287203978201,
+   "b0_ret1h": 0.004174603882443867,
+   "n": 22188,
+   "piece": "2016",
+   "primary_b1": -0.00018808733200593222,
+   "raw": 0.02819297638350069
+  },
+  {
+   "b0": 0.01378050550177689,
+   "b0_ret1h": -0.0015265272075207243,
+   "n": 35038,
+   "piece": "2017",
+   "primary_b1": -0.002426496064890602,
+   "raw": 0.028102040768701684
+  },
+  {
+   "b0": 0.03899503227749011,
+   "b0_ret1h": 0.016711150987974814,
+   "n": 35040,
+   "piece": "2018",
+   "primary_b1": 0.01558720618375989,
+   "raw": 0.04505542601688765
+  },
+  {
+   "b0": 0.04173188649363169,
+   "b0_ret1h": 0.021893944949873678,
+   "n": 35037,
+   "piece": "2019",
+   "primary_b1": 0.019829261539068582,
+   "raw": 0.03297322220547207
+  }
+ ]
+}

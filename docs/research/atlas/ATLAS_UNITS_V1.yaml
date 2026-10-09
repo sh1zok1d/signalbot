@@ -4287,3 +4287,29 @@ units:
     - scripts/research/directional_state_search_v2/evaluate.py
     - docs/RESEARCH_LEDGER.md
     note: 'Baseline RANGE_POSITION_4H units: RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1, RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1; discovery parent PRE-IMPULSE-STATE-ATLAS-V1 on a Cursor branch (pending merge).'
+  - id: OCC-MEAN-4H-TEMPORAL-REPLICATION-V1
+    title: Path occupancy temporal replication on BitMEX
+    program: OCC_MEAN_4H_TEMPORAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.path_shape
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: 'one BitMEX XBTUSD read; T 2016-05-13T16:00Z .. 2019-12-31T23:00Z; analysis N 127303; 191 ISO weeks (Unit A sample)'
+    units_n: 'one feature, one horizon; PRIMARY with the local-path control set; two secondaries and raw outside the route'
+    practical_bar: 'No magnitude floor. SUPPORTED only from the PRIMARY (B1) sign and interval; B0 decides LOCAL_PATH vs NOT.'
+    mechanism: 'Box position of the 4h simple mean of the 47 prior closes (OCC_MEAN_4H, discovery F2a) against the next 1h signed return, beyond range position, 4h return, 4h volatility and the last-1h and last-15m returns.'
+    function: 'Fifteen-minute decisions on the canonical BitMEX 5m grid. One frozen partial association with the local path controlled.'
+    blind_mechanism: 'Where the recent path spent time relative to the current price, compared with the next signed return after position, recent returns and volatility.'
+    blind_function: 'Path occupancy temporal replication'
+    verdict: 'OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED (question-fresh replication, not pristine). Raw +0.0355 [+0.0274, +0.0435]; | B0 +0.0299 [+0.0209, +0.0391]; | B0 + RET_1H +0.0125 [+0.0038, +0.0212]; PRIMARY | B1 +0.0110 [+0.0021, +0.0199]. PRIMARY by year 2016 -0.000, 2017 -0.002, 2018 +0.016, 2019 +0.020. Most of the B0 association is the last-hour reversal; a smaller term remains. Historical only; not a forecast-engine component; not a product line.'
+    why_closed: 'The one allowed read of this frozen design (SHA 788029c5, commit e7f88ad8; final pre-outcome state ea477f5a) was completed; a second read is refused (REFUSING_RERUN).'
+    forbidden: 'a rerun; changing the formula, B0, B1, target, cadence, dataset, bootstrap or routes; switching the reading to a secondary; computing the local-path-controlled statistic on the discovery surface; OCC variants, windows, horizons or interactions inside this unit; a product line'
+    reopen: 'Further replication of the B1 estimand (e.g. Binance 2025-26 after its own exposure audit, or spot 2017-19) only as a separate unit with an owner go.'
+    records:
+    - docs/research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1_DESIGN.md
+    - docs/research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.md
+    - docs/research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.json
+    - scripts/research/occ_mean_4h_temporal_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    note: 'Discovery parent DIRECTIONAL-STATE-SEARCH-V2 (object F2a). Baseline units RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1 (same anchors) and RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1.'
