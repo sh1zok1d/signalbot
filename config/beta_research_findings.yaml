@@ -49,6 +49,11 @@ no_bot_context:
     bot_context: NONE
     reason: "post-outcome characterization of upper-quartile decisions; label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; the WIDTH line is closed with no product line"
     record: "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md"
+  - program: FUNDING_STATE_HISTORICAL_STRUCTURE_V1 (atlas FUNDING-STATE-HISTORICAL-STRUCTURE-V1)
+    status: CHARACTERIZED_ONCE_NO_PRODUCT_LINE
+    bot_context: NONE
+    reason: "retrospective historical structure; label INCREMENTAL_ASSOCIATION_UNCERTAIN; raw rank association small with interval above 0; partial association after 8h realized volatility has an interval that includes 0; availability-limited, not a point-in-time confirmation; PRODUCT_INTEGRATION_CANDIDATE = NO; no /btc line, no caution modifier, no trading signal"
+    record: "docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_RESULT.md"
   - program: FORMATION_WIDTH_V1
     status: CLOSED_NO_PRODUCT_LINE
     bot_context: NONE

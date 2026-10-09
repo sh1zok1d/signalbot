@@ -4431,20 +4431,25 @@ units:
     program: FUNDING_STATE_V1
     row: DERIVATIVES.funding_basis
     col: POSITIONING
-    state: CANDIDATE_UNTESTED
+    state: CLOSED_ON_SURFACE
     datasets:
     - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
     - CORE_BTC_BINANCE_V0
-    period: 'design frozen 2026-10-09, scores unread; Vision settled funding 2020-09-01 through 2024-12-31 16:00Z; price path through the legal CORE window'
-    units_n: 'funding identity N 4749; analysis N unread'
+    period: 'one retrospective read 2026-10-09T11:34:47Z; Vision settled funding 2020-09-01 through 2024-12-31 16:00Z; analysis N 4659, 223 ISO weeks'
+    units_n: 'funding identity N 4749; analysis N 4659 after a 90-event warm-up; raw Spearman about +0.056, interval above 0; partial Spearman about +0.028, interval includes 0'
     practical_bar: 'No magnitude floor. An effect-size cutoff, a correlation floor, and the external percentile rule are not applied. The market determines magnitude, sign, and usefulness.'
     mechanism: 'MODE=RETROSPECTIVE_HISTORICAL_STRUCTURE. Settled funding rank and later long-side path stress, beyond the contemporaneous realized-volatility state. Not a direction call and not a replay of an external strategy.'
-    function: 'Past-only percentile of the settled funding rate. Primary horizon is one funding interval. Control is realized volatility ending at the decision. Rank correlation and a partial rank correlation. Week-block resampling. Scores unread.'
-    verdict: 'DESIGN FROZEN. Scores unread. Evidence class is retrospective historical structure and availability-limited. Not a point-in-time confirmation. The parent availability record stays as written. Product integration is not a candidate.'
-    reopen: 'The one historical characterization is still unread. After that read this cell closes on the surface. A later question needs a new design. Not a rerun. Not a product change. Not a rewrite of the parent availability audit.'
+    function: 'Past-only percentile of the settled funding rate. Primary horizon is one funding interval. Control is realized volatility ending at the decision. Rank correlation and a partial rank correlation. Week-block resampling. One historical read. Rerun refused.'
+    verdict: 'CHARACTERIZED ONCE (2026-10-09T11:34:47Z). Label INCREMENTAL_ASSOCIATION_UNCERTAIN. Raw Spearman about +0.056 with interval above 0. Partial Spearman about +0.028 with interval including 0. Evidence class RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED. Not a point-in-time confirmation. Not a cause. Not L3. MARKET-04 stays BLOCKED_OBSERVABLE / NOT_TESTED. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'The one allowed retrospective characterization of this funding identity was read. It does not raise the evidence tier and does not prove a publication clock. A second official run is refused. The state, outcome, control, and route stay as frozen before the score.'
+    forbidden: 'a second read of this association; treating the result as a pristine or point-in-time confirmation; adopting percentile 55 or a post-hoc cutoff; choosing the negative-funding side as a claim of this unit; adding open interest or premium after the score; rewriting MARKET-04; opening 2025/2026 or E1; a product integration or a trading rule'
+    reopen: 'A later funding question needs a new design and a new external basis. Not a rerun of this window. Not a cutoff search. Not a side chosen after this score. Not a product change. Not a rewrite of the parent availability audit.'
     records:
     - docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_DESIGN.md
     - docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_PRE_OUTCOME_MANIFEST.json
+    - docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_RESULT.md
+    - docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_RESULT.json
+    - docs/research/FUNDING_STATE_HISTORICAL_STRUCTURE_V1_EVALUATOR_MANIFEST.json
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN FROZEN. Scores unread. Settled funding only. Premium not scored. Open interest not opened. Publication clock remains unproven. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    note: 'CHARACTERIZED ONCE. Label INCREMENTAL_ASSOCIATION_UNCERTAIN. Raw interval above 0. Partial interval includes 0. Not a confirmation. Evaluator be9d9d51. Rerun REFUSING_RERUN. Publication clock remains unproven. PRODUCT_INTEGRATION_CANDIDATE = NO.'

@@ -8977,3 +8977,24 @@ WINDOWS_CONSUMED = none new; the funding-state scores are not yet read
 OUTCOME_READ = no; EVIDENCE_CLASS = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FUNDING_STATE_HISTORICAL_STRUCTURE_V1 one historical characterization
+
+**Mode.** One retrospective read. Evidence class `RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED`. `outcome_read = true`. The evidence tier is unchanged. This is not a point-in-time confirmation, not a cause, and not a product change.
+- **Evaluator.** Design commit `be9d9d511a80e5d39e99b482d07a8b808f59d756`. Digest `afb940c2455687ed810236a34d8178cf874f525bd50dfc88da37902ded44e9e1`. Read `2026-10-09T11:34:47Z`. Design SHA256 `83a41139802263327e028cae664c7e36d5e8a55faa11e3b7aa8333321b90e51c`.
+- **Sample.** Vision `last_funding_rate` identity N `4749`, first `2020-09-01T00:00:00Z`, last `2024-12-31T16:00:00Z`. Analysis N `4659` after the frozen 90-event warm-up. ISO weeks `223`. Path drops `0`. Volatility-window drops `0`. Zero raw rates `0`. Price path `CORE_BTC_BINANCE_V0` 5-minute bars. No bar at or after `2025-01-01`. Open interest not opened. Premium not scored.
+- **Raw association.** Spearman `0.055772530537571544`. Interval `[0.0014817922680213926, 0.11027730322243834]`. Valid draws 2000/2000. Share of bootstrap draws above zero `0.9785`, descriptive only.
+- **Incremental association.** Partial Spearman given 8-hour realized volatility `0.027762672485166194`. Interval `[-0.008055043619315706, 0.062366554178786546]`. Share of draws above zero `0.941`, descriptive only. The interval includes zero.
+- **Label.** `INCREMENTAL_ASSOCIATION_UNCERTAIN`. The route uses only the incremental point and its interval. No magnitude floor was applied. Threshold `55` was not applied.
+- **Shape.** Mean 8-hour adverse log excursion by frozen state bin: `[0, 0.10)` `0.015845331534509736` (N 400); `[0.10, 0.25)` `0.011305682792439436` (N 956); `[0.25, 0.75)` `0.013819220521512382` (N 2694); `[0.75, 0.90)` `0.017383730133809665` (N 380); `[0.90, 1]` `0.023425563876680395` (N 229). Means are not monotone. The top bin is the highest. The `[0.10, 0.25)` bin is the lowest. Bins are not hypotheses.
+- **Years.** 2020 N 276, Spearman `0.25335378217772964`, partial `0.11664688307459968`. 2021 N 1095, Spearman `-0.0011977094253379599`, partial `-0.0018202059875871543`. 2022 N 1095, Spearman `-0.0005087471178070523`, partial `0.037573836349442516`. 2023 N 1095, Spearman `0.10911105690212888`, partial `0.07357750007772305`. 2024 N 1098, Spearman `0.0488511824222843`, partial `0.029373086948576592`. Sign changes are a description.
+- **Sides.** Positive raw funding N 4105, Spearman `0.06590973227687523`. Negative raw funding N 554, Spearman `-0.2526984506298927`. The side difference is a later-design candidate, not a claim of this unit.
+- **Secondary, not route inputs.** 1h Spearman `0.03957509983205247`, partial `0.002748912154690174`. 4h Spearman `0.04822279765907132`, partial `0.01547403632237566`. Absolute 8h excursion Spearman `0.07352234523798994`, partial `0.0359041701347571`.
+- **MARKET-03.** The small positive raw association is compatible with a funding filter reducing drawdown and may help explain a small part of that strategy result. It does not prove that funding caused the reduction. The incremental interval includes zero, so the structure is also compatible with funding traveling with the current volatility state.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc` change. Not a risk line, not a caution modifier, and not a trading signal. Rerun returns `REFUSING_RERUN`.
+
+```
+WINDOWS_CONSUMED = B2_06 funding half DERIVATIVES.funding_basis, newly read; CORE_BTC_BINANCE_V0 further path use of the already exposed 2020-2024 window
+OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no; PIT = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
+```
