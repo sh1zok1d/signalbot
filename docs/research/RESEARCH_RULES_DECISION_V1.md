@@ -36,6 +36,10 @@ Every unit names the class of each surface it uses, **per question**.
 - lists the nearest exposed relations on each surface it uses, from their records;
 - states why Q is not one of them.
 
+**Same-period other venues (clarification, from the existing contract, HYPOTHESIS_EVALUATION_CONTRACT_V1 §7).**
+- A series of the same asset on another venue over the same period is an observable substitution of the same quantity on the same outcome path; cross-venue BTC 15m moves correlate about 0.998 (#363/#364).
+- Such a surface is therefore exposed for a question read on the first venue. It is robustness against venue and data artifacts, not `QUESTION_FRESH_REPLICATION`.
+
 **What does not expose Q:**
 - reads of other features on the same surface;
 - unconditional outcome reads, such as the generic hourly race stream or the disclosed unconditional 4h path read on 2025–26.
@@ -70,6 +74,10 @@ Three counters, kept in `EXPOSURE_COUNTERS_V1` (initial compilation in progress;
   - V3 Microscope;
   - the compiler V3 variance line.
 - **When an idea's membership in an owner-closed line is unclear,** the architect asks the owner before any design note.
+- **Owner ruling on E1 (flow-impact asymmetry), 2026-10-09.**
+  - E1 is not automatically part of the closed selling-exhaustion line.
+  - It is admitted as a separate predictive mechanism only if its exact design measures a **change in the price response to aggressive flow**.
+  - It must not reduce to H05/B2-05, to an imbalance level, or to the old divergence or selling-exhaustion formulation.
 
 ## 6. Causal identification
 

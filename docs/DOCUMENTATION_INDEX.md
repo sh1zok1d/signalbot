@@ -714,6 +714,8 @@ When adding documentation:
 - `research/MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md` and `.json` (**independent red team of the catalog, 2026-10-09: all 41 ideas audited against primary sources. SURVIVE 1, REPAIR_NEEDED 5, DEFER_DATA 2, rejected 33; 29 catalog factual errors. Its verdicts take precedence over the catalog. No outcome read**).
 - `research/RESEARCH_RULES_REVIEW_V1.md` (**proposal, partly adopted 2026-10-09; the binding text is RESEARCH_RULES_DECISION_V1**).
 - `research/RESEARCH_RULES_DECISION_V1.md` (**owner research-rules decision 2026-10-09, binding for new units: surface classes, exact feature→outcome exposure, exposure counters and search penalty, exact-formulation closures except owner-closed lines, no causal gate, not retroactive (P3 stays a governance violation), E1 untouched**).
+- `research/EXPOSURE_COUNTERS_V1.md` (**surface / target / family exposure counters, initial compilation 2026-10-09; lower bounds flagged**).
+- `research/RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, outcome unread: time-disjoint replication of RANGE_POSITION_4H on BitMEX 2016–19 and Binance 2025–26, spot 2017–19 robustness; code `scripts/research/rp4h_time_disjoint_v1/run.py`; awaiting owner go**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

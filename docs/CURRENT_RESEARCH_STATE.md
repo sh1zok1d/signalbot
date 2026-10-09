@@ -6,7 +6,7 @@
 `CATALOG = docs/research/MARKET_PHENOMENA_CATALOG_V1.md | 41 phenomena, 14 rejected collisions | ideation and collision audit only; no outcome opened`
 `RED_TEAM = docs/research/MARKET_PHENOMENA_CATALOG_V1_RED_TEAM.md (+ .json) | SURVIVE 1 (S1 re-specified as SIGNED_PATH_ASYMMETRY_24H) | REPAIR_NEEDED 5 (A1, B1, C1, T2, T3) | DEFER_DATA 2 (V1, V2) | rejected 33 | catalog U1-U5 superseded`
 `AFTER_RULES_DECISION_V1 = SURVIVE 5 (S1, A1, C1, T2, T3) | REPAIR_NEEDED 5 (B1, E1 - owner question on the exhaustion line, F1, T4, V4) | DEFER_DATA 3 (V1, V2, V3) | rejected 28 | red team §13`
-`CANDIDATE_UNITS (not started; design note before outcome; batch needs an owner go) = SIGNED_PATH_ASYMMETRY_24H | US_OPEN_DRIVE | PATH_OCCUPANCY_RESIDUAL | then C1 PULLBACK_MAGNITUDE_DECAY, T2 SESSION_HANDOFF | each reports exposure counters (EXPOSURE_COUNTERS_V1, compilation in progress)`
+`RUN_ORDER (owner, 2026-10-09) = 1 RANGE_POSITION_4H (empirical, Cursor PRE_IMPULSE_STATE_ATLAS_V1): the Bybit same-period check (Cursor, frozen; robustness class) and the time-disjoint replication RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1 (BitMEX 2016-19, Binance 2025-26; design frozen, awaiting go) | 2 SIGNED_PATH_ASYMMETRY_24H (S1) | 3 PATH_OCCUPANCY_RESIDUAL (A1) | 4 US_OPEN_DRIVE (T3) | 5 C1, T2 | E1 admitted only as a change in price response to aggressive flow, not H05/B2-05/imbalance/exhaustion | product work not started`
 `PARALLEL = Cursor PRE_IMPULSE_STATE_ATLAS_V1 (broad scan); compare per catalog §10`
 
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08

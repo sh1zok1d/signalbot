@@ -8660,3 +8660,11 @@ CATALOG / RED TEAM OUTCOMES = none
 `RED_TEAM_AFTER_DECISION = SURVIVE 5 (S1, A1, C1, T2, T3), REPAIR_NEEDED 5, DEFER_DATA 3, rejected 28 (red team §13 + JSON field verdict_after_rules_decision_v1)`
 `EXPOSURE_COUNTERS_V1 = initial compilation in progress (read-only bookkeeping from records)`
 `WINDOWS_CONSUMED = none | OUTCOMES_READ = none`
+
+## 2026-10-09 — owner run order; E1 ruling; RANGE_POSITION_4H time-disjoint replication designed (no outcome read)
+
+`RUN_ORDER (owner) = RANGE_POSITION_4H first (Cursor Bybit same-period check: robustness class per RESEARCH_RULES_DECISION_V1 §3; then the time-disjoint replication) | then S1, A1, T3, C1/T2 | no product work`
+`E1_RULING (owner) = not automatically inside the closed selling-exhaustion line; admitted only if the design measures a change in the price response to aggressive flow and does not reduce to H05/B2-05, imbalance or the old divergence/exhaustion formulation`
+`DESIGN = docs/research/RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1_DESIGN.md | code scripts/research/rp4h_time_disjoint_v1/run.py + tests (synthetic only) | surfaces ERA BitMEX 2016-05..2019-12 (DIRECTION counter 0), RECENT Binance perp 2025-01..2026-10-08 (E1 objects never requested), ERA_SPOT robustness`
+`EXPOSURE_COUNTERS_V1 = initial compilation recorded (CORE x DIRECTION ≈ 813*, Binance 2025-26 x DIRECTION ≈ 72*, BitMEX 2016-19 x DIRECTION 0)`
+`DATA_READ = D2 BitMEX canonical file: first 2 rows and presence/zero-trade counts (schema check; 382,033 buckets, 22,728 zero-trade); no outcome | OUTCOMES_READ = none`

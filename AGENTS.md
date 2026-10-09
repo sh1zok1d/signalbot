@@ -6,6 +6,14 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 **Owner priority since 2026-10-09: `FIND_DIRECTIONAL_EDGE`.** The owner cancelled the beta and set forecasting/direction first. The research goal is a reproducible directional market state. Product work is not a substitute for this direction and is not proposed in its place.
 - **Ideas:** `docs/research/MARKET_PHENOMENA_CATALOG_V1.md`. Its red team, `..._RED_TEAM.md` / `.json`, takes precedence. Five survive (S1, A1, C1, T2, T3), and none is executed without a design note and an owner go.
+- **Run order (owner, 2026-10-09):**
+  1. RANGE_POSITION_4H — the empirical lead from Cursor's pre-impulse atlas. First its Bybit same-period check (robustness), then its time-disjoint replication.
+  2. S1.
+  3. A1.
+  4. T3.
+  5. C1 and T2.
+  - E1 is admitted only as a change in the price response to aggressive flow, not H05/B2-05, imbalance, or exhaustion.
+  - No product work.
 - **Research rules (`docs/research/RESEARCH_RULES_DECISION_V1.md`, owner, 2026-10-09; units designed after it):**
   - dataset-wide exhaustion is cancelled; exposure is tracked per exact feature→outcome question;
   - surface classes `DISCOVERY_REUSABLE` / `QUESTION_FRESH_REPLICATION` / `PRISTINE_HOLDOUT`/`PROSPECTIVE`;
