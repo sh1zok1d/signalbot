@@ -428,7 +428,8 @@ def _morphology(open_: np.ndarray, high: np.ndarray, low: np.ndarray, close: np.
 def _flow(ret: np.ndarray, quote: np.ndarray, taker: np.ndarray) -> dict[str, np.ndarray]:
     n = ret.shape[0]
     out = {"flow_beta_1h": _nan(n), "flow_corr_1h": _nan(n)}
-    imb = np.where(np.isfinite(quote) & (quote > 0.0) & np.isfinite(taker), (2.0 * taker - quote) / quote, np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        imb = np.where(np.isfinite(quote) & (quote > 0.0) & np.isfinite(taker), (2.0 * taker - quote) / quote, np.nan)
     w = 12
     if n < w:
         return out
