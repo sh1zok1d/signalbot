@@ -1,0 +1,219 @@
+{
+  "accrued_analysis_n": 0,
+  "active_contract": true,
+  "amendment": "A1",
+  "amendment_sha256": "b3ab91ff7f06ed41447a740eabe07bf2af8f18a6a20954e8fe3cc2f1987f7fe4",
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261109,
+  "candidate_grid": [
+    365,
+    730,
+    1095,
+    1460,
+    1825,
+    2190,
+    2555,
+    2920,
+    3285,
+    3650,
+    4015,
+    4380
+  ],
+  "candidate_table": [
+    {
+      "effective_n": 137.21381865285093,
+      "expected_formation_date": "2027-10-11",
+      "fisher_se": 0.08631800284764309,
+      "raw_n": 365,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 273.7462974758101,
+      "expected_formation_date": "2028-10-11",
+      "fisher_se": 0.06077412809281134,
+      "raw_n": 730,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 410.9595517923165,
+      "expected_formation_date": "2029-10-13",
+      "fisher_se": 0.04950983135664802,
+      "raw_n": 1095,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 547.4925949516181,
+      "expected_formation_date": "2030-10-14",
+      "fisher_se": 0.04285524784625786,
+      "raw_n": 1460,
+      "reason": "ADMITTED"
+    },
+    {
+      "effective_n": 684.705736625146,
+      "expected_formation_date": "2031-10-16",
+      "fisher_se": 0.03830024267114349,
+      "raw_n": 1825,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 821.2388924274301,
+      "expected_formation_date": "2032-10-16",
+      "fisher_se": 0.03495907563295973,
+      "raw_n": 2190,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 958.4519858482354,
+      "expected_formation_date": "2033-10-17",
+      "fisher_se": 0.03235158525260776,
+      "raw_n": 2555,
+      "reason": "INCREMENT_BELOW_BOOTSTRAP_FLOOR"
+    },
+    {
+      "effective_n": 1094.985189903244,
+      "expected_formation_date": "2034-10-19",
+      "fisher_se": 0.03026158184336443,
+      "raw_n": 2920,
+      "reason": "ADMITTED"
+    },
+    {
+      "effective_n": 1232.1982565228968,
+      "expected_formation_date": "2035-10-20",
+      "fisher_se": 0.02852259479633718,
+      "raw_n": 3285,
+      "reason": "AFTER_TERMINAL"
+    },
+    {
+      "effective_n": 1368.73148737905,
+      "expected_formation_date": "2036-10-21",
+      "fisher_se": 0.02705934867643869,
+      "raw_n": 3650,
+      "reason": "AFTER_TERMINAL"
+    },
+    {
+      "effective_n": 1505.9445369456198,
+      "expected_formation_date": "2037-10-22",
+      "fisher_se": 0.025794583685800638,
+      "raw_n": 4015,
+      "reason": "AFTER_TERMINAL"
+    },
+    {
+      "effective_n": 1643.157714427923,
+      "expected_formation_date": "2038-10-23",
+      "fisher_se": 0.02469205266034397,
+      "raw_n": 4380,
+      "reason": "AFTER_TERMINAL"
+    }
+  ],
+  "checkpoints": [
+    {
+      "effective_n": 547.4925949516181,
+      "expected_calendar_days": 1465.6153846153845,
+      "expected_formation_date": "2030-10-14",
+      "fisher_se": 0.04285524784625786,
+      "information_time": 0.49999999999999645,
+      "iso_weeks": 210,
+      "lower_quantile": 0.012499999999999912,
+      "lower_tail_spend": {
+        "cumulative": 0.012499999999999912,
+        "incremental": 0.012499999999999912
+      },
+      "magnitude_stop_allowed": false,
+      "mde80": 0.1321237559722289,
+      "raw_n": 1460,
+      "role": "FIRST_LOOK",
+      "sequential_power_at_reference": 0.5366644007755086,
+      "terminal": false,
+      "upper_quantile": 0.9875,
+      "upper_tail_spend": {
+        "cumulative": 0.012499999999999912,
+        "incremental": 0.012499999999999912
+      }
+    },
+    {
+      "effective_n": 1094.985189903244,
+      "expected_calendar_days": 2931.230769230769,
+      "expected_formation_date": "2034-10-19",
+      "fisher_se": 0.03026158184336443,
+      "information_time": 1.0,
+      "iso_weeks": 420,
+      "lower_quantile": 0.01250000000000009,
+      "lower_tail_spend": {
+        "cumulative": 0.025,
+        "incremental": 0.01250000000000009
+      },
+      "magnitude_stop_allowed": true,
+      "mde80": 0.09329718192623733,
+      "raw_n": 2920,
+      "role": "MATURITY_AND_TERMINAL",
+      "sequential_power_at_reference": 0.85613559554006,
+      "terminal": true,
+      "upper_quantile": 0.9874999999999999,
+      "upper_tail_spend": {
+        "cumulative": 0.025,
+        "incremental": 0.01250000000000009
+      }
+    }
+  ],
+  "column": "CANDLES",
+  "context_not_a_prior": {
+    "cross_venue_point": 0.09903883442772482,
+    "cross_venue_route": "POSITIVE_BUT_BELOW_PRACTICAL_SCALE",
+    "discovery_point": 0.10245095315584887,
+    "used_as_prior": false,
+    "used_to_choose_alpha": false,
+    "used_to_choose_checkpoints": false
+  },
+  "dataset_id": "BINANCE_UM_LIVE_FORWARD",
+  "forecast_assumption": {
+    "discovery_analysis_n": 1820,
+    "discovery_calendar_days": 1827,
+    "discovery_iso_weeks": 262,
+    "model": "AR1_WITHIN_ISO_WEEK_USING_WIDTH_LAG_THEN_KISH",
+    "phi": 0.5483151377537036,
+    "phi_source": "docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json",
+    "role": "FORECAST_ASSUMPTION"
+  },
+  "future_association_read": false,
+  "instrument": "BTCUSDT perpetual",
+  "l3_authorized": false,
+  "lag_placebo_route_input": false,
+  "lower_tail_budget": 0.025,
+  "min_incremental_alpha": 0.01,
+  "min_sequential_power": 0.5,
+  "min_sequential_power_role": "MINIMUM_INFORMATION_THRESHOLD",
+  "min_tail_draws": 20,
+  "outcome_read": false,
+  "overall_decisive_error_budget": 0.05,
+  "owner_go_required_for_first_checkpoint": true,
+  "parent_design_sha256": "d07b83ca9baea11d0af16424da6f7a7a29d43a2a61b6d850d974c8ed80da9612",
+  "parent_head": "6b178352e464fac7cc3c847448cb3bc9018ae6a4",
+  "parent_spec": "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SPEC.json",
+  "parent_spec_role": "SUPERSEDED_ERROR_BUDGET",
+  "positive_relation_object": "SAME_LOWER_TAIL_BOUND",
+  "positive_relation_option": "A",
+  "positive_relation_uses_extra_family": false,
+  "practical_reference": 0.1,
+  "product_integration_candidate": false,
+  "prospective_start": "2026-10-10T00:00:00Z",
+  "schedule": {
+    "admitted_n": [
+      1460,
+      2920
+    ],
+    "first_look_n": 1460,
+    "maturity_n": 2920,
+    "terminal_n": 2920
+  },
+  "search_horizon_years": 12,
+  "seed_restarted_each_checkpoint": true,
+  "spending_exponent": 1.0,
+  "spending_family": "KIM_DEMETS_POWER",
+  "spending_formula": "A(t)=0.025*t",
+  "stability_route_input": false,
+  "status": "AWAITING_START",
+  "this_unit_scores_the_forward_endpoint": false,
+  "unit": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
+  "upper_tail_budget": 0.025,
+  "venue": "Binance USD-M"
+}

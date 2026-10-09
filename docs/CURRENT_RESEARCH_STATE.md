@@ -1,3 +1,29 @@
+## FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 — Amendment A1, error budget repaired, endpoint unread — 2026-10-09
+
+`MODE = PROSPECTIVE_SEQUENTIAL_VALIDATION | AMENDMENT = A1 | status = AWAITING_START | outcome_read = false | future_association_read = false`
+`START = 2026-10-10T00:00:00Z | accrued analysis N = 0 | parent design SHA256 d07b83ca9baea11d0af16424da6f7a7a29d43a2a61b6d850d974c8ed80da9612 | parent HEAD 6b178352e464fac7cc3c847448cb3bc9018ae6a4`
+`BUDGET = overall decisive magnitude error 0.05 | lower tail 0.025 | upper tail 0.025 | A(t) = 0.025 * t | Kim-DeMets exponent 1`
+`CHECKPOINTS = N 1460 first look, expected 2030-10-14 | N 2920 maturity and terminal, expected 2034-10-19 | parent grid 1095/1825/2190 is not active`
+`POSITIVE RELATION = option A | same lower bound | no third alpha family`
+`NOT OPENED = forward association, BitMEX, another historical venue, 2025/2026 archive, E1, product`
+`GO = a separate owner go is required for the first formal checkpoint, and only once N reaches 1460 | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+
+Amendment: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md`.
+
+## FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 — sequential design frozen, endpoint unread — 2026-10-09
+
+`MODE = PROSPECTIVE_SEQUENTIAL_VALIDATION | status = AWAITING_START | outcome_read = false | future_association_read = false`
+`START = 2026-10-10T00:00:00Z | accrued analysis N = 0 | venue = Binance USD-M BTCUSDT perpetual | dataset = BINANCE_UM_LIVE_FORWARD | column = CANDLES`
+`CLAIM = exact frozen partial association of UTC formation-hour width with next-hour activity given RV_FORMATION | reference +0.10 unchanged`
+`CONTEXT = discovery +0.10245095315584887 | Bybit +0.09903883442772482 | Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE | not a prior | not rounded to 0.10`
+`CHECKPOINTS = N 1095 first look, expected 2029-10-13 | N 1825 maturity, expected 2031-10-16 | N 2190 terminal, expected 2032-10-16`
+`METHOD = ISO-week block bootstrap B=2000 seed 20261109 | Kim-DeMets exponent 1 | alpha 0.05 per one-sided family | not an always-valid sequence`
+`NOT OPENED = forward association, BitMEX, another historical venue, 2025/2026 archive, E1, product`
+`GO = a separate owner go is required for the first formal checkpoint, and only once N reaches 1095 | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`CEILING = prospective L2 association evidence after a stopping route | not L3 | not a forecast | not a product change`
+
+Design: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_DESIGN.md`. Forecast: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md`.
+
 ## FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1 — one outcome read, below the practical bar — 2026-10-09
 
 `MODE = ONE_OUTCOME_READ | ROUTE = POSITIVE_BUT_BELOW_PRACTICAL_SCALE | outcome_read = true | future_association_read = true`

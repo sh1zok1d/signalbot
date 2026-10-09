@@ -4340,3 +4340,29 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'EXECUTED ONCE. Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Evaluator 52b2c9b6. Rerun REFUSING_RERUN. The support census row stays EXPOSED and the outcome line is CONSUMED. Not a time-disjoint confirmation and not a product signal.'
+  - id: FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1
+    title: FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_LIVE_FORWARD
+    period: 'forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; Amendment A1 before any outcome; pre-start bars are not the sample'
+    units_n: 'none yet; first look at analysis N 1460; maturity and terminal at 2920'
+    practical_bar: 'Scientific reference +0.10, unchanged. Magnitude supported means the lower bound from the 0.025 lower tail is at least +0.10. Magnitude not supported means the mature upper bound from the 0.025 upper tail is below +0.10. The two tails share one 0.05 union bound.'
+    mechanism: 'MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue.'
+    function: 'Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1460 and 2920. Kim-DeMets exponent 1. Each tail spends A(t)=0.025*t. Positive relation uses the same lower bound. No look between checkpoints and none after 2920.'
+    verdict: 'NOT_EXECUTED. Accrual AWAITING_START. Amendment A1. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association.'
+    reopen: 'Not a rerun of Binance 2020-2024 or of Bybit. The first formal checkpoint needs its own owner go once analysis N has reached 1460. Not a look before that N. Not the superseded parent grid 1095/1825/2190. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.'
+    forbidden: 'reading the forward association before the first checkpoint; executing the parent 0.05-per-side budget; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration'
+    revisit: 'First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that.'
+    records:
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SPEC.json
+    - docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'
