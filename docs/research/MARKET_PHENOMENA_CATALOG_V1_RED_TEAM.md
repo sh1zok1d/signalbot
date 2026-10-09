@@ -426,3 +426,48 @@ None runs before its design note is committed and the batch has an owner go.
 3. **PATH_OCCUPANCY_RESIDUAL (A1 repaired).** The one flat/accumulation object that survives the "is it just signed return?" test conceptually. It needs the §5.1 formula frozen and an atlas novelty ruling recorded.
 
 **Next in line:** C1 (pivot spec plus H04-child ruling), then T2. V1 and V2 wait for data.
+
+## 13. Addendum — verdicts under RESEARCH_RULES_DECISION_V1 (owner, 2026-10-09)
+
+The owner adopted three changes:
+- surface classes;
+- exact feature→outcome exposure;
+- closures narrowed to exact formulations, except owner-closed lines.
+
+The audit above is kept as written. The table below lists only the verdicts that change; the JSON carries `verdict_after_rules_decision_v1` for all 41.
+
+| ID | Before | After | Why |
+|---|---|---|---|
+| A1 | REPAIR_NEEDED | **SURVIVE** | the atlas-ruling requirement is gone; the formula is frozen in §5.1 |
+| C1 | REPAIR_NEEDED | **SURVIVE** | "no second H04 child" now closes only H04's exact formulation; the pivot spec is frozen in §5.2 (weak novelty noted) |
+| T2 | REPAIR_NEEDED | **SURVIVE** | session bans now close only exact formulations; no range object, no R03 or WIDTH formulation |
+| T3 | REPAIR_NEEDED | **SURVIVE** | D12's equity-open-child ban and the opening-range anchor ban now close only those exact objects; T3 is a signed drive → race |
+| E1 | REJECT_DUPLICATE | REPAIR_NEEDED | B2-05's list now closes only B2-05's exact formulation. **Owner question:** is flow-impact asymmetry inside the owner-closed selling-exhaustion line? |
+| F1 | REJECT_DUPLICATE | REPAIR_NEEDED | needs a frozen box at T; two-sided |
+| T4 | REJECT_DUPLICATE | REPAIR_NEEDED (low) | M04 is blocked, not owner-closed; the 08:00 UTC confound stack remains |
+| V4 | REJECT_DUPLICATE | REPAIR_NEEDED (low) | exact cells only; USDT/USD contamination in the ERA |
+| V3 | REJECT_DUPLICATE | DEFER_DATA | the binding problem is unaudited venue wicks |
+| I1, B3, Q4 | REJECT_DUPLICATE | REJECT_UNCLEAR | governance narrowed; the scientific problems remain |
+
+**Unchanged:**
+- **Owner-closed lines keep their rejections:** E2, E5 and Q6 (exhaustion); E3, E4 and X1 (DH3).
+- **Scientific rejections stay:** A2, A3, A4, A5, A7, B2, C2, C3, F2, I2, R1, R2, S2, T1, Q1, Q2, Q3, Q5.
+
+**Counts after the decision:** SURVIVE 5 (S1, A1, C1, T2, T3), REPAIR_NEEDED 5 (B1, E1, F1, T4, V4), DEFER_DATA 3 (V1, V2, V3), rejected 28.
+
+**Surfaces for the survivors, per question (§2–§3 of the decision):**
+
+| ID | DISCOVERY_REUSABLE | QUESTION_FRESH_REPLICATION | PRISTINE / PROSPECTIVE |
+|---|---|---|---|
+| S1 | CORE 2020–24 | BitMEX XBTUSD 5m 2016-05..2019-12; Binance spot 5m 2017-08..2019-12; Binance perp 2025-01..2026-10 (E1 window excluded). The feature was never read on any of them; unconditional reads do not expose it. | live klines after freeze |
+| A1 | CORE 2020–24 | same three. The nearest exposed relation (DH3-P1 quiet → range) is RANGE_VOL, not DIRECTION. | live |
+| C1 | CORE 2020–24 | same three | live |
+| T2, T3 | CORE 2020–24 | same three. R03 read unsigned range on CORE only; the product's season term is RANGE_VOL. | live |
+| B1 | CORE 2020–24 | BitMEX 2016–19 and spot 2017–19. Structural first-touch reads do not expose emergent-barrier amplitude → BREAK. Binance 2025–26 likewise. | live |
+
+**Execution order, unchanged at the top:**
+1. SIGNED_PATH_ASYMMETRY_24H (S1).
+2. US_OPEN_DRIVE (T3).
+3. PATH_OCCUPANCY_RESIDUAL (A1).
+
+Then C1 and T2. Each gets a design note first; the batch needs an owner go. Each discovery reports the exposure counters and faces the search-exposure penalty.

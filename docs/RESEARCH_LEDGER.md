@@ -8652,3 +8652,11 @@ This is an unconditional 4h path read on a product-open surface; no state is inv
 WINDOWS_CONSUMED (disclosure 1) = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-08-14 unconditional 4h fixed-distance first-passage and |4h return| distribution (PRODUCT_OPEN surface)
 CATALOG / RED TEAM OUTCOMES = none
 ```
+
+## 2026-10-09 — RESEARCH_RULES_DECISION_V1 (owner): surface classes, exact-question exposure, counters; no outcome read
+
+`RULES = docs/research/RESEARCH_RULES_DECISION_V1.md | applies to units designed after it | not retroactive`
+`P3_CONFIRMATION_V1 = informative result with a governance violation, not a pristine confirmation (owner) | atlas DH3-P3 text updated (event UNIT_TEXT_CHANGE)`
+`RED_TEAM_AFTER_DECISION = SURVIVE 5 (S1, A1, C1, T2, T3), REPAIR_NEEDED 5, DEFER_DATA 3, rejected 28 (red team §13 + JSON field verdict_after_rules_decision_v1)`
+`EXPOSURE_COUNTERS_V1 = initial compilation in progress (read-only bookkeeping from records)`
+`WINDOWS_CONSUMED = none | OUTCOMES_READ = none`

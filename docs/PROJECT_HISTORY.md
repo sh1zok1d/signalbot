@@ -548,3 +548,13 @@ At the project's sample sizes, near-absolute coverage safety and practical utili
 - Venue leadership was proposed earlier as generator card C002, which is blocked.
 - Session-transition direction falls under recorded session bans.
 - Of 41 ideas, one survives as re-specified (signed path asymmetry), five need repair or an owner key, two wait for data and 33 are rejected.
+
+**Research rules decision (owner, same day).** `RESEARCH_RULES_DECISION_V1.md`:
+- Dataset-wide exhaustion is cancelled in favour of exact feature→outcome exposure and three surface classes.
+- Adaptive searches add to exposure counters and a search penalty, and never confirm by themselves.
+- Closures are narrowed to exact formulations, except owner-closed lines.
+- The causal-identification gate is dropped for predictive research.
+- The decision is not retroactive: P3 stays a governance violation.
+- Priority stays `FIND_DIRECTIONAL_EDGE`.
+
+**What was learned:** "consumed data" was a proxy for "consumed questions", and the proxy was costing usable confirmation surfaces.

@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09.
 **Author:** chief architect, on the owner's request: «пересмотреть правила по ресерчу — что тупо, что нет».
-**Status:** `PROPOSAL`. Nothing here is in force until the owner adopts it. Until then, the current rules (AGENTS.md, the atlas §5, the decisions cited below) apply unchanged.
+**Status:** `PARTLY ADOPTED` (owner, 2026-10-09). The binding text is `RESEARCH_RULES_DECISION_V1.md`, and where the two differ that record wins. This proposal is kept unchanged as the basis.
 
 ## 1. The owner's question
 

@@ -46,7 +46,9 @@
    "min_baseline": "B0 = driftless two-edge first passage from current position p_T; signed return over W and over the last 1h; width/σ; σ tercile; hour block.",
    "hidden_dof": "box window W, flat threshold, occupancy statistic, slice count, chord definition, exit buffer, horizon, anchor spacing (≥7).",
    "verdict": "REPAIR_NEEDED",
-   "reason": "As catalogued it largely restates signed return/position. Repaired estimand: occupancy residual OR = mean box position of the W closes minus (p_start + p_T)/2, incremental over B0(p_T), R_W and R_1h. Needs a recorded atlas ruling (no 'range internals' row exists; nearest rows hold CORE units)."
+   "reason": "As catalogued it largely restates signed return/position. Repaired estimand: occupancy residual OR = mean box position of the W closes minus (p_start + p_T)/2, incremental over B0(p_T), R_W and R_1h. Needs a recorded atlas ruling (no 'range internals' row exists; nearest rows hold CORE units).",
+   "verdict_after_rules_decision_v1": "SURVIVE",
+   "note_after_rules_decision_v1": "Atlas-ruling requirement removed by RESEARCH_RULES_DECISION_V1 §5; formula frozen in red team §5.1. Feature never read anywhere -> QUESTION_FRESH on BitMEX 2016-19, spot 2017-19 and Binance 2025-26."
   },
   {
    "id": "A2",
@@ -74,7 +76,9 @@
    "min_baseline": "per-bar body signs and signed return over W; B0; σ.",
    "hidden_dof": "bar size (1m vs 5m are different features), window, wick normalization, flat condition (4).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Internal duplicate of the path-asymmetry object (S1) inside an added flat condition, plus a C013-neighbour CLV functional. Adds multiplicity without a separate mechanism."
+   "reason": "Internal duplicate of the path-asymmetry object (S1) inside an added flat condition, plus a C013-neighbour CLV functional. Adds multiplicity without a separate mechanism.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "A3",
@@ -102,7 +106,9 @@
    "min_baseline": "σ change, B0, A1.",
    "hidden_dof": "slice count, crossing hysteresis, window (3).",
    "verdict": "REJECT_NOT_DIRECTIONAL",
-   "reason": "The new part (crossing decay) is unsigned activity; the signed part is position or occupancy, already covered by B0 and A1."
+   "reason": "The new part (crossing decay) is unsigned activity; the signed part is position or occupancy, already covered by B0 and A1.",
+   "verdict_after_rules_decision_v1": "REJECT_NOT_DIRECTIONAL",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "A4",
@@ -130,7 +136,9 @@
    "min_baseline": "S1, B0, σ.",
    "hidden_dof": "third boundaries, censoring rule, minimum excursions, window (4).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Internal duplicate of S1 with lower information (few events per box) and a #353-neighbour speed functional."
+   "reason": "Internal duplicate of S1 with lower information (few events per box) and a #353-neighbour speed functional.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "A5",
@@ -158,7 +166,9 @@
    "min_baseline": "trend (R4, R24), B0, B1 object.",
    "hidden_dof": "pivot rule, N swings, slope estimator, flatness tolerance, horizon (5).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Composition of B1 (barrier) and C1/trend (rising lows); its price leg is the closed divergence line's hidden-divergence geometry."
+   "reason": "Composition of B1 (barrier) and C1/trend (rising lows); its price leg is the closed divergence line's hidden-divergence geometry.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "A6",
@@ -186,7 +196,9 @@
    "min_baseline": "bar returns in each bucket, H05 imbalance level, B0.",
    "hidden_dof": "buckets, window, flow normalization (3).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "A location-subgroup of taker imbalance (#358/H05 family); formula-changed taker children are governance-barred."
+   "reason": "A location-subgroup of taker imbalance (#358/H05 family); formula-changed taker children are governance-barred.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "A7",
@@ -214,7 +226,9 @@
    "min_baseline": "A1, signed return, B0.",
    "hidden_dof": "grid, slice count, value-area %, allocation rule, window (5).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "A weighting variant of A1 built on an existing, already-tested POC object; adds degrees of freedom without a separate mechanism."
+   "reason": "A weighting variant of A1 built on an existing, already-tested POC object; adds degrees of freedom without a separate mechanism.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "B1",
@@ -242,7 +256,9 @@
    "min_baseline": "touch ordinal; inter-touch time; σ_now/σ_first-touch; R4, R24 oriented by approach side; hour; pseudo-barrier half-rotation control (as #352).",
    "hidden_dof": "pivot rule, zone width w, sub-X refractory r, minimum touches, decay definition (ratio/slope/monotone), barrier freeze rule, horizon (7).",
    "verdict": "REPAIR_NEEDED",
-   "reason": "Scientifically distinct only with a new event definition; heavy degrees of freedom; confirmation essentially prospective."
+   "reason": "Scientifically distinct only with a new event definition; heavy degrees of freedom; confirmation essentially prospective.",
+   "verdict_after_rules_decision_v1": "REPAIR_NEEDED",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "B2",
@@ -270,7 +286,9 @@
    "min_baseline": "B1 baseline + hour.",
    "hidden_dof": "as B1 + interval statistic.",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Collinear with B1 by #353's own reasoning; was already a nuisance in #353."
+   "reason": "Collinear with B1 by #353's own reasoning; was already a nuisance in #353.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "B3",
@@ -298,7 +316,9 @@
    "min_baseline": "-",
    "hidden_dof": "zone width, close-back rule, probe count (3+).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "An H02/B2-02 overshoot child with forbidden wick/close-back rules; circular barrier definition."
+   "reason": "An H02/B2-02 overshoot child with forbidden wick/close-back rules; circular barrier definition.",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Governance narrowed, but the pivot-defined barrier is circular under deeper probes."
   },
   {
    "id": "E1",
@@ -326,7 +346,9 @@
    "min_baseline": "24h net flow, 24h return, their interaction, RV.",
    "hidden_dof": "window, frequency, estimator, sign-split rule, normalization reference (5).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Functional relabel of B2-05 under its verbatim forbidden list. The only legitimate route is an explicit OWNER_DECISION reopening the absorption family, run as discovery on a surface where B2-05 outcomes were not computed (BitMEX trades 2017-08..2019) with prospective confirmation."
+   "reason": "Functional relabel of B2-05 under its verbatim forbidden list. The only legitimate route is an explicit OWNER_DECISION reopening the absorption family, run as discovery on a surface where B2-05 outcomes were not computed (BitMEX trades 2017-08..2019) with prospective confirmation.",
+   "verdict_after_rules_decision_v1": "REPAIR_NEEDED",
+   "note_after_rules_decision_v1": "B2-05's forbidden list now closes only B2-05's exact formulation (|IMB|xFLOW_RET tertiles, W 15-60). Open owner question: is a flow-impact asymmetry inside the owner-closed selling-exhaustion line (SEED-0001's mechanism text: 'aggressive selling stops pushing price efficiently')? If outside: discovery on BitMEX trades 2017-19 or CORE (near-relation exposure counted), replication on a question-fresh surface."
   },
   {
    "id": "E2",
@@ -354,7 +376,9 @@
    "min_baseline": "-",
    "hidden_dof": "swing rule, swing count, volume reference (3+).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "A D7 child (unauthorized) under the closed exhaustion line."
+   "reason": "A D7 child (unauthorized) under the closed exhaustion line.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "E3",
@@ -382,7 +406,9 @@
    "min_baseline": "DH3-P1 state, H05 taker, B0.",
    "hidden_dof": "flat rule, ΔOI threshold, sign rule (3+).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "An endpoint-swap rescue of DH3-P1 with a barred OI×taker interaction; no independent historical replication."
+   "reason": "An endpoint-swap rescue of DH3-P1 with a barred OI×taker interaction; no independent historical replication.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "E4",
@@ -410,7 +436,9 @@
    "min_baseline": "-",
    "hidden_dof": "window, frequency, statistic, alignment (4).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Observable substitution of the null DH3-O3 template; inconsistent with the catalog's own rejection of the realized-vol version."
+   "reason": "Observable substitution of the null DH3-O3 template; inconsistent with the catalog's own rejection of the realized-vol version.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "E5",
@@ -438,7 +466,9 @@
    "min_baseline": "-",
    "hidden_dof": "W, thresholds.",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "B2-05's low-impact state at a forbidden new window; closed exhaustion line."
+   "reason": "B2-05's low-impact state at a forbidden new window; closed exhaustion line.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "R1",
@@ -466,7 +496,9 @@
    "min_baseline": "-",
    "hidden_dof": "volume reference, window (2).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Unauthorized D7 child; its replication route is consumed."
+   "reason": "Unauthorized D7 child; its replication route is consumed.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "R2",
@@ -494,7 +526,9 @@
    "min_baseline": "R4, R24, σ.",
    "hidden_dof": "k, windows, crossing rule, leg window (4+).",
    "verdict": "REJECT_UNCLEAR",
-   "reason": "Regime-switch definition is not pinned by any market mechanism; it is a conditioned momentum test in the closed continuation family with many free choices."
+   "reason": "Regime-switch definition is not pinned by any market mechanism; it is a conditioned momentum test in the closed continuation family with many free choices.",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "X1",
@@ -522,7 +556,9 @@
    "min_baseline": "P3 z.",
    "hidden_dof": "ratio choice, z window, divergence statistic (3).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Observable substitution around the just-refuted P3 object; the owner excluded another test of the crowd object."
+   "reason": "Observable substitution around the just-refuted P3 object; the owner excluded another test of the crowd object.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "C1",
@@ -550,7 +586,9 @@
    "min_baseline": "leg size in σ; latest pullback depth; R4, R24; σ tercile and σ change; hour.",
    "hidden_dof": "pivot rule and bar size, number of pullbacks, decay statistic, leg definition, normalization, horizon (6).",
    "verdict": "REPAIR_NEEDED",
-   "reason": "Needs a frozen pivot rule, decision timing at pivot confirmation, and an atlas ruling that a multi-swing decay is a new mechanism rather than a second H04 child."
+   "reason": "Needs a frozen pivot rule, decision timing at pivot confirmation, and an atlas ruling that a multi-swing decay is a new mechanism rather than a second H04 child.",
+   "verdict_after_rules_decision_v1": "SURVIVE",
+   "note_after_rules_decision_v1": "The 'no second H04-derived child' ban now closes only H04's exact formulation (§5); pivot spec frozen in red team §5.2. Weak novelty (sequence) noted."
   },
   {
    "id": "C2",
@@ -578,7 +616,9 @@
    "min_baseline": "C1 baseline",
    "hidden_dof": "as C1",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Collinear sibling of C1 under the same governance; testing both multiplies the search."
+   "reason": "Collinear sibling of C1 under the same governance; testing both multiplies the search.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "C3",
@@ -606,7 +646,9 @@
    "min_baseline": "trend, C1",
    "hidden_dof": "VWAP window, dip definition (2+).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Anchor substitution of C1's mechanism; trend-confounded by construction."
+   "reason": "Anchor substitution of C1's mechanism; trend-confounded by construction.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "F1",
@@ -634,7 +676,9 @@
    "min_baseline": "B0, A1, H02 event features.",
    "hidden_dof": "box rule, probe depth, reclaim window, count, untouched window, horizon (6).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "A failed-cell child of H02/B2-02 (explicitly barred); the frozen-box repair lands on the opening-range object."
+   "reason": "A failed-cell child of H02/B2-02 (explicitly barred); the frozen-box repair lands on the opening-range object.",
+   "verdict_after_rules_decision_v1": "REPAIR_NEEDED",
+   "note_after_rules_decision_v1": "H02/B2-02 failed-cell bans now close only exact formulations; F1 still needs a frozen (non-rolling) box defined at T and must stay two-sided."
   },
   {
    "id": "F2",
@@ -662,7 +706,9 @@
    "min_baseline": "S1, C1",
    "hidden_dof": "swing rule, leg count (2+).",
    "verdict": "REJECT_LOOKAHEAD",
-   "reason": "As specified it needs the current leg's end; the repaired version is subsumed by S1/C1."
+   "reason": "As specified it needs the current leg's end; the repaired version is subsumed by S1/C1.",
+   "verdict_after_rules_decision_v1": "REJECT_LOOKAHEAD",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "S1",
@@ -690,7 +736,9 @@
    "min_baseline": "R24 and R4 in σ units (continuous), σ tercile, hour block (UTC 4h), weekend flag; B0 = 0.5 by construction for O1 at T.",
    "hidden_dof": "window (24h), bar (5m), statistic (share), horizon (4h): all frozen to one cell; the passage-time and change (I2) variants are not tested.",
    "verdict": "SURVIVE",
-   "reason": "Simple, ex-ante, signed, never measured, testable now with a time-disjoint (exposed-surface) replication and a prospective route, provided it beats signed momentum."
+   "reason": "Simple, ex-ante, signed, never measured, testable now with a time-disjoint (exposed-surface) replication and a prospective route, provided it beats signed momentum.",
+   "verdict_after_rules_decision_v1": "SURVIVE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "S2",
@@ -718,7 +766,9 @@
    "min_baseline": "S1, R24, σ, vol asymmetry.",
    "hidden_dof": "window, lag k, regression form (3).",
    "verdict": "REJECT_UNCLEAR",
-   "reason": "It inherits C027's confounding problem (the catalog's 'resolves the support blocker' is wrong) and has no control for it; noisy estimator; overlaps S1."
+   "reason": "It inherits C027's confounding problem (the catalog's 'resolves the support blocker' is wrong) and has no control for it; noisy estimator; overlaps S1.",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "I1",
@@ -746,7 +796,9 @@
    "min_baseline": "-",
    "hidden_dof": "exit rule, window, size reference (3+).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "C001's observable inside B2-03's barred morphology frame; trade-count semantics undefined."
+   "reason": "C001's observable inside B2-03's barred morphology frame; trade-count semantics undefined.",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "B2-03 frame ban narrowed, but kline trade_count semantics are unpinned and the composition mechanism is vague."
   },
   {
    "id": "I2",
@@ -774,7 +826,9 @@
    "min_baseline": "as S1",
    "hidden_dof": "two windows (2).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Merged into S1 (one frozen path-asymmetry statistic); testing the change version too would double the search."
+   "reason": "Merged into S1 (one frozen path-asymmetry statistic); testing the change version too would double the search.",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "T1",
@@ -802,7 +856,9 @@
    "min_baseline": "hour drift, A1 baseline, B0.",
    "hidden_dof": "ramp list, window lengths, tilt statistic, horizon (4+).",
    "verdict": "REJECT_UNCLEAR",
-   "reason": "The owner's 06:00->07:00 Kyiv example is 03:00->04:00 UTC (summer) / 04:00->05:00 (winter), i.e. Asia midday, inside the closed G01-X8 window; the DST identification cannot separate human vs clock effects for Asian sessions; the ramp definition is barred; the tilt inherits A1's confound."
+   "reason": "The owner's 06:00->07:00 Kyiv example is 03:00->04:00 UTC (summer) / 04:00->05:00 (winter), i.e. Asia midday, inside the closed G01-X8 window; the DST identification cannot separate human vs clock effects for Asian sessions; the ramp definition is barred; the tilt inherits A1's confound.",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "T2",
@@ -830,7 +886,9 @@
    "min_baseline": "the same prior-return relation at every placebo clock offset; R24; σ; weekday.",
    "hidden_dof": "session definitions (fixed by exchanges), statistic (sign vs σ-scaled), horizon (2-3).",
    "verdict": "REPAIR_NEEDED",
-   "reason": "Clean estimand, but it falls under the recorded session bans (DH1-X4, opening-range anchor ban) and needs an explicit OWNER_DECISION key."
+   "reason": "Clean estimand, but it falls under the recorded session bans (DH1-X4, opening-range anchor ban) and needs an explicit OWNER_DECISION key.",
+   "verdict_after_rules_decision_v1": "SURVIVE",
+   "note_after_rules_decision_v1": "Session bans (DH1-X4 'family J exhausted', opening-range session-anchor rescue ban) now close only exact formulations; T2 uses no range object and no R03/WIDTH formulation. Exchange clocks (IANA) and pinned holiday calendars required."
   },
   {
    "id": "T3",
@@ -858,7 +916,9 @@
    "min_baseline": "the same 30m->4h statistic at all other 47 half-hours (placebo grid); R24; σ; weekday; NYSE trading-day flag.",
    "hidden_dof": "window (30m), horizon (4h), drive statistic (sign vs σ-scaled): 2-3, all fixable by the exchange clock.",
    "verdict": "REPAIR_NEEDED",
-   "reason": "The cleanest low-DOF directional estimand in the catalog, but explicitly covered by the D12 'equity-open child' ban and the opening-range session-anchor ban: it needs an OWNER_DECISION key before any design note."
+   "reason": "The cleanest low-DOF directional estimand in the catalog, but explicitly covered by the D12 'equity-open child' ban and the opening-range session-anchor ban: it needs an OWNER_DECISION key before any design note.",
+   "verdict_after_rules_decision_v1": "SURVIVE",
+   "note_after_rules_decision_v1": "D12's 'equity-open child' ban and the opening-range session-anchor ban now close only those units' exact formulations; T3 is a signed 30m drive -> 4h race, not an activity profile and not a range object. Pinned NYSE calendar required."
   },
   {
    "id": "T4",
@@ -886,7 +946,9 @@
    "min_baseline": "-",
    "hidden_dof": "windows, basis normalization (3).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "M04-family basis substitute on anchors whose post-settlement paths are already read."
+   "reason": "M04-family basis substitute on anchors whose post-settlement paths are already read.",
+   "verdict_after_rules_decision_v1": "REPAIR_NEEDED",
+   "note_after_rules_decision_v1": "M04 is a blocked observable, not an owner closure; DH1-X7 now closes only its exact cell; the funding unit read funding-rank -> path stress, not basis -> direction. Remaining: 08:00 UTC confound stack; low priority."
   },
   {
    "id": "V1",
@@ -914,7 +976,9 @@
    "min_baseline": "Binance-only exit, B0, σ.",
    "hidden_dof": "range window, exit threshold, ordering tolerance, persistence window (4).",
    "verdict": "DEFER_DATA",
-   "reason": "Needs synchronized tick tapes (Binance aggTrades from 2020-01; Bybit trades - start date not verifiable in the repo; OKX from 2021-09) and a BLOCKER_RESOLVED argument against C002."
+   "reason": "Needs synchronized tick tapes (Binance aggTrades from 2020-01; Bybit trades - start date not verifiable in the repo; OKX from 2021-09) and a BLOCKER_RESOLVED argument against C002.",
+   "verdict_after_rules_decision_v1": "DEFER_DATA",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "V2",
@@ -942,7 +1006,9 @@
    "min_baseline": "R24, σ, USDT-USD level.",
    "hidden_dof": "level vs change, window, horizon (3).",
    "verdict": "DEFER_DATA",
-   "reason": "Not in the inventory; needs Coinbase 1m and a USDT-USD series, pinned with checksums."
+   "reason": "Not in the inventory; needs Coinbase 1m and a USDT-USD series, pinned with checksums.",
+   "verdict_after_rules_decision_v1": "DEFER_DATA",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "V3",
@@ -970,7 +1036,9 @@
    "min_baseline": "-",
    "hidden_dof": "as B1 x venues.",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Sits in a BLOCKED_METHOD cell held by DH3-X6/C018 and depends on unaudited wick data."
+   "reason": "Sits in a BLOCKED_METHOD cell held by DH3-X6/C018 and depends on unaudited wick data.",
+   "verdict_after_rules_decision_v1": "DEFER_DATA",
+   "note_after_rules_decision_v1": "Governance aside, the binding issue is data: Bybit/OKX highs and lows were never audited; needs audited 1m venue OHLC."
   },
   {
    "id": "V4",
@@ -998,7 +1066,9 @@
    "min_baseline": "-",
    "hidden_dof": "window (2).",
    "verdict": "REJECT_DUPLICATE",
-   "reason": "Observable substitution of spot-excess / basis cells already closed."
+   "reason": "Observable substitution of spot-excess / basis cells already closed.",
+   "verdict_after_rules_decision_v1": "REPAIR_NEEDED",
+   "note_after_rules_decision_v1": "#364 SP2 and DH1-X7 now close only their exact cells (15m spot excess at a level touch). Remaining: ERA USDT/USD contamination; low priority."
   },
   {
    "id": "Q1",
@@ -1027,7 +1097,9 @@
    "hidden_dof": "≈300+",
    "verdict": "REJECT_UNCLEAR",
    "reason": "HIGH_ADAPTIVE_SEARCH_RISK: ≈7 (A1) x ≈7 (B1) x ordering/gap choices ≈ several hundred latent branches; admissible only as a frozen successor after A1 and B1 each show structure.",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "Q2",
@@ -1056,7 +1128,9 @@
    "hidden_dof": "≈100+",
    "verdict": "REJECT_UNCLEAR",
    "reason": "HIGH_ADAPTIVE_SEARCH_RISK; built on a rejected component (B2).",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "Q3",
@@ -1085,7 +1159,9 @@
    "hidden_dof": "≈100+",
    "verdict": "REJECT_UNCLEAR",
    "reason": "HIGH_ADAPTIVE_SEARCH_RISK; built on rejected F1 and a barred H01 child.",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "Q4",
@@ -1114,7 +1190,9 @@
    "hidden_dof": "≈50",
    "verdict": "REJECT_DUPLICATE",
    "reason": "COSMETIC_RESCUE of H02 (sweep relabel, lower-only).",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_UNCLEAR",
+   "note_after_rules_decision_v1": "H02 relabel ban narrowed; sequence risk remains (HIGH_ADAPTIVE_SEARCH_RISK)."
   },
   {
    "id": "Q5",
@@ -1143,7 +1221,9 @@
    "hidden_dof": "≈100",
    "verdict": "REJECT_DUPLICATE",
    "reason": "COMPOSITION_OF_CONSUMED.",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   },
   {
    "id": "Q6",
@@ -1172,7 +1252,19 @@
    "hidden_dof": "-",
    "verdict": "REJECT_DUPLICATE",
    "reason": "Closed exhaustion line; built on E5.",
-   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK"
+   "sequence_risk": "HIGH_ADAPTIVE_SEARCH_RISK",
+   "verdict_after_rules_decision_v1": "REJECT_DUPLICATE",
+   "note_after_rules_decision_v1": "Unchanged: the reason is scientific (redundancy, lookahead, identification, data or sequence risk) or an owner-closed line (divergence/exhaustion, DH3)."
   }
- ]
+ ],
+ "verdict_counts_after_rules_decision_v1": {
+  "SURVIVE": 5,
+  "REJECT_DUPLICATE": 17,
+  "REJECT_NOT_DIRECTIONAL": 1,
+  "REPAIR_NEEDED": 5,
+  "REJECT_UNCLEAR": 9,
+  "REJECT_LOOKAHEAD": 1,
+  "DEFER_DATA": 3
+ },
+ "rules_decision": "docs/research/RESEARCH_RULES_DECISION_V1.md"
 }

@@ -3229,7 +3229,8 @@ units:
     verdict: 'discovery PROMISING_PROTOTYPE: -5.92 pp (47.7 % vs 53.5 %), CI -8.32..-3.52, Holm p 0.0015, Brier skill +0.0024;
       P3 confirmation V1 (2026-10-09, Binance 2025-01-01..2026-08-15, one shot, parity exact): NOT_CONFIRMED -1.66 pp (48.0 % vs
       50.3 %), CI -5.45..+2.19, N 5771, Brier skill -0.0016; trading translation TRADING_FAIL (gross +0.002 %/trade, -0.118 % at 0.12 %)'
-    why_closed: one-shot discovery under the frozen DH3 rules, then one-shot time-disjoint confirmation (P3_CONFIRMATION_V1)
+    why_closed: 'one-shot discovery under the frozen DH3 rules, then a one-shot time-disjoint check on Binance 2025-26 (P3_CONFIRMATION_V1):
+      informative result with a governance violation, not a pristine confirmation (owner, 2026-10-09, RESEARCH_RULES_DECISION_V1 §7)'
     reopen: only a new mechanism or a new data surface; not this state on Binance 2020-2026 with other thresholds, windows, horizons, barriers or costs
     forbidden: re-scoring this cell on 2020-2026; rescuing it with a neighbouring state, endpoint, cost or trade rule
     records:

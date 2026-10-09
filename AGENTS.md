@@ -4,6 +4,18 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 ## Project posture
 
+**Owner priority since 2026-10-09: `FIND_DIRECTIONAL_EDGE`.** The owner cancelled the beta and set forecasting/direction first. The research goal is a reproducible directional market state. Product work is not a substitute for this direction and is not proposed in its place.
+- **Ideas:** `docs/research/MARKET_PHENOMENA_CATALOG_V1.md`. Its red team, `..._RED_TEAM.md` / `.json`, takes precedence. Five survive (S1, A1, C1, T2, T3), and none is executed without a design note and an owner go.
+- **Research rules (`docs/research/RESEARCH_RULES_DECISION_V1.md`, owner, 2026-10-09; units designed after it):**
+  - dataset-wide exhaustion is cancelled; exposure is tracked per exact feature→outcome question;
+  - surface classes `DISCOVERY_REUSABLE` / `QUESTION_FRESH_REPLICATION` / `PRISTINE_HOLDOUT`/`PROSPECTIVE`;
+  - every adaptive search raises surface/target/family exposure counters and the search penalty, and never confirms by itself;
+  - closures cover exact formulations only, except owner-closed lines (divergence/selling-exhaustion, DH3, R03, WIDTH/opening range, TWAP V1, V3, compiler V3), which stay closed until an owner override;
+  - no causal-identification gate for predictive research;
+  - not retroactive: P3_CONFIRMATION_V1 is an informative result with a governance violation, not a pristine confirmation;
+  - E1 untouched.
+- **Where the older rules below differ, this decision wins for new units:** atlas §5 `CONFIRMATION_ON_EXPOSED`, row/surface "consumed", PRODUCT_DECISION_V2 §4 research clause, family-wide bans in unit records.
+
 **Mode since 2026-10-03:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`. The canonical product decision is `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the owner lifted the predictive freeze for the product (forecasts of range, touch probabilities, levels, historical statistics with direction, an event calendar, timely market alerts) and opened Binance 2025/2026 for product statistics. Still forbidden in every user text: direct trade calls (buy/sell, long/short now, entries, targets), hype, unobservable attributions. Every historical number carries N and a comparable "обычно"; every forecast carries its tracked accuracy. Where it differs, it wins over the V1 decision below.
 
 **Chain of command and forecast layer (2026-10-08, `docs/ORCHESTRATION_V1.md`, `docs/FORECAST_LAYER_DECISION_V1.md`).**
@@ -103,6 +115,7 @@ For any new task, use this authority order:
 0a1. `docs/PRE_BETA_SCOPE_DECISION_V1.md` — owner pre-beta scope (2026-10-05): what is built before Day 0, what waits until after the beta, the history-first rule, the full `/check`, the signature index and the amendments to PRODUCT_FIRST and EVIDENCE_AND_CLAIMS;
 0a2. `docs/FORECAST_LAYER_DECISION_V1.md` and `docs/ORCHESTRATION_V1.md` — owner decisions of 2026-10-08: level race probabilities in the beta (object, models, held-out check, live calibration, display gates) and the chain of command (architect → ОПГ-1 / ОПГ-2 → tracks);
 0b. `docs/PRODUCT_FIRST_DECISION_V1.md` — product decision of 2026-10-02 (hypothesis, architecture constraint, DO-NOT-BUILD-YET, user-test design); superseded where V2 differs;
+0b1. `docs/research/RESEARCH_RULES_DECISION_V1.md` — owner research-rules decision (2026-10-09): surface classes, exact feature→outcome exposure, exposure counters and search penalty, exact-formulation closures; read it before designing any research unit;
 0c. `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` — research decision (2026-10-05): evidence vs claim decision, L0–L4 ladder, design note before outcome, claim journal; read it before any new research unit or any product line that states a historical or probabilistic number;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
 2. `docs/PROJECT_STATUS.md` — current posture and freeze;
