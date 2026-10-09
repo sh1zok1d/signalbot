@@ -1,0 +1,18 @@
+{
+  "amendment_a1_sha256": "a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e",
+  "amendment_a2_sha256": "a76c0a891fedb7a907544878ef49cd136d3831fb6782d89e56a00ce96e49e07a",
+  "boot_draws": 2000,
+  "boot_seed": 20261107,
+  "design_sha256": "64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6",
+  "evaluator_digest": "94c01af8e2ab9e2a9abc7e7eff54dd92e8dc57afe5e11bf2e948e0e60a8dab31",
+  "event_start": "2020-01-01",
+  "iso_weeks": 262,
+  "n": 1820,
+  "outcome_read": true,
+  "pre_outcome_evaluator_commit": "b1f36a56a5dfefd96f344238cf1bf071f6c42884",
+  "read_at": "2026-10-09T05:40:02Z",
+  "route": "FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT",
+  "surface": "CORE_BTC_BINANCE_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "unit": "FORMATION_WIDTH_REGIME_V1"
+}

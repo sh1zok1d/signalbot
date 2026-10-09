@@ -48,18 +48,17 @@ Result: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_V1_RESULT.md`. Census: `docs/rese
 
 Diagnosis: `docs/research/FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1.md`.
 
-## FORMATION_WIDTH_REGIME_V1 — amendment A2, outcome not read — 2026-10-09
+## FORMATION_WIDTH_REGIME_V1 — one outcome read — 2026-10-09
 
-`MODE = DISCOVERY | outcome_read = false | future_association_read = false | PRODUCT_CHANGE = none`
-`STATE = relative width W/P0 of the completed UTC [00:00, 01:00) hour | one clock | not a boundary claim`
-`A1 = incremental covariate is RV_FORMATION of that same hour | RV_PREV is descriptive secondary and does not set the route`
-`A2 = current_state_specific is per endpoint | a null endpoint does not veto another | no statistic or sample change`
-`MAP NOT READ = next-60m RV and absolute log displacement | partial Spearman after RV_FORMATION | seed 20261107`
-`SUPPORT = analysis N 1820 | 262 ISO weeks | unchanged by A2 | the gate does not authorize Y`
-`NOT A RERUN OF = the paired-cohort 4h Spearman already printed in the frozen-hour diagnosis`
-`NEXT = a separate owner go for the one outcome read of this amended map | route function amendment_a2.assign_route | no other surface`
+`MODE = DISCOVERY | ROUTE = FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT | claim ceiling L2 | not a current probability | not an edge | PRODUCT_CHANGE = none`
+`READ AT = 2026-10-09T05:40:02Z | evaluator commit b1f36a56a5dfefd96f344238cf1bf071f6c42884 | digest 94c01af8e2ab9e2a9abc7e7eff54dd92e8dc57afe5e11bf2e948e0e60a8dab31`
+`SURFACE = CORE_BTC_BINANCE_V0 [2020-01-01, 2025-01-01) | N 1820 | 262 ISO weeks | seed 20261107 | B 2000`
+`ACTIVITY = foundation Spearman +0.681 interval [+0.634, +0.722] clears | incremental given RV_FORMATION +0.102 interval [+0.048, +0.155] clears | year-stable | lag placebo +0.506 | current_state_specific true`
+`DISPLACEMENT = foundation +0.321 interval [+0.265, +0.375] clears | incremental +0.014 interval [-0.037, +0.068] does not clear | year-stable | lag placebo +0.284 | current_state_specific true`
+`SUPPORTING ENDPOINT = ACTIVITY only | RV_PREV is secondary and did not enter the route`
+`NOT OPENED = 2025/2026, E1, fresh surface, product, forecast | rerun REFUSING_RERUN | no successor started`
 
-Design: `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`. A1: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. A2: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md`. Census: `docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md`. A1 support: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md`.
+Result: `docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md`. Design: `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`. A1: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. A2: `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md`.
 
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 
