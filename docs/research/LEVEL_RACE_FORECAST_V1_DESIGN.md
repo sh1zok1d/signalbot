@@ -2,7 +2,7 @@
 
 **MODE = DISCOVERY** (model development on the discovery surface), followed by **one held-out read** of the frozen predictor.
 **Program:** `FORECAST_LAYER_DECISION_V1` (the one bounded research exception of PRE_BETA_SCOPE §2.3). Family `LEVEL_BEHAVIOR_V1`. Tracks `PRODUCT_EVIDENCE` (may the product show these probabilities) and `STRUCTURE` (does the structural level move the race off geometry).
-**Status:** `DESIGN_FROZEN (2026-10-08, architect ok via the ОПГ-2 mini-head) / NO_OUTCOME_READ AT FREEZE`. §0 (HIST) is the Day-0 part and is reviewed and frozen first. Written by ОПГ-2 track F1 on 2026-10-08. No 2020–2024 outcome and no 2025/2026 object was read for it.
+**Status:** `MODEL_FROZEN (2026-10-09 UTC, architect's freeze answer via the ОПГ-2 mini-head) / HELD_OUT_NOT_READ`. Design frozen `997ba986` before any outcome; amendments §11b–§11c before this freeze; model file `docs/research/LEVEL_RACE_MODEL_V1.json` sha256 `454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a`; `FREEZE_DATE = 2026-10-09`. The held-out read needs a separate «go». History: design status on 2026-10-08 was `DESIGN_FROZEN (architect ok via the ОПГ-2 mini-head) / NO_OUTCOME_READ AT FREEZE`; §0 (HIST) was reviewed and frozen first; written by ОПГ-2 track F1 on 2026-10-08. Development outcomes (2020–2024) were read after that design freeze (HIST table V1, development CV); no 2025/2026 object has been read.
 **Machine-readable freeze:** `docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.json`. Where the two differ, the JSON wins for numbers and this note wins for meaning.
 **Contract:** `docs/FORECAST_LAYER_DECISION_V1.md` §2–§7. Evidence rules: `EVIDENCE_AND_CLAIMS_DECISION_V1`, `DISCOVERY_FIRST_RESEARCH_DECISION_V1`, `EXPOSURE_WEIGHTING_DECISION_V1`.
 
@@ -256,6 +256,93 @@ Model-state templates (used only when `level_race.model_states_enabled = true`).
 - **Unstable offset:** M1 intercepts that change sign across test years are reported; the champion rule is not changed.
 - **Held-out fails G1–G3:** the class ships in `HIST` / `FALLBACK` at Day 0.
 - **Limitations:** one venue for the event (Binance perp); about 7.5 events a week, so the T15 class carries roughly 450 held-out events; σ from the trailing 24h only; the B0 discretisation caveats of §2.1; held-out surface exposed (class B); two landmark rows per event are dependent (clustered, not modelled); the development folds' early training sets are small (2020 only for the first fold).
+
+## 11b. Amendment after development, before the model freeze and the held-out read (2026-10-08; raises the bar)
+
+Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and the mini-head red team R1–R3, approved by the architect; FORECAST_LAYER_DECISION_V1 §6b. Nothing here was chosen from held-out data; the development numbers below are disclosed as the reason.
+
+**Definitions.** `G1@event` = the frozen generic G1 applied to the level event's geometry: B0 offset at the event's position, `P_UP` / `P_DN`, σ and time left, plus the G1 intercepts and its `SIGMA_T` term (G1's own tercile edges); head U of G1 is used as the "beyond | resolved" head. **Fallback model** = `G1@event` passed through the calibrator with the `GENERIC` intercept and the shared slope only. This replaces "B0 with the GENERIC intercept" in §7.
+
+**R1 — level offset.**
+- **Publication rule (Q6, architect 2026-10-08, added after development; raises the bar):** the champion is published (case A) only if on the held-out read the raw champion beats **both** raw B0 and raw `G1@event`, each with a week-clustered 95 % interval of the log-loss gain above 0, per landmark. Otherwise case B. This replaces the B0-only rule of §7.
+- The level-offset claim (internal L2/L3 claim, and any wording) additionally needs the raw champion to beat raw `G1@event` on the held-out read, week-clustered 95 % interval above 0, per landmark. User texts never claim a level effect in any case.
+- In case B (level offset not published), the published model is the fallback model (G1@event with GENERIC calibration): this is the "calibrated B0" of FORECAST_LAYER §6/§6b (Q5, architect 2026-10-08).
+- Development (descriptive, same OOF rows, `LEVEL_RACE_FORECAST_V1_FALLBACK_DIAGNOSTIC.json`): raw M1 vs raw `G1@event` +0.069 nats (95 % +0.049..+0.091), T0 +0.083 (+0.062..+0.103), T15 +0.051 (+0.029..+0.073).
+
+**One calibrator; raw of the level rows (freeze candidate, mini-head 2026-10-08).** The held-out prequential pass uses the live calibrator `beta.level_race_calibration` (track F3) unchanged: hierarchical class intercepts, shared slope, `GENERIC_ROW_WEIGHT = 1/16`, F3's batch cutoffs. F1's `calibrate.py` is not in the held-out path. The level calibration rows carry the raw of the published case: **case A → the champion (M1) raw; case B → the fallback raw (`G1@event`)**. The generic rows carry G1 raw on the generic geometry. The prior sd of `a_level − a_GENERIC` is F3's (proposed 1.0, informed by the development intercept shift of §11b R2, disclosed).
+
+**«Обычно» in the model states.** In `L3_HISTORY_BACKED` and `L3_LIVE`, `b_up` / `b_dn` / `b_ne` are **raw `G1@event`**, not B0. B0 stays in every journal record as a second baseline, and every metric is reported against both. `HIST` V1 keeps its frozen «обычно» (cell mean of B0). In `FALLBACK` the published number is itself the generic model, so `LR_FB_V1` / `LR_PUSH_FB_V1` show no separate «обычно» segment; the line marks the numbers as «обычно» explicitly: «… · это «обычно»: общая модель цены, без учёта уровня · точность …».
+
+**Consequences checked across this note.**
+- §7 D3 (case A): `LL_published − LL_fallback`, fallback as defined here. Case B: published = fallback, D3 absent, D1/D2 on the published probabilities → `HIST`.
+- §7 `FALLBACK`: published for a class only if the fallback model passes G2 on that class (held-out first, then live on the last 100 resolved); otherwise the drift path goes to `HIST`.
+- §9 templates: `b_*` in `LR_L3H_V1`, `LR_L3L_V1`, `LR_PUSH_L3H_V1`, `LR_PUSH_L3L_V1` are `G1@event`; the FALLBACK templates as above.
+- §8a: the generic stream's role is unchanged; G1 is the frozen generic model (development choice).
+
+**R2 — fallback calibration on level events (development, descriptive, pooled OOF, N = 2691).**
+- CITL of the raw `G1@event` on level rows: BEYOND +9.7 pp (+7.6..+12.0), BACK +2.8 (+0.6..+5.2), NEITHER −12.6 (−14.3..−10.9). T0: NEITHER −13.7; T15: NEITHER −10.9. G1 learns more NEITHER at generic anchors, while structural first touches resolve more.
+- Recalibration slope: head R 0.54 (0.36..0.75), head B 0.77 (0.68..0.88).
+- Level-minus-generic intercept (logit, slope fixed at 1): head R +0.92 (+0.77..+1.11) [T0 +1.07, T15 +0.74], head B +0.33 (+0.20..+0.46) [T0 +0.33, T15 +0.32]. This informs the [F3] prior sd of `a_level − a_GENERIC`; 0.5 would put the development shift about two prior SD out on head R. F3 sets it with this disclosure.
+- On these numbers the fallback model would fail G2 on the level classes by a wide margin; a level class in drift would then show `HIST`.
+- **Case B ⇒ `HIST` (architect, 2026-10-08, consequence of FORECAST_LAYER §6b).** In case B the published model is the fallback model, and the fallback is shown only if it passes G2 on the class. On level events it is expected to fail G2, so a landmark in case B shows `HIST` in practice; the fallback's level record is still journaled.
+
+**R3 — head B over-confidence.** Out-of-fold M1 head B recalibration slope 0.78 (0.68..0.90) excludes 1: the BEYOND-vs-BACK split is over-confident. The calibrator is expected to correct it. G3 (slope interval overlapping [0.8, 1.25]) is near its edge for the raw model; G3 is applied to the published probabilities.
+
+## 11c. Freeze candidate: calibration, gates and monitors (F3, #408; before the model freeze and the held-out read)
+
+**Numbers by reference.** Every [F3] number of §7 and §8a is replaced by the frozen values of `docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` and the constants in the header of `beta/level_race_calibration.py` (merged in #408): the prior of the calibrator, G0–G3 (G1 is now a non-inferiority margin of +0.02 nats against raw B0), the live floor, D0–D3, the generic-stream alarm, the return rule and the challenger rule. Where a number in §7 or §8a differs, F3's design wins. The held-out pass and live call the same module (`prior_for_cases`, `fit_calibrator`, `calibrator_at`, `apply_calibrator`, `gates`, `beats`; `scripts/research/level_race_forecast_v1/heldout.py`), and F1's own calibrator is removed.
+
+**Final gate and monitor table (every frozen number, its constant and its source).** Calibration constants: `beta/level_race_calibration.py` header (F3 design `LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` §2–§5); held-out constants: `scripts/research/level_race_forecast_v1/heldout.py`; model: `docs/research/LEVEL_RACE_MODEL_V1.json`.
+
+| Rule | Value | Constant | Source |
+|---|---|---|---|
+| G0 scored held-out events per class | ≥ 200 | `G0_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| G1 upper 95 % end of `LL_published − LL_B0` (non-inferiority) | ≤ 0.02 nats | `G1_MAX_LL_EXCESS` | `beta/level_race_calibration.py` |
+| G2 per outcome \|CITL\| | ≤ 5 pp | `G2_CITL_PP` | `beta/level_race_calibration.py` |
+| G2 per outcome 95 % interval of CITL (iid floor) | inside ±10 pp | `G2_CI_PP` | `beta/level_race_calibration.py` |
+| G3 per head, slope 95 % interval overlaps | [0.8, 1.25] | `G3_SLOPE_BAND` | `beta/level_race_calibration.py` |
+| Interval z (95 %) | 1.959964 | `Z95` | `beta/level_race_calibration.py` |
+| Case A / level-offset claim: raw champion beats raw B0 and raw `G1@event` | 95 % interval of the gain > 0 | `beats()` | `beta/level_race_calibration.py`; `scripts/research/level_race_forecast_v1/heldout.py` `decide_cases` |
+| Live floor for `L3_LIVE` | 150 resolved per class | `LIVE_FLOOR` | `beta/level_race_calibration.py` |
+| D0 stale bars at issue | > 10 min → `OFF` | `D0_STALE_MINUTES` | `beta/level_race_calibration.py` |
+| D1 betting e-process λ | ±0.25, ±0.5 | `D1_LAMBDAS` | `beta/level_race_calibration.py` |
+| D1 threshold per outcome | E > 30 | `D1_OUTCOME_THRESHOLD` | `beta/level_race_calibration.py` |
+| D2 / D3 window | last 150 resolved | `ROLL_N` | `beta/level_race_calibration.py` |
+| D2 per outcome \|CITL\| | > 10 pp | `D2_PP` | `beta/level_race_calibration.py` |
+| D2 interval z | 3.0 (99.7 %) | `D2_Z` | `beta/level_race_calibration.py` |
+| D3 (case A) `LL_published − LL_fallback` interval z | 3.0, interval > 0 | `D3_Z` | `beta/level_race_calibration.py` |
+| D3 minimum weeks | 8 | `D3_MIN_WEEKS` | `beta/level_race_calibration.py` |
+| Return: new resolved events | ≥ 50 | `RETURN_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| Return: epoch e-value | < 1 | `RETURN_E_MAX` | `beta/level_race_calibration.py` |
+| Drift exits per version (second is final) | 2 | `MAX_DRIFT_EXITS` | `beta/level_race_calibration.py` |
+| Generic-stream alarm threshold / block / return | 30 / 40 windows / 50 | `GEN_THRESHOLD`, `GEN_BLOCK`, `GEN_RETURN_MIN` | `beta/level_race_calibration.py` |
+| Generic alarm target / level drift target | `HIST` / `FALLBACK` while it passes G2, else `HIST` | `GEN_ALARM_TARGET`, `LEVEL_DRIFT_TARGET` | `beta/level_race_calibration.py` |
+| Prior a_GENERIC | N(0, 0.5²) | `PRIOR_M_A`, `PRIOR_S_A` | `beta/level_race_calibration.py` |
+| Prior b_GENERIC | N(1, 0.25²) | `PRIOR_M_B`, `PRIOR_S_B` | `beta/level_race_calibration.py` |
+| Prior a_level − a_GENERIC | sd 0.5 (case A) / 1.0 (case B) | `PRIOR_S_LEVEL_BY_CASE` | `beta/level_race_calibration.py` |
+| Prior b_LEVEL − b_GENERIC (hierarchical slope) | sd 0.25 | `PRIOR_S_SLOPE_LEVEL` | `beta/level_race_calibration.py` |
+| Live prior worth | 150 events per class | `N_EQUIV_PRIOR` | `beta/level_race_calibration.py` |
+| Generic row weight | 1/16 | `GENERIC_ROW_WEIGHT` | `beta/level_race_calibration.py` |
+| Batches | weekly × 12, then every 4 weeks | `WEEKLY_BATCHES`, `LATER_BATCH_WEEKS` | `beta/level_race_calibration.py` |
+| Non-parametric calibrator | none below 300 events | `ISOTONIC_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| Challengers: minimum paired / look every / maximum / concurrent | 150 / 150 / 600 / 2 | `CHALLENGER_MIN_PAIRED`, `CHALLENGER_LOOK_EVERY`, `CHALLENGER_MAX_PAIRED`, `CHALLENGER_MAX_CONCURRENT` | `beta/level_race_calibration.py` |
+| Held-out start / warm-up | 2025-01-01 / 2024-12-01 | `HELDOUT_START`, `WARMUP_START` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| Freeze date (exclusive end) | 2026-10-09 (set to the freeze commit's UTC date) | `FREEZE_DATE` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| E1 object gap | [2026-08-16, 2026-08-26) | `OBJECT_GAP` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| Probability floor / offset clip | 0.001 / 1e-4 | `PROB_FLOOR`, `OFFSET_CLIP` | `beta/level_race.py` |
+| Model file | sha256 `454109c8…0d3a` | `MODEL_FILE_SHA256` | `beta/level_race.py` |
+
+**Slope: hierarchical, not shared.** The shared-slope assumption of §8a is replaced by F3's hierarchical slope: `b_LEVEL − b_GENERIC ~ N(0, 0.25²)`, both level classes sharing `b_LEVEL`. Reason (F3 §3.3): with a shared slope, the generic rows hold the slope near 1, and the development head-B over-confidence of M1 (0.78, §11b R3) would stay uncorrected. `PRIOR_S_SLOPE_LEVEL = 0` restores the shared slope as one setting.
+
+**Level intercept prior by case.** `a_level − a_GENERIC ~ N(0, s²)` with s = 0.5 in case A (the level rows feed the M1 raw) and s = 1.0 in case B (they feed the `G1@event` raw). The case is decided on raw outputs before the prequential pass.
+
+**Rule: case B ⇒ HIST or FALLBACK, never L3.** In case B the only model state is FALLBACK, entered only while the fallback model passes G2 on that class; otherwise HIST (F3 §7.3; architect 2026-10-08, a consequence of FORECAST_LAYER §6b). In F3's synthetic study the GENERIC-intercept fallback passed G2 on level events in 0 % of replications, so case B shows HIST in practice. Case A occurred in 52 % (T0) / 46 % (T15) of replications in the base world and 70 % / 63 % at the development gains.
+
+**Frozen model artifact and evaluator.** `docs/research/LEVEL_RACE_MODEL_V1.json` (sha256 `454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a`, `beta.level_race.MODEL_FILE_SHA256`) holds the champion M1, the challenger C1 and the generic G1 with their coefficients, σ tercile edges and λ, copied from the development full-sample fits (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.json`, code `d7012001`). `beta.level_race.two_head` / `raw_forecasts` are the product predictors (parity-tested against the research `TwoHead`). The one-shot evaluator is `heldout.run(freeze_date, go)`: it refuses unless the go token is `GO:` + the first 12 hex of that model sha256 and the model file on disk has that digest, refuses if a held-out result already exists, requests only planned legal objects (checksum-verified), and writes `docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.json` once. Level records are issued at the landmark close and counted as resolved at the close of bar `j+48` (never earlier), so no calibrator version sees an outcome before its window ends.
+
+**Disclosures.**
+- The prior sd of the level intercepts (s_level), the slope prior and the synthetic worlds that chose them used F1's descriptive development numbers: the level − generic intercepts R +0.92 / B +0.33, the M1 head-B slope 0.78, and the M1 gains +0.028 nats vs B0 and +0.069 vs `G1@event`.
+- No held-out or live outcome was read for any calibration, gate or monitor number; they were chosen on synthetic data only (F3 §10).
 
 ## 11a. Changes during the beta (FORECAST_LAYER §6a)
 

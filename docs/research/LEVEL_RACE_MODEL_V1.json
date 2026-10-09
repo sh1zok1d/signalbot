@@ -1,0 +1,121 @@
+{
+ "version": "LEVEL_RACE_MODEL_V1",
+ "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
+ "development_record": "docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.json",
+ "development_code": "0e05938bdc3909fd056128ce7a2962699c37c1c3",
+ "surface": "CORE_BTC_BINANCE_V0 2020-02..2024-12",
+ "champion": "M1",
+ "M1": {
+  "spec_r": [
+   "1",
+   "T15",
+   "FAM_WM",
+   "SIDE",
+   "SIGMA_T"
+  ],
+  "spec_b": [
+   "1",
+   "T15",
+   "FAM_WM",
+   "SIDE",
+   "SIGMA_T"
+  ],
+  "beta_r": [
+   0.46222982355606984,
+   -0.22119728949846493,
+   0.48546840733787416,
+   -0.1816018804711986,
+   -0.5602104745207236
+  ],
+  "beta_b": [
+   0.221416748978888,
+   0.0026256964004759908,
+   0.22474164119534526,
+   0.04925381871715009,
+   -0.263496742585964
+  ],
+  "sigma_tercile_edges": [
+   0.0011715026036620568,
+   0.0016952686606311925
+  ],
+  "lambda_per_event": 0.008,
+  "c1_moments": null
+ },
+ "C1": {
+  "spec_r": [
+   "1",
+   "T15",
+   "FAM_WM",
+   "SIDE",
+   "SIGMA_T"
+  ],
+  "spec_b": [
+   "1",
+   "T15",
+   "FAM_WM",
+   "SIDE",
+   "SIGMA_T",
+   "OVMM"
+  ],
+  "beta_r": [
+   0.4618359223640935,
+   -0.24023017703922533,
+   0.4767823027220636,
+   -0.18562676156302052,
+   -0.5542602934418331
+  ],
+  "beta_b": [
+   0.22432079471382121,
+   0.028771872389103222,
+   0.21379076255317747,
+   0.054423573531495156,
+   -0.27494778879214876,
+   0.004484917758994549
+  ],
+  "sigma_tercile_edges": [
+   0.0011715026036620568,
+   0.0016952686606311925
+  ],
+  "lambda_per_event": 0.008,
+  "c1_moments": [
+   0.002937253683757021,
+   0.004472449721241127
+  ]
+ },
+ "G1": {
+  "spec_r": [
+   "1",
+   "SIGMA_T"
+  ],
+  "spec_b": [
+   "1",
+   "SIGMA_T"
+  ],
+  "beta_r": [
+   -0.6317066748946659,
+   -0.16776086110725708
+  ],
+  "beta_b": [
+   -0.042439180331457625,
+   -0.04925882838089145
+  ],
+  "sigma_tercile_edges": [
+   0.0012801432363067917,
+   0.001894324040481016
+  ],
+  "lambda_per_event": 0.032,
+  "c1_moments": null
+ },
+ "terms": {
+  "1": "intercept",
+  "T15": "1 at T15",
+  "FAM_WM": "1 if WEEK or MONTH",
+  "WEEK": "",
+  "MONTH": "",
+  "SIDE": "STRUCT_SIDE (+1 PxH, -1 PxL)",
+  "SIGMA_T": "-1/0/+1 by sigma tercile edges",
+  "OVMM": "(ovmm - mean)/sd, T15 only"
+ },
+ "offset_clip": 0.0001,
+ "prob_floor": 0.001
+}
