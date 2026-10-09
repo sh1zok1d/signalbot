@@ -978,7 +978,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 2,
+    "CLOSED_ON_SURFACE": 3,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -994,6 +994,7 @@
     "DIRECTIONAL-STATE-SEARCH-V2",
     "GV0R01-C003",
     "GV0R01-C025",
+    "OCC-MEAN-4H-MODERN-TEMPORAL-REPLICATION-V1",
     "OCC-MEAN-4H-TEMPORAL-REPLICATION-V1"
    ],
    "value": {
@@ -1002,8 +1003,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 5
+    "saturation": 2,
+    "total": 4
    }
   },
   {
@@ -1024,8 +1025,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -1046,8 +1047,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -1068,8 +1069,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 4
+    "saturation": 2,
+    "total": 3
    }
   },
   {
@@ -1090,8 +1091,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -1112,8 +1113,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -1134,8 +1135,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -1156,8 +1157,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -10193,14 +10194,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 211,
+  "units": 212,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 34,
+   "CLOSED_ON_SURFACE": 35,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -13056,32 +13057,6 @@
   },
   {
    "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.path_shape",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 1,
-    "saturation": 1,
-    "total": 7
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "PRICE_STRUCTURE.path_shape",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 1,
-    "saturation": 1,
-    "total": 7
-   }
-  },
-  {
-   "col": "PERP_FLOW",
    "row": "VOLATILITY_STATE.state_detection",
    "value": {
     "confirmation_path": 2,
@@ -13744,54 +13719,28 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "PRICE_STRUCTURE.path_shape",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
+    "saturation": 2,
     "total": 6
    }
   },
   {
-   "col": "CROSS_VENUE",
+   "col": "SPOT",
    "row": "PRICE_STRUCTURE.path_shape",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "PRICE_STRUCTURE.path_shape",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 1,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "PRICE_STRUCTURE.path_shape",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 1,
-    "saturation": 1,
+    "saturation": 2,
     "total": 6
    }
   },
@@ -14121,6 +14070,58 @@
    }
   },
   {
+   "col": "CROSS_ASSET",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 1,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 1,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 1,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 1,
+    "saturation": 2,
+    "total": 5
+   }
+  },
+  {
    "col": "CROSS_VENUE",
    "row": "CALENDAR.holidays_tax",
    "value": {
@@ -14213,19 +14214,6 @@
   },
   {
    "col": "LIQUIDATIONS",
-   "row": "PRICE_STRUCTURE.path_shape",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 1,
-    "saturation": 1,
-    "total": 4
-   }
-  },
-  {
-   "col": "LIQUIDATIONS",
    "row": "VOLATILITY_STATE.state_detection",
    "value": {
     "confirmation_path": 1,
@@ -14260,6 +14248,19 @@
     "owner_priority": 0,
     "product_relevance": 2,
     "saturation": 3,
+    "total": 3
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 1,
+    "saturation": 2,
     "total": 3
    }
   },
@@ -15597,7 +15598,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "02bee0572661a425f0943ee58cc3aa24306c4be694b7e3899f52cd7a729e4469",
+ "SOURCES_DIGEST": "2ac8218cf88941c256841a43861123fca0a5064ce5bc004eec9493f1cab5b733",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15962,6 +15963,14 @@
       "period": "2025-01-01..2026-10-08 minus [2026-08-02, 2026-08-26)",
       "rows": [
        "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1 one-shot (2026-10-09): OCC_MEAN_4H -> R_1H; raw, | B0, | B0 + RET_1H, PRIMARY | B1; four cells; route NOT_REPLICATED; Unit B canonical objects and exclusions",
+      "period": "2025-01-01..2026-10-08 minus [2026-08-02, 2026-08-26)",
+      "rows": [
+       "PRICE_STRUCTURE.path_shape"
       ],
       "status": "CONSUMED"
      }
@@ -22750,6 +22759,37 @@
    "verdict": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "what_tested": "Generator V0 pipeline only: novelty ALLOW, feasibility PASS, red team REJECT; red team failed checks: CAUSALITY, CONFOUNDING_ADDRESSED. No market outcomes were tested.",
    "why_closed": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING blocker unresolved."
+  },
+  {
+   "blind_function": "Path occupancy modern temporal replication",
+   "blind_mechanism": "Where the recent path spent time relative to the current price, compared with the next signed return after position, recent returns and volatility, on a later epoch.",
+   "col": "CANDLES",
+   "datasets": [
+    "BINANCE_UM_KLINES_5M_PRODUCT"
+   ],
+   "forbidden": "a rerun; any further OCC unit, variant (OCC_THIRDS, other mean, lookback, horizon, local-return set, interaction) or rescue without an owner reopen; computing B1 on Binance 2020-24; recovering the excluded August objects; a product or forecast-engine line",
+   "function": "Fifteen-minute decisions on the canonical 64-object Binance 2025-26 surface; one frozen partial association.",
+   "id": "OCC-MEAN-4H-MODERN-TEMPORAL-REPLICATION-V1",
+   "mechanism": "Box position of the 4h simple mean of the 47 prior closes (OCC_MEAN_4H) against the next 1h signed return beyond range position, 4h return, 4h volatility and the last-1h and last-15m returns, in the modern epoch.",
+   "note": "Chain: DIRECTIONAL-STATE-SEARCH-V2 (F2a) -> OCC-MEAN-4H-TEMPORAL-REPLICATION-V1 (BitMEX, SUPPORTED) -> this unit (NOT_REPLICATED). Same anchors as RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1.",
+   "period": "one Binance USD-M BTCUSDT perp read on RP4H Unit B canonical surface; 2025-01-01 .. 2026-10-08 minus [2026-08-02, 2026-08-26); analysis N 59672; 90 ISO weeks",
+   "practical_bar": "No magnitude floor. Route from the PRIMARY (B1) sign and interval only.",
+   "program": "OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1",
+   "records": [
+    "docs/research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1_DESIGN.md",
+    "docs/research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1.md",
+    "docs/research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1.json",
+    "scripts/research/occ_mean_4h_modern_temporal_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "Only by an explicit owner decision.",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Path occupancy modern temporal replication on Binance 2025-26",
+   "units_n": "one feature, one horizon; PRIMARY with the local-path control set; two secondaries and raw outside the route",
+   "verdict": "OCC_MODERN_NOT_REPLICATED; status HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE. Raw -0.0006 [-0.0166, +0.0143]; | B0 +0.0005 [-0.0153, +0.0151] (below the earlier B0 points +0.0202 and +0.0299); | B0 + RET_1H -0.0004; PRIMARY | B1 -0.0017 [-0.0162, +0.0119]; 2025 +0.004, 2026 -0.012. Heterogeneity vs BitMEX PRIMARY -0.0127 (approx. z -1.49). The OCC line ends here.",
+   "why_closed": "The one allowed read of this frozen design (SHA 6878c6e1, commit 39e84dfc; final pre-outcome state 04cb1a4b) was completed; a second read is refused (REFUSING_RERUN). Owner: the OCC line ends after this unit."
   },
   {
    "blind_function": "Path occupancy temporal replication",

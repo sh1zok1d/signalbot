@@ -1,0 +1,291 @@
+{
+ "bootstrap": {
+  "draws": 2000,
+  "min_valid": 1900,
+  "seed": 20261117
+ },
+ "census": {
+  "first_open_ms": 1735689600000,
+  "holes": 6912,
+  "holes_e1_refused_day_tail": 80,
+  "holes_in_e1_development_slice": 4032,
+  "holes_in_e1_window": 2800,
+  "holes_other": 0,
+  "holes_sha256": "7217c65f26284833eb0b95ab9d766bc16e27a70ec785df7ce44f152fcf474090",
+  "last_open_ms": 1791503700000,
+  "rows": 179136
+ },
+ "claim_ceiling": "HISTORICAL_ONLY",
+ "comparison_quoted": {
+  "bitmex": {
+   "b0": 0.029897,
+   "b0_ci": [
+    0.020874,
+    0.039062
+   ],
+   "b1": 0.010961,
+   "b1_ci": [
+    0.002143,
+    0.019867
+   ],
+   "result_sha256": "43a6fbd53d20f8256a326fdb4c585c0070ffdb31ded53546909a11c8ec76073b",
+   "unit": "OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 (BitMEX XBTUSD 2016-19)"
+  },
+  "discovery": {
+   "b0": 0.020158649974251052,
+   "b0_ci": [
+    0.012984199578650586,
+    0.02766591147029018
+   ],
+   "b1": "never computed",
+   "unit": "DIRECTIONAL_STATE_SEARCH_V2 F2a (Binance USD-M 2020-24)"
+  }
+ },
+ "design_commit": "39e84dfc",
+ "design_sha256": "6878c6e133c733a2142d494536b0e14afbe11862f7594b9b7a60c71e44184a56",
+ "e1_development_slice": "[2026-08-02, 2026-08-16) never requested (Unit B canonical exclusion)",
+ "e1_window": "never requested (product guard; object level)",
+ "estimands": {
+  "b0": [
+   "rp",
+   "ret4",
+   "rv4"
+  ],
+  "b0_ret1h": [
+   "rp",
+   "ret4",
+   "rv4",
+   "ret1h"
+  ],
+  "primary_b1": [
+   "rp",
+   "ret4",
+   "rv4",
+   "ret1h",
+   "ret15"
+  ],
+  "raw": []
+ },
+ "evaluator_digest": "94ea6902205dcde3ab79742f0ad2dff327b5ac84e06a4ea1c1e48c1df685af1a",
+ "evidence_class": "MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION",
+ "halves": {
+  "median_t_ms": 1762556850000.0,
+  "pieces": [
+   {
+    "b0": 0.002896570126272616,
+    "b0_ret1h": 0.003277396662965109,
+    "n": 29836,
+    "piece": "first",
+    "primary_b1": 0.0018579237421316635,
+    "raw": 0.0004596998289620305
+   },
+   {
+    "b0": -0.003149575822915451,
+    "b0_ret1h": -0.005023026730424977,
+    "n": 29836,
+    "piece": "second",
+    "primary_b1": -0.006091006057007154,
+    "raw": -0.0016248050881728026
+   }
+  ]
+ },
+ "heterogeneity": {
+  "b1": {
+   "approx_se": 0.00849594644828827,
+   "approx_z": -1.4894613330082782,
+   "modern_minus_bitmex_b1": -0.012654383722034394
+  }
+ },
+ "identity_audit": {
+  "max_abs_algebra_residual": 2.1660451210436804e-13,
+  "r2_occ_on_B0_values": 0.031743280409861074,
+  "r2_occ_on_B1_values": 0.1770016428035226,
+  "r2_rank_occ_on_B0": 0.04090936890106245,
+  "r2_rank_occ_on_B1": 0.2153774654426146,
+  "spearman_occ_minus_rp_vs_close_minus_sma": 0.9999999999998871,
+  "spearman_occ_rp4h": -0.008114503062134867
+ },
+ "intervals": {
+  "b0": {
+   "draws": 2000,
+   "hi": 0.015103624556806791,
+   "lo": -0.015262029754077883,
+   "valid": 2000
+  },
+  "b0_ret1h": {
+   "draws": 2000,
+   "hi": 0.012893409428403854,
+   "lo": -0.01483176094351021,
+   "valid": 2000
+  },
+  "primary_b1": {
+   "draws": 2000,
+   "hi": 0.011946911935694937,
+   "lo": -0.01624925042800716,
+   "valid": 2000
+  },
+  "raw": {
+   "draws": 2000,
+   "hi": 0.01432761845100064,
+   "lo": -0.01655656081730111,
+   "valid": 2000
+  }
+ },
+ "manifest": "docs/research_data/RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0/MANIFEST.json",
+ "mean_bp_all": -0.24428577243225302,
+ "median_bp_all": 0.1975876284809907,
+ "not_read": [
+  "CORE / Binance 2020-24 (no B1 recomputation)",
+  "spot",
+  "BitMEX",
+  "OCC variants",
+  "other windows",
+  "other horizons",
+  "interactions",
+  "OI",
+  "E1",
+  "PnL"
+ ],
+ "object_list_sha256": "5369e8dc265ada989fa048fd49e8d694a2478e69916338223fe118f0dd0db621",
+ "p_up_all": 0.5030667649819011,
+ "points": {
+  "b0": 0.0005479358133839694,
+  "b0_ret1h": -0.0004468696602158083,
+  "primary_b1": -0.0016933837220343942,
+  "raw": -0.0005521515517773688
+ },
+ "primary": "primary_b1",
+ "product_integration_candidate": false,
+ "quintiles_occ": {
+  "bins": [
+   {
+    "bin": 1,
+    "mean_bp": 0.07232020499315743,
+    "median_bp": 0.23453638472377694,
+    "n": 11935,
+    "p_up": 0.5038961038961038
+   },
+   {
+    "bin": 2,
+    "mean_bp": -0.05130771046045685,
+    "median_bp": -0.06645173149906758,
+    "n": 11934,
+    "p_up": 0.49924585218702866
+   },
+   {
+    "bin": 3,
+    "mean_bp": -0.25958534049492704,
+    "median_bp": 0.2504115044204818,
+    "n": 11934,
+    "p_up": 0.5035193564605329
+   },
+   {
+    "bin": 4,
+    "mean_bp": -0.15291220220340432,
+    "median_bp": 0.26561678459826393,
+    "n": 11934,
+    "p_up": 0.5043572984749455
+   },
+   {
+    "bin": 5,
+    "mean_bp": -0.8299212708817556,
+    "median_bp": 0.3104433130770179,
+    "n": 11935,
+    "p_up": 0.5043150397989108
+   }
+  ],
+  "degenerate": false,
+  "edges": [
+   0.42737110082553015,
+   0.48547799554220783,
+   0.5350936900467127,
+   0.5920510921981145
+  ]
+ },
+ "quintiles_occ_residual_on_b1": {
+  "bins": [
+   {
+    "bin": 1,
+    "mean_bp": -0.34009696623001945,
+    "median_bp": 0.15913304318355764,
+    "n": 11935,
+    "p_up": 0.5023879346459992
+   },
+   {
+    "bin": 2,
+    "mean_bp": 0.22564203262040683,
+    "median_bp": 0.0,
+    "n": 11934,
+    "p_up": 0.4999162057985587
+   },
+   {
+    "bin": 3,
+    "mean_bp": -0.22016940462150933,
+    "median_bp": 0.1699589830613867,
+    "n": 11934,
+    "p_up": 0.502597620244679
+   },
+   {
+    "bin": 4,
+    "mean_bp": -0.35870908435323634,
+    "median_bp": 0.3596159567799931,
+    "n": 11934,
+    "p_up": 0.5051952404893582
+   },
+   {
+    "bin": 5,
+    "mean_bp": -0.5280636322152858,
+    "median_bp": 0.3048459842113935,
+    "n": 11935,
+    "p_up": 0.5052366987850859
+   }
+  ],
+  "degenerate": false,
+  "edges": [
+   -14640.991169421217,
+   -5028.518683571692,
+   4930.268190914473,
+   14709.77375611656
+  ]
+ },
+ "route": "OCC_MODERN_NOT_REPLICATED",
+ "status_after_route": "HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE",
+ "support": {
+  "by_year": {
+   "2025": 35023,
+   "2026": 24649
+  },
+  "grid": {
+   "holes": 6912,
+   "occupied": 179136,
+   "slots": 186048
+  },
+  "halves": {
+   "first": 29836,
+   "median_t_ms": 1762556850000.0,
+   "second": 29836
+  },
+  "iso_weeks": 90,
+  "n": 59672,
+  "phase_anchors": 62015
+ },
+ "unit": "OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1",
+ "years": [
+  {
+   "b0": 0.006416493980279973,
+   "b0_ret1h": 0.005495231390761064,
+   "n": 35023,
+   "piece": "2025",
+   "primary_b1": 0.004060887063381977,
+   "raw": 0.0030253770715499484
+  },
+  {
+   "b0": -0.009834485507046504,
+   "b0_ret1h": -0.010692476933819622,
+   "n": 24649,
+   "piece": "2026",
+   "primary_b1": -0.011697689228180872,
+   "raw": -0.005850923238550985
+  }
+ ]
+}

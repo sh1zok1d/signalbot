@@ -728,6 +728,8 @@ When adding documentation:
 - `research/DIRECTIONAL_STATE_SEARCH_V2_INTERPRETATION.md` (**interpretation, claim decision and the proposed OCC_MEAN_4H replication unit**).
 - `research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit e7f88ad8; final pre-outcome state ea477f5a: OCC_MEAN_4H on BitMEX 2016-19, PRIMARY with the local-path control B1; exposure and identity audits**).
 - `research/OCC_MEAN_4H_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: OCC_TEMPORAL_REPLICATION_INCREMENTAL_SUPPORTED; PRIMARY +0.0110 [+0.0021, +0.0199]; rerun refused**).
+- `research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-09, commit 39e84dfc; final pre-outcome state 04cb1a4b: OCC_MEAN_4H on RP4H Unit B's canonical Binance 2025-26 surface; exposure audit; five routes**).
+- `research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: OCC_MODERN_NOT_REPLICATED; PRIMARY -0.0017 [-0.0162, +0.0119]; OCC status HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE; OCC line ended; rerun refused**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

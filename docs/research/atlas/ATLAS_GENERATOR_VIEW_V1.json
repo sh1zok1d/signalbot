@@ -624,10 +624,10 @@
   {
    "col": "CANDLES",
    "data_readiness": 3,
-   "frontier_value": 5,
+   "frontier_value": 4,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 5,
+   "prior_signature_count": 6,
    "prior_signatures": [
     {
      "function": "Unconditional 24h close-path characterization",
@@ -650,6 +650,11 @@
      "mechanism": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade"
     },
     {
+     "function": "Path occupancy modern temporal (omitted)",
+     "id": "OCC-MEAN-4H-MODERN-TEMPORAL-REPLICATION-V1",
+     "mechanism": "Where the recent path spent time relative to the current price, compared with the next signed return after position, recent returns and volatility, on a later epoch."
+    },
+    {
      "function": "Path occupancy temporal (omitted)",
      "id": "OCC-MEAN-4H-TEMPORAL-REPLICATION-V1",
      "mechanism": "Where the recent path spent time relative to the current price, compared with the next signed return after position, recent returns and volatility."
@@ -660,7 +665,7 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 7,
+   "frontier_value": 6,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -669,7 +674,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 6,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -678,7 +683,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 4,
+   "frontier_value": 3,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -687,7 +692,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 6,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -696,7 +701,7 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 7,
+   "frontier_value": 6,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -705,7 +710,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 6,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -714,7 +719,7 @@
   {
    "col": "CROSS_ASSET",
    "data_readiness": 3,
-   "frontier_value": 6,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -6298,16 +6303,6 @@
   {
    "col": "PERP_FLOW",
    "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.path_shape"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.path_shape"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 7,
    "row": "VOLATILITY_STATE.state_detection"
   },
   {
@@ -6561,22 +6556,12 @@
    "row": "FLOW.participant_composition"
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "frontier_value": 6,
    "row": "PRICE_STRUCTURE.path_shape"
   },
   {
-   "col": "CROSS_VENUE",
-   "frontier_value": 6,
-   "row": "PRICE_STRUCTURE.path_shape"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 6,
-   "row": "PRICE_STRUCTURE.path_shape"
-  },
-  {
-   "col": "POSITIONING",
+   "col": "SPOT",
    "frontier_value": 6,
    "row": "PRICE_STRUCTURE.path_shape"
   },
@@ -6706,6 +6691,26 @@
    "row": "VOLATILITY_STATE.shock_recovery"
   },
   {
+   "col": "CROSS_ASSET",
+   "frontier_value": 5,
+   "row": "PRICE_STRUCTURE.path_shape"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 5,
+   "row": "PRICE_STRUCTURE.path_shape"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 5,
+   "row": "PRICE_STRUCTURE.path_shape"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 5,
+   "row": "PRICE_STRUCTURE.path_shape"
+  },
+  {
    "col": "CROSS_VENUE",
    "frontier_value": 5,
    "row": "CALENDAR.holidays_tax"
@@ -6743,11 +6748,6 @@
   {
    "col": "LIQUIDATIONS",
    "frontier_value": 4,
-   "row": "PRICE_STRUCTURE.path_shape"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 4,
    "row": "VOLATILITY_STATE.state_detection"
   },
   {
@@ -6759,6 +6759,11 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 3,
    "row": "PRICE_STRUCTURE.divergence"
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 3,
+   "row": "PRICE_STRUCTURE.path_shape"
   },
   {
    "col": "OPTIONS",
@@ -7765,7 +7770,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "02bee0572661a425f0943ee58cc3aa24306c4be694b7e3899f52cd7a729e4469",
+ "SOURCES_DIGEST": "2ac8218cf88941c256841a43861123fca0a5064ce5bc004eec9493f1cab5b733",
  "SURFACES": [
   {
    "also_cols": [

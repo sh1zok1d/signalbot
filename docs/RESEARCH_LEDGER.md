@@ -8837,3 +8837,39 @@ FINDINGS_REGISTRY = not updated (no product work)
 `DESIGN = frozen commit 39e84dfc | SHA256 6878c6e133c733a2142d494536b0e14afbe11862f7594b9b7a60c71e44184a56 | Unit B canonical surface (64 objects, E1 window + E1-development slice never requested) | PRIMARY partial | B1`
 `PREFLIGHT = census = Unit B pins (rows 179,136; holes 6,912 = 2,800 + 4,032 + 80; other 0) | N 59,672, ISO weeks 90 | 2025 35,023, 2026 24,649 | halves 29,836 / 29,836 | identity residual 2.2e-13; R2 rank(OCC) on B1 0.215 -> not redundant`
 `OUTCOMES_READ = none | GO = pending owner`
+
+## 2026-10-09 — OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1 executed once: NOT_REPLICATED; the OCC line ends
+
+**Unit.**
+- **Design:** frozen at commit `39e84dfc`, SHA256 `6878c6e133c733a2142d494536b0e14afbe11862f7594b9b7a60c71e44184a56`.
+- **Final pre-outcome state:** `04cb1a4b`, holding the census and support pins (N 59,672, 90 weeks). Nothing changed between it and the run.
+- **Evaluator digest:** `94ea6902205dcde3ab79742f0ad2dff327b5ac84e06a4ea1c1e48c1df685af1a`. Owner GO 2026-10-09.
+- **Result:** `docs/research/OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1.json` / `.md` (sha256 `a9a8e0ada7be90eca304f4e7636459a4cfe73cc24918cd2ecdf9766fe933fff6` / `d8e812f227b2358b653044f3cb88a6835cd0a2c080dd1335eddaa5cc2e2f1a21`). A second call exits `REFUSING_RERUN`.
+
+**Read.**
+- **Surface:** RP4H Unit B's canonical Binance USD-M BTCUSDT 2025-26 (64 pinned objects; E1 window and E1-development slice never requested; census as pinned). Nothing else.
+- **Sample:** N 59,672 over 90 ISO weeks.
+
+**Evidence** (week-block 95 %, 2000/2000 draws):
+
+| Estimand | Point | 95 % interval |
+|---|---|---|
+| Raw Spearman(OCC, R_1H) | −0.0006 | −0.0166 .. +0.0143 |
+| Partial \| B0 | +0.0005 | −0.0153 .. +0.0151 |
+| Partial \| B0 + RET_1H | −0.0004 | −0.0148 .. +0.0129 |
+| **PRIMARY partial \| B1** | **−0.0017** | **−0.0162 .. +0.0119** |
+
+- **PRIMARY by piece:** 2025 +0.004; 2026 (partial year) −0.012; halves +0.002 / −0.006.
+- **Residual quintile P(UP):** 0.502 / 0.500 / 0.503 / 0.505 / 0.505 (flat).
+- **Cross-era (quoted, not pooled):**
+  - | B0: discovery +0.0202, BitMEX +0.0299, modern +0.0005. The modern interval's upper end, +0.0151, lies below both earlier B0 points.
+  - | B1: BitMEX +0.0110, modern −0.0017.
+- **Heterogeneity vs BitMEX PRIMARY** (pre-declared, descriptive): −0.0127, approximate SE 0.0085, z −1.49.
+
+```
+ROUTE = OCC_MODERN_NOT_REPLICATED | STATUS = HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE
+OCC_LINE = ENDED (owner, 2026-10-09: no further OCC unit or variant unless the owner reopens it)
+WINDOWS_CONSUMED = BINANCE_UM BTCUSDT perp 5m 2025-01-01..2026-10-08 minus [2026-08-02, 2026-08-26), PRICE_STRUCTURE.path_shape (OCC_MEAN_4H -> R_1H), 4 DIRECTION cells
+NOT_READ = B1 on Binance 2020-24 (never computed), excluded August objects, spot, BitMEX, OCC variants, horizons, interactions, OI, E1, PnL | no successor
+FINDINGS_REGISTRY = not updated (no product work)
+```
