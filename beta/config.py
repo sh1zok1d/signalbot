@@ -58,7 +58,7 @@ _TOP_KEYS = frozenset({
     "push_decisions_fuse_per_utc_day", "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy", "decision", "level_race", "liquidations",
+    "push_policy", "decision", "level_race", "liquidations", "ux",
 })
 # deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
 NOTIFY_UNIT_TIMEOUT_S = 50
@@ -386,6 +386,7 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_decision(d)
     _validate_level_race(d)
     _validate_liquidations(d)
+    _validate_ux(d)
 
 
 # OKX liquidations (decision (d), 2026-10-09, docs/BETA_OKX_LATE_ARRIVAL_IMPACT.md): OKX's liquidation
@@ -403,6 +404,19 @@ def _validate_liquidations(d: Mapping[str, Any]) -> None:
         raise BetaConfigError("liquidations must be a mapping")
     _exact_keys(x, _LIQUIDATIONS_KEYS, "liquidations")
     _bool(x["okx_enabled"], "liquidations.okx_enabled")
+
+
+# Pulsy UX V2 (docs/PULSY_UX_STANDARD_V2.md): the new three-level render. P0 is wired to no surface;
+# the flag stays false until the owner's go. Presentation only: not detection, not the rules digest.
+_UX_KEYS = {"v2_enabled"}
+
+
+def _validate_ux(d: Mapping[str, Any]) -> None:
+    x = d["ux"]
+    if not isinstance(x, Mapping):
+        raise BetaConfigError("ux must be a mapping")
+    _exact_keys(x, _UX_KEYS, "ux")
+    _bool(x["v2_enabled"], "ux.v2_enabled")
 
 
 # Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).

@@ -190,6 +190,10 @@ beta:
   # maturity (no automatic enable). OKX price, OI, volume and funding are not affected.
   liquidations:
     okx_enabled: false
+  # Pulsy UX V2 (docs/PULSY_UX_STANDARD_V2.md): the three-level render (beta/ux). P0 is wired to no
+  # surface; true only after the owner's go. Presentation only: not detection, not the rules digest.
+  ux:
+    v2_enabled: false
   # Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8). Policy only: it
   # enters the config digest, never the rules digest. The unusual-hour gate itself
   # reuses context.label_high and has no key of its own (§3.1b).
