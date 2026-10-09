@@ -80,27 +80,29 @@ Diagnosis and block B (owner, 07:23Z):
 
 **Between 3a and 3b:** OUT-8 block B (`docs/BETA_AUDIT_DEIDENTIFY_V1.md`, merged with #422 as `db381de9`; the blocks fetch the scripts pinned to that commit) only after the owner's go: it needs the 3a schema and must run before 3b.
 
-**Step 3b, planned:** main `3b094688` (3a + #422 scripts + #423 keyed HMAC pseudonyms) + the Day-0 config commit (`level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`), deployed at 00:00 UTC. Order: `BETA_FINGERPRINT_KEY` into `/opt/signalbot/.env` (a copy kept off the server, never in dumps) → checkout → install units → beta restart → collector restart; the bot refuses to start without the key. The 7-day observation starts at 3b. Its own RC record follows.
+**Step 3b:** see the record below (`bd35820b`, re-cut 2026-10-09).
 
 **Pre-3b items:**
 1. OKX volume scale (`ctVal`) checked against an independent reference: **closed** (scale confirmed on the exact-ms rule).
 2. The old rows (pre-D1 Bybit sides, the empty OKX history) checked through D2's read-time correction: Bybit and OKX tape PASS; the early OKX rows are late arrivals. **Open:** the OKX late-arrival delay and its tape impact (decision before 3b).
 3. Block B run (or explicitly skipped) by the owner: **closed** (run, 2026-10-09 07:23Z).
 
-### Step 3b — keyed pseudonyms and the Day-0 flags, commit `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2`
+### Step 3b — keyed pseudonyms, the Day-0 flags and OKX liquidations excluded, commit `bd35820bd89310b7e5db57b1afe5356bd79184f3`
+
+Re-cut on 2026-10-09 after the pre-3b checks; the earlier cut `b833f7c6` (RC run 37859774589, success, 2026-10-08 23:30–23:38Z) is superseded and was never deployed.
 
 | Field | Value |
 |---|---|
-| Step / date | 3b, cut 2026-10-08 23:29Z (main after #428). Deployed only after 3a is deployed and verified, block B done or skipped, and the pre-3b checks C1/C2 closed; deploy at **00:00 UTC**. |
-| Exact commit | `b833f7c6cbef843dfde35f83d6ea3ffd592b67e2` |
-| Contents since 3a (`fe8ac969`) | #422 (OUT-8 de-identification scripts and doc, prepare-only), #423 (keyed HMAC-SHA-256 pseudonyms; deletion de-identifies keyed and legacy audit rows), #427 (block A/B pinned to `db381de9`), #428 (Day-0 flags). |
+| Step / date | 3b, cut 2026-10-09 08:20Z (main after #434). 3a is deployed and verified, block B is done, C1 is closed and C2 is resolved by #434; deploy at **00:00 UTC**. |
+| Exact commit | `bd35820bd89310b7e5db57b1afe5356bd79184f3` |
+| Contents since 3a (`fe8ac969`) | #422 (OUT-8 de-identification scripts and doc, prepare-only), #423 (keyed HMAC-SHA-256 pseudonyms; deletion de-identifies keyed and legacy audit rows), #427 (block A/B pinned to `db381de9`), #428 (Day-0 flags), #419 (LEVEL_RACE_MODEL_V1 freeze and the model code, inert while `model_states_enabled = false`), #429/#433 (pre-3b checks and the OKX late-arrival note, docs only), #434 (`liquidations.okx_enabled: false`: OKX liquidations never shown and never vote, decision (d), owner-confirmed 2026-10-09). |
 | Migrations (beta / Stage-1) and restart order | No new schema. **Before anything:** `BETA_FINGERPRINT_KEY` (`openssl rand -hex 32`) into `/opt/signalbot/.env`, a copy in the owner's password manager, never in dumps or chats. Then checkout the SHA → `install_beta_units.sh` → restart `signalbot-beta-bot` → `sudo systemctl restart signalbot.service`. The bot, the notifier and every `--beta-*` command refuse to start without a valid key (CONFIG_ERROR, exit 2). Checks: `--beta-health` OK; `/admin_health` test state `NOT_OPEN`; a level touch, if one happens, reads «вошла в зону …» with the T0 race line; `/levels` shows the T15 line. |
-| Flags and values | `level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`; `model_states_enabled = false`. Unchanged: `access.tiers_enforced = false`, `access.u3_offer` empty, `briefing.withdrawal.day0_kyiv` null. |
-| Release-candidate suite on this SHA | Actions run 37859774589 (ci.yml, suite=rc, on this exact SHA): **success**, 2026-10-08 23:30–23:38Z. |
-| Known limitations | Old audit fingerprints (unkeyed) no longer match new ones; `/admin_reply` works only with fingerprints printed after 3b. The SQL audit guard checks the legacy form only; the keyed form is checked in Python before de-identification. The legacy level-touch trigger is the fallback (contract §12.1). |
+| Flags and values | `level_race.journal_enabled = true`, `display_enabled = true`, `push_trigger = structural`; `model_states_enabled = false`; `liquidations.okx_enabled = false`. Unchanged: `access.tiers_enforced = false`, `access.u3_offer` empty, `briefing.withdrawal.day0_kyiv` null. |
+| Release-candidate suite on this SHA | ci.yml, suite=rc, on this exact SHA: dispatched 2026-10-09 ~08:21Z, **result pending**. |
+| Known limitations | Old audit fingerprints (unkeyed) no longer match new ones; `/admin_reply` works only with fingerprints printed after 3b. The SQL audit guard checks the legacy form only; the keyed form is checked in Python before de-identification. The legacy level-touch trigger is the fallback (contract §12.1). OKX liquidations are excluded for the whole beta (events arrive up to ~5 h late, `docs/BETA_OKX_LATE_ARRIVAL_IMPACT.md`); `LIQUIDATION_STRESS` therefore needs both Binance and Bybit eligible (`min_eligible_venues: 2`): if either is dead or immature the rule is NOT_EVALUABLE for that bucket (no episode, no push). Enabling OKX later needs a new rules version. Collector, schema and Stage-2 still store OKX rows. After the beta: a `received_at` column plus a lateness monitor. |
 | Rollback | Checkout `fe8ac969` (3a), reinstall units, restart beta then collector; the key may stay in `.env` (3a ignores it). The flags go off with the rollback; the claim journal keeps its rows. Rolling back after the start is a dated event. |
 | Kind of change for the 7-day count | **Starts the count**: the deploy that turns on every Day-0 flag (`ORCHESTRATION_V1` §4a). Any later collector, schema, push-gating, metric-definition or journal change, or a flag turned on, restarts it. The #403 `L3_LEVEL_TOUCH_24H` cohort boundary is dated by this deploy (contract §12.3). |
-| ОПГ-2: forecast layer | ОПГ-2's 3a sign-off covers 3b: only `journal_enabled`, `display_enabled` and `push_trigger = structural` turn on; `model_states_enabled` stays false; the HIST table V1 file must be in the deployed tree (a digest mismatch loads OFF); the #419 model freeze is not needed. ОПГ-2 confirmed 3b (2026-10-09 00:44Z): flags verified in `config/beta_v0.yaml`; `LR.mode` stays HIST and the HIST table digest is verified (test in #428); #422/#423/#427 touch no level_race code; the layer ships HIST only (L2, 2020–2024, prices only), with no model and no 2025/26 race outcomes. Nothing blocks 3b. |
+| ОПГ-2: forecast layer | ОПГ-2's 3a sign-off covers 3b: only `journal_enabled`, `display_enabled` and `push_trigger = structural` turn on; `model_states_enabled` stays false; the HIST table V1 file must be in the deployed tree (a digest mismatch loads OFF); the #419 model freeze is not needed. ОПГ-2 confirmed 3b (2026-10-09 00:44Z): flags verified in `config/beta_v0.yaml`; `LR.mode` stays HIST and the HIST table digest is verified (test in #428); #422/#423/#427 touch no level_race code; the layer ships HIST only (L2, 2020–2024, prices only), with no model and no 2025/26 race outcomes. Nothing blocks 3b. **Re-cut `bd35820b`: ОПГ-2's line pending** (#419 inert; #434 against the level race layer). |
 
 ## 2. Misses — defects found after merge
 
