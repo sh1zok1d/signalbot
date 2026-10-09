@@ -93,12 +93,12 @@ def test_preview_v2_renders_live_data_to_the_owner_only_and_writes_nothing():
         out = await h.handle(_owner("/admin_preview v2 btc", 60))
         assert len(out) == 1 and out[0].chat_id == OWNER and "ПРЕВЬЮ V2" in plain(out[0].html)
         datas = [d for row in out[0].buttons for _l, d in row]
-        assert "x2:btc:2" in datas and all(d.startswith("x2:") for d in datas)   # track A's ux: → owner x2:
-        nav = await h.handle(_cb(OWNER, "x2:btc:2", 61))
+        assert "ux:btc:2" in datas and all(d.startswith("ux:") for d in datas)   # track A's callbacks, unchanged
+        nav = await h.handle(_cb(OWNER, "ux:btc:2", 61))
         assert [o.kind for o in nav] == ["answer", "edit"] and "ПРЕВЬЮ V2" in plain(nav[1].html)
         assert plain(nav[1].html) != plain(out[0].html)
-        stranger = await h.handle(_cb(A, "x2:btc:2", 62))                    # a participant's tap: nothing
-        assert [o.kind for o in stranger] == ["answer"]
+        stranger = await h.handle(_cb(A, "ux:btc:2", 62))                    # a participant's tap: nothing
+        assert not [o for o in stranger if o.kind == "edit" or "ПРЕВЬЮ" in (o.html or "")]
         out = await h.handle(_owner("/admin_preview v2 hour", 63))           # no push decision yet
         assert "ещё не было" in plain(out[0].html)
         assert await _counts(pool) == before                                 # no view, display, activity, row
@@ -111,7 +111,7 @@ def test_preview_v2_is_refused_while_its_flag_is_off():
         pool, h, _msg = await _world(flag=False)
         out = await h.handle(_owner("/admin_preview v2 btc", 60))
         assert "ux_v2_preview is off" in plain(out[0].html) and not out[0].buttons
-        assert [o.kind for o in await h.handle(_cb(OWNER, "x2:btc:2", 61))] == ["answer"]
+        assert [o.kind for o in await h.handle(_cb(OWNER, "ux:btc:2", 61))] == ["answer"]
         await pool.close()
     run(body())
 
@@ -132,3 +132,11 @@ def test_gallery_is_one_self_contained_page_of_real_and_synthetic_states():
     assert "data-l='levels-1'" in page and "data-l='level-1'" in page and "render failed" not in page
     assert ">RU<" in page and ">EN<" in page and "col narrow" in page and "col wide" in page
     assert "onclick=\"show(" in page
+
+
+def test_the_preview_uses_track_as_renderer_and_no_stub():
+    """Production code never stubs the V2 render: without `beta.ux` the preview does not import."""
+    import beta.ux
+    import beta.ux_preview as V2
+    assert V2.render is beta.ux.render and V2.from_view is beta.ux.from_view
+    assert not hasattr(V2, "stub_render") and V2.SCREENS is beta.ux.SCREENS

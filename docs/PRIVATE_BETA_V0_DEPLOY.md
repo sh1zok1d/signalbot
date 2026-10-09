@@ -541,11 +541,10 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
   - Sends the owner one JSON file: the last n persisted views, market alerts and pushed decisions with their episode.
   - Market data only. A denylist (user ids, chat ids, fingerprints, feedback, …) is dropped at any depth.
   - It is read-only and audited as `admin_export_views`.
-- **`/admin_preview v2 <btc|levels|brief|alert|push>`** (owner only, behind `access.ux_v2_preview`; `beta/ux_preview.py`).
-  - Renders the V2 template (L1) on live data, with L2 «Почему так?» / L3 «Данные» buttons (`x2:<screen>:<level>`).
-  - Those buttons resolve only for the owner while the flag is on.
+- **`/admin_preview v2 <btc|levels|level_card|hour|level|move|brief>`** (owner only, behind `access.ux_v2_preview`; `beta/ux_preview.py`).
+  - Renders track A's `beta.ux.render` (level 1) on live data, with its own `ux:<screen>:<level>` buttons.
+  - Those taps resolve only for the owner while the flag is on; track A's `ux.v2_enabled` is untouched.
   - It writes only its audit row.
-  - The renderer is `beta.ux.render(screen, level, lang, facts)` (track A); until that lands, `stub_render`.
 - **The gallery:** `python -m tools.ux_gallery.build --export pulsy_views.json --out ux_gallery.html`.
   - It builds one self-contained HTML page: 360 px and wide bubbles, RU and EN, three levels with in-page buttons.
   - Its states are the REAL export, labelled with each snapshot time, plus SYNTHETIC states from `tools/beta_user_sim`; 18 by default.

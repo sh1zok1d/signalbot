@@ -931,10 +931,10 @@ class BetaBotHandler:
         chat_id = int(((cq.get("message") or {}).get("chat") or {}).get("id", uid))
         data, cid = cq.get("data") or "", cq.get("id")
         answer = lambda text: Outgoing(kind="answer", callback_id=cid, html=text)  # noqa: E731
-        if data.startswith("x2:"):                         # Pulsy UX V2 preview levels: the owner only, flag on
+        if data.startswith("ux:") and is_owner(self.owner, uid):   # Pulsy UX V2 preview: the owner only, flag on
             from beta import ux_preview as V2
             target = V2.parse_callback(data)
-            if target is None or not is_owner(self.owner, uid) or not V2.enabled(self.cfg):
+            if target is None or not V2.enabled(self.cfg):
                 return [answer("")]
             try:
                 rendered = await V2.render_v2(conn, self.cfg, target[0], target[1], now=self.clock())

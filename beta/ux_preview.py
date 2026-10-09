@@ -1,9 +1,9 @@
 """`/admin_preview v2 <screen>` (Pulsy UX V2, P0): track A's V2 render (`beta.ux`) on live data, to the owner only,
 behind `access.ux_v2_preview`. The user-facing flag `ux.v2_enabled` is untouched.
 
-The render's buttons call `ux:<screen>:<level>`. The preview rewrites them to `x2:<screen>:<level>`, a namespace of its
-own, and those taps resolve only for the owner while the flag is on. Nothing is written: no view, no claim display,
-no activity, no outbox row.
+The render's buttons call `ux:<screen>:<level>` (track A's API, unchanged). The owner-only router resolves those taps
+only for the owner while `access.ux_v2_preview` is on; otherwise it leaves them alone. Nothing is written: no view,
+no claim display, no activity, no outbox row.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import Any, Optional
 from .config import BetaConfig
 from .ux import SCREENS, from_alert, from_hour_gate, from_view, render
 
-CALLBACK = "x2:"
+CALLBACK = "ux:"
 VIEW_SCREENS = ("btc", "levels", "level_card", "brief")
 
 
@@ -62,13 +62,6 @@ def card_facts(f: dict) -> Optional[dict]:
     return None if z is None else {**f, "zone": z}
 
 
-def owner_buttons(buttons) -> list:
-    """The render's `ux:` callbacks in the preview's own `x2:` namespace; anything else is dropped."""
-    rows = [[(label, CALLBACK + data[3:]) for label, data in row if str(data).startswith("ux:")]
-            for row in (buttons or [])]
-    return [r for r in rows if r]
-
-
 async def render_v2(conn, cfg: BetaConfig, screen: str, level: int, *, now: datetime,
                     lang: str = "ru") -> Optional[tuple]:
     """(html, buttons) for the owner, or None when the screen has no data yet."""
@@ -76,7 +69,7 @@ async def render_v2(conn, cfg: BetaConfig, screen: str, level: int, *, now: date
     if facts is None:
         return None
     text, buttons = render(screen, level, lang, facts)
-    return f"🔍 <b>ПРЕВЬЮ V2</b>\n\n{text}", owner_buttons(buttons)
+    return f"🔍 <b>ПРЕВЬЮ V2</b>\n\n{text}", buttons
 
 
 def parse_callback(data: str) -> Optional[tuple]:
