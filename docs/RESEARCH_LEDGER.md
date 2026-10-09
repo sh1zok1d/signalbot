@@ -8668,3 +8668,10 @@ CATALOG / RED TEAM OUTCOMES = none
 `DESIGN = docs/research/RANGE_POSITION_4H_TIME_DISJOINT_REPLICATION_V1_DESIGN.md | code scripts/research/rp4h_time_disjoint_v1/run.py + tests (synthetic only) | surfaces ERA BitMEX 2016-05..2019-12 (DIRECTION counter 0), RECENT Binance perp 2025-01..2026-10-08 (E1 objects never requested), ERA_SPOT robustness`
 `EXPOSURE_COUNTERS_V1 = initial compilation recorded (CORE x DIRECTION ≈ 813*, Binance 2025-26 x DIRECTION ≈ 72*, BitMEX 2016-19 x DIRECTION 0)`
 `DATA_READ = D2 BitMEX canonical file: first 2 rows and presence/zero-trade counts (schema check; 382,033 buckets, 22,728 zero-trade); no outcome | OUTCOMES_READ = none`
+
+## 2026-10-09 — RANGE_POSITION_4H Unit A (BitMEX temporal replication) frozen; preflight only
+
+`OWNER_REVIEW = joint time-disjoint design withdrawn before any outcome; split into Unit A (BitMEX, frozen) and Unit B (Binance 2025-26, draft)`
+`UNIT_A = RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 | design SHA256 d9caaadd27da6e54f6f47fe372b4439cf0d208825dd61936af9688c77a88f2ad | commit 52734bfb | parent Bybit successor 8132f181 kept exactly | primary partial Spearman(RP4H, R_1H | RET_4H, RV_4H)`
+`PREFLIGHT = series SHA 8e027433... ok | 382,033 rows | holes 288 = the documented 2016-12-06T23:55..2016-12-07T23:50 gap | 22,728 zero-trade buckets kept as bars (canonical) | no price statistic computed`
+`OUTCOMES_READ = none | GO = pending owner`
