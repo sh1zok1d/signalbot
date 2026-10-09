@@ -79,6 +79,7 @@ datasets:
     exposure:
       - {period: 2022-2024, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "rangecast fit 2022-2023, 2024 diagnostic holdout examined"}
       - {period: 2025-2026, rows: [VOLATILITY_STATE.range_forecast, PRICE_STRUCTURE.levels, FLOW.flow_conditional_response, DERIVATIVES.oi_buildup, EVENTS.cpi, EVENTS.fomc, EVENTS.expiries], status: PRODUCT_OPEN, note: "PRODUCT_DECISION_V2 §4: consumed for research over the product features"}
+      - {period: 2025-01-01T00:00Z..2026-10-08T23:55Z, rows: [PRICE_STRUCTURE.impulse], status: CONSUMED, note: "RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 one read of trailing 4h range location against the next 1h signed return, 2026-10-09, evaluator 51d8aa6b; E1 objects 2026-08-16 through 2026-08-25 not requested; the stored hole includes the post-17:20 tail of 2026-08-25; not a pristine holdout; not a product line"}
     records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md, beta/history_data.py]
   - id: C012_DISCOVERY_BTC_1M_V0
     col: CANDLES

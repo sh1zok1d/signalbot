@@ -4586,3 +4586,33 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'ONE BITMEX READ. Route RANGE_POSITION_TEMPORAL_REPLICATION_SUPPORTED. Historical only. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+  - id: RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1
+    title: Later-tape range location check
+    program: RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    period: 'one Binance read; T from 2025-01-01T04:15:00Z through 2026-10-08T23:00:00Z; analysis N 61016; 92 ISO weeks; E1 objects not requested'
+    units_n: 'one feature, one horizon, one primary control pair'
+    practical_bar: 'No magnitude floor. The route is the sign of the raw association, the sign of the primary partial, and whether the primary interval lies below zero.'
+    mechanism: 'Trailing range location of the decision close against the next signed return, after the same recent-price state, on a later trade-price tape. One historical read. Not a new search.'
+    function: 'Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.'
+    blind_mechanism: 'Decision close location inside the trailing high-low window on a later trade-price tape, compared with the next signed return after the same recent-price state.'
+    blind_function: 'Later-tape range location check'
+    verdict: 'RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED. Binance raw Spearman about -0.042, primary partial about -0.033 after the 4h signed return and 4h realized volatility, week-block interval below zero. Raw and primary stay negative in both years and in both halves. Descriptively between the earlier-tape and cross-venue primary points. Not a product line. Not a fee-aware edge. Not a pristine holdout.'
+    why_closed: 'The one allowed read of this frozen design was completed. A second read is refused. A boundary feature and a forecast-engine prototype are different decisions.'
+    forbidden: 'a rerun; changing the horizon or the control set after the outcome; reading rejection or bars-since inside this unit; treating the quintile table as a rule; requesting the closed holdout objects; a product line'
+    reopen: 'The next question is an owner decision on a forecast-engine prototype. Not a rerun. Not a new horizon. Not a product line from this record.'
+    records:
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.json
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_SUPPORT.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_SUPPORT.json
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.md
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.json
+    - docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_EVALUATOR_MANIFEST.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'ONE BINANCE READ. Route RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED. Historical only. E1 objects not requested. Not a pristine holdout. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'

@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 4,
+    "CLOSED_ON_SURFACE": 5,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -203,6 +203,7 @@
     "DH1-X6",
     "H03",
     "PRE-IMPULSE-STATE-ATLAS-V1",
+    "RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1",
     "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
     "RANGE-POSITION-4H-INCREMENTAL-REPLICATION-V1"
    ],
@@ -10215,14 +10216,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 221,
+  "units": 222,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 2,
-   "CLOSED_ON_SURFACE": 40,
+   "CLOSED_ON_SURFACE": 41,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15582,7 +15583,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "03b271e029bcde6c4ce5cb8624658eee4ce9b92cb05780fbf8bf645566eaffa3",
+ "SOURCES_DIGEST": "50f14d712e305999dec630fd783bf3b8032a0ba7c0a23bc3657df9baa806ca5e",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15976,6 +15977,14 @@
        "EVENTS.expiries"
       ],
       "status": "PRODUCT_OPEN"
+     },
+     {
+      "note": "RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 one read of trailing 4h range location against the next 1h signed return, 2026-10-09, evaluator 51d8aa6b; E1 objects 2026-08-16 through 2026-08-25 not requested; the stored hole includes the post-17:20 tail of 2026-08-25; not a pristine holdout; not a product line",
+      "period": "2025-01-01T00:00Z..2026-10-08T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "BINANCE_UM_KLINES_5M_PRODUCT",
@@ -21894,6 +21903,41 @@
    "units_n": "62 series; top score about 0.058 on close location inside the trailing 4h range versus the next 1h signed return; the lower-boundary distance is the same ratio",
    "verdict": "DISCOVERY SCAN COMPLETE (2026-10-09T13:38:33Z). Claim ceiling DISCOVERY_ONLY. Highest score is close location inside the trailing 4-hour range versus the next 1h signed return, Spearman about -0.058, same sign in every year. Lower-boundary distance is that same ratio. Upper-boundary distance is its complement. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "The one allowed scan of this frozen list was completed and the full ledger was kept. A second scan is refused. No cell is a confirmation."
+  },
+  {
+   "blind_function": "Later-tape range location check",
+   "blind_mechanism": "Decision close location inside the trailing high-low window on a later trade-price tape, compared with the next signed return after the same recent-price state.",
+   "col": "CANDLES",
+   "datasets": [
+    "BINANCE_UM_KLINES_5M_PRODUCT"
+   ],
+   "forbidden": "a rerun; changing the horizon or the control set after the outcome; reading rejection or bars-since inside this unit; treating the quintile table as a rule; requesting the closed holdout objects; a product line",
+   "function": "Fifteen-minute decisions on a gappy 5-minute grid. One frozen partial association. Full sample record.",
+   "id": "RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1",
+   "mechanism": "Trailing range location of the decision close against the next signed return, after the same recent-price state, on a later trade-price tape. One historical read. Not a new search.",
+   "note": "ONE BINANCE READ. Route RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED. Historical only. E1 objects not requested. Not a pristine holdout. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "one Binance read; T from 2025-01-01T04:15:00Z through 2026-10-08T23:00:00Z; analysis N 61016; 92 ISO weeks; E1 objects not requested",
+   "practical_bar": "No magnitude floor. The route is the sign of the raw association, the sign of the primary partial, and whether the primary interval lies below zero.",
+   "program": "RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1",
+   "records": [
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.md",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN.json",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_SUPPORT.md",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_SUPPORT.json",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.md",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.json",
+    "docs/research/RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_EVALUATOR_MANIFEST.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "The next question is an owner decision on a forecast-engine prototype. Not a rerun. Not a new horizon. Not a product line from this record.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Later-tape range location check",
+   "units_n": "one feature, one horizon, one primary control pair",
+   "verdict": "RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED. Binance raw Spearman about -0.042, primary partial about -0.033 after the 4h signed return and 4h realized volatility, week-block interval below zero. Raw and primary stay negative in both years and in both halves. Descriptively between the earlier-tape and cross-venue primary points. Not a product line. Not a fee-aware edge. Not a pristine holdout.",
+   "why_closed": "The one allowed read of this frozen design was completed. A second read is refused. A boundary feature and a forecast-engine prototype are different decisions."
   },
   {
    "blind_function": "Earlier-tape range location check",
