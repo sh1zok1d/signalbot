@@ -1568,17 +1568,15 @@
   {
    "col": "CANDLES",
    "counts": {
+    "CLOSED_BEFORE_START": 1,
     "CLOSED_ON_SURFACE": 3,
-    "EXPOSED_ONLY": 1,
-    "FUTURE_NATURAL_ACCUMULATION": 1
+    "EXPOSED_ONLY": 1
    },
    "frontier_eligible": true,
    "mixed": true,
    "native": true,
    "region": "VOLATILITY_STATE",
-   "revisit": [
-    "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that."
-   ],
+   "revisit": [],
    "row": "VOLATILITY_STATE.range_forecast",
    "row_name": "Range / volatility scale forecast",
    "state": "CLOSED_ON_SURFACE",
@@ -10212,11 +10210,11 @@
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
-   "CLOSED_BEFORE_START": 1,
+   "CLOSED_BEFORE_START": 2,
    "CLOSED_ON_SURFACE": 35,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
-   "FUTURE_NATURAL_ACCUMULATION": 5,
+   "FUTURE_NATURAL_ACCUMULATION": 4,
    "INFORMATIONALLY_WEAK": 26,
    "LIVE_SIGNAL": 7,
    "NO_STRUCTURE": 32
@@ -15576,20 +15574,6 @@
    ]
   },
   {
-   "col": "CANDLES",
-   "revisit": [
-    "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that."
-   ],
-   "row": "VOLATILITY_STATE.range_forecast",
-   "units": [
-    "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
-    "FORMATION-WIDTH-DECISION-VALUE-V1",
-    "FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1",
-    "FORMATION-WIDTH-REGIME-V1",
-    "PRODUCT-V2-RANGE"
-   ]
-  },
-  {
    "col": "PERP_FLOW",
    "revisit": [
     "Prospective surface 2027-01-01..2029-12-31 declared in the G01 planning record: one analysis at the earliest of 104 episodes or the end date, minimum 52 eligible post-launch weeks; a new search object with its own freeze. Binance 2025/2026 is not eligible."
@@ -15600,7 +15584,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "d3ad8edfa4c07025e39e8975e945da6e3c6b74b2c7687dee2bdd6cd6566fba18",
+ "SOURCES_DIGEST": "8ecdae78e74965e51344062035186b5adce0cd86defe2955134b22cb30f2c9c9",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16934,6 +16918,14 @@
      {
       "accrual not started": null,
       "note": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 path rules only; endpoint not read; not CONSUMED",
+      "period": "from 2026-10-10",
+      "rows": [
+       "VOLATILITY_STATE.range_forecast"
+      ],
+      "status": "EXPOSED"
+     },
+     {
+      "note": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 closed before outcome 2026-10-09; status SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION; path rules stayed reserved after the freeze; outcome never consumed; no checkpoint; alpha spent 0; forward partial rho not computed; operational rows if any are not a scientific score",
       "period": "from 2026-10-10",
       "rows": [
        "VOLATILITY_STATE.range_forecast"
@@ -23499,12 +23491,12 @@
    "datasets": [
     "BINANCE_UM_LIVE_FORWARD"
    ],
-   "forbidden": "reading the forward association before the first checkpoint; executing the parent 0.05-per-side budget; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration",
+   "forbidden": "reading the forward association; spending the frozen alpha; treating operational forward rows as a scientific score; executing the parent 0.05-per-side budget; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration; a replacement prospective unit opened from this line",
    "function": "Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1460 and 2920. Kim-DeMets exponent 1. Each tail spends A(t)=0.025*t. Positive relation uses the same lower bound. No look between checkpoints and none after 2920.",
    "id": "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
    "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue.",
-   "note": "DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO. Forward scoring is on hold pending the predictive-value characterization; the evaluator still refuses; checkpoints are unchanged. The predictive-value characterization is recorded. Forward scoring remains on hold pending the decision-value review; the evaluator still refuses; checkpoints and Amendment A1 are unchanged. The decision-value characterization is recorded. The hold stays until the owner reviews it. Amendments are not rewritten.",
-   "period": "forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; Amendment A1 before any outcome; pre-start bars are not the sample",
+   "note": "CLOSED_BEFORE_START on 2026-10-09. Status SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION. outcome_read false. future_association_read false. Accrued N 0. Alpha spent 0. No checkpoint. Not a negative prospective result. Parent design and Amendment A1 are not rewritten. NEXT_UNIT = NONE. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "closed before outcome 2026-10-09; forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z was reserved and never scored; accrued analysis N 0",
    "practical_bar": "Scientific reference +0.10, unchanged. Magnitude supported means the lower bound from the 0.025 lower tail is at least +0.10. Magnitude not supported means the mature upper bound from the 0.025 upper tail is below +0.10. The two tails share one 0.05 union bound.",
    "program": "FORMATION_WIDTH_V1",
    "records": [
@@ -23513,17 +23505,18 @@
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.json",
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SPEC.json",
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "Not a rerun of Binance 2020-2024 or of Bybit. The first formal checkpoint needs its own owner go once analysis N has reached 1460. Not a look before that N. Not the superseded parent grid 1095/1825/2190. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.",
-   "revisit": "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. A restart is a new unit from a new owner decision and a new external basis, not a continuation of this freeze. Not a look at the unread forward association. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
-   "state": "FUTURE_NATURAL_ACCUMULATION",
+   "state": "CLOSED_BEFORE_START",
    "title": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
-   "units_n": "none yet; first look at analysis N 1460; maturity and terminal at 2920",
-   "verdict": "NOT_EXECUTED. Accrual AWAITING_START. Amendment A1. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association."
+   "units_n": "accrued analysis N 0; no formal checkpoint; alpha spent 0; forward partial rho not computed",
+   "verdict": "CLOSED_BEFORE_START. Final status SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION. outcome_read false. future_association_read false. No formal checkpoint. No forward partial rho. Alpha spent 0. Not a statistical failure and not a negative prospective result. Amendment A1 and the parent design stay as the unread freeze.",
+   "why_closed": "The prospective design targeted long-horizon validation of a practical partial-correlation magnitude. Subsequent historical characterization showed that the small residual WIDTH signal did not demonstrate downstream decision or proper-score value in the frozen forecast architecture. The owner closes the prospective question before any forward score. The recorded checkpoints at N 1460 and N 2920 were never reached and are not an active obligation."
   },
   {
    "col": "CANDLES",
@@ -23535,7 +23528,7 @@
    "function": "Yearly expanding folds. Unpenalized logistic on training-referenced rank scores. Primary label is the training upper quartile of next-hour RV. Decision threshold is the training probability quantile. Brier and paired call accuracy. ISO-week block bootstrap B=2000, seeds 20261112 and 20261113. One read 2026-10-09T10:05:39Z. Evaluator b79a9e36. Rerun refused.",
    "id": "FORMATION-WIDTH-DECISION-VALUE-V1",
    "mechanism": "MODE=POST_OUTCOME_CHARACTERIZATION. Decision value of UTC formation-hour width for the upper quartile of next-hour activity, beyond formation-hour realized volatility. Not a replay of the partial-Spearman verdict and not a replay of the MSE characterization.",
-   "note": "CHARACTERIZED ONCE. Net points slightly positive, Brier gains negative, intervals include 0. Not a confirmation. Evaluator b79a9e36. Rerun REFUSING_RERUN. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "note": "CHARACTERIZED ONCE. Net points slightly positive, Brier gains negative, intervals include 0. Not a confirmation. Evaluator b79a9e36. Rerun REFUSING_RERUN. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO. Line closed 2026-10-09. Label unchanged. NEXT_UNIT = NONE.",
    "period": "one decision-value characterization 2026-10-09T10:05:39Z on already consumed windows; Binance analysis N 1820, OOS N 1455; Bybit analysis N 1613, OOS N 1352",
    "practical_bar": "No magnitude floor. rho >= +0.10, an MSE floor, a Brier floor, and a precision floor are not applied. Product labels 0.80, 0.95, and 0.99 are display cuts of the current rolling hour and are not this target.",
    "program": "FORMATION_WIDTH_V1",
@@ -23545,10 +23538,11 @@
     "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.md",
     "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_RESULT.json",
     "docs/research/FORMATION_WIDTH_DECISION_VALUE_V1_EVALUATOR_MANIFEST.json",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "A later dedicated validation of a predeclared decision target needs its own design and owner go. Not a rerun of these windows. Not a model change after these scores. Not BitMEX. Not 2025/2026. Not E1.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. A later WIDTH question is a new owner decision from a new external basis, not a continuation of this line. Earlier text: A later dedicated validation of a predeclared decision target needs its own design and owner go. Not a rerun of these windows. Not a model change after these scores. Not BitMEX. Not 2025/2026. Not E1.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "CLOSED_ON_SURFACE",
@@ -23567,7 +23561,7 @@
    "function": "Yearly expanding folds. OLS on training-referenced rank scores. Baseline RV_FORMATION. Candidate adds V=(high-low)/P0. Primary paired delta MSE. ISO-week block bootstrap B=2000, seeds 20261110 and 20261111, two-sided 95 percent. One read 2026-10-09T09:44:11Z. Evaluator 29597cb6. Rerun refused.",
    "id": "FORMATION-WIDTH-INCREMENTAL-PREDICTIVE-VALUE-V1",
    "mechanism": "MODE=POST_OUTCOME_CHARACTERIZATION. Incremental predictive value of UTC formation-hour width for next-hour activity beyond formation-hour realized volatility. Not a replay of the Bybit partial-Spearman verdict and not a new discovery.",
-   "note": "CHARACTERIZED ONCE. Point estimates positive and similar, intervals include 0. Not a confirmation. Evaluator 29597cb6. Rerun REFUSING_RERUN. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "note": "CHARACTERIZED ONCE. Point estimates positive and similar, intervals include 0. Not a confirmation. Evaluator 29597cb6. Rerun REFUSING_RERUN. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO. Line closed 2026-10-09. Label unchanged. NEXT_UNIT = NONE.",
    "period": "one OOS characterization 2026-10-09T09:44:11Z on already consumed windows; Binance analysis N 1820, OOS N 1455; Bybit analysis N 1613, OOS N 1352",
    "practical_bar": "No new yes/no bar. rho >= +0.10 remains the historical rule of the previous units and is not applied here. The question answered is the size of the out-of-sample loss improvement.",
    "program": "FORMATION_WIDTH_V1",
@@ -23576,10 +23570,11 @@
     "docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_RESULT.md",
     "docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_RESULT.json",
     "docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_EVALUATOR_MANIFEST.json",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "A later prospective validation of a predeclared loss target needs its own design and owner go. Not a rerun of these windows. Not a model change after these scores. Not BitMEX. Not 2025/2026. Not E1.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. A later WIDTH question is a new owner decision from a new external basis, not a continuation of this line. Earlier text: A later prospective validation of a predeclared loss target needs its own design and owner go. Not a rerun of these windows. Not a model change after these scores. Not BitMEX. Not 2025/2026. Not E1.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "CLOSED_ON_SURFACE",
@@ -23597,7 +23592,7 @@
    "function": "One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. Amendment A2 route. One outcome read 2026-10-09T05:40:02Z. Evaluator b1f36a56. Rerun refused.",
    "id": "FORMATION-WIDTH-REGIME-V1",
    "mechanism": "MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +9.48 pp. Amendment A1 asks whether width adds information beyond RV of that same hour. RV of the previous hour is descriptive context and is not the route covariate.",
-   "note": "EXECUTED ONCE. Route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT on the exposed discovery surface. Supporting endpoint ACTIVITY. Evaluator b1f36a56. Rerun REFUSING_RERUN. Not a confirmation and not a product forecast. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.",
+   "note": "EXECUTED ONCE. Route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT on the exposed discovery surface. Supporting endpoint ACTIVITY. Evaluator b1f36a56. Rerun REFUSING_RERUN. Not a confirmation and not a product forecast. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01. Line closed 2026-10-09. Verdict unchanged. NEXT_UNIT = NONE.",
    "period": "one outcome read; Binance USD-M BTCUSDT 2020-01-01..2024-12-31; analysis sample 1820 days, 262 ISO weeks",
    "practical_bar": "A cell clears only if absolute Spearman is at least 0.10 and the week-block family interval excludes 0. Two endpoints, foundation and incremental given RV_FORMATION. Not a target copied from the already-read 4h correlation.",
    "program": "FORMATION_WIDTH_V1",
@@ -23613,10 +23608,11 @@
     "docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.json",
     "docs/research/FORMATION_WIDTH_REGIME_V1_EVALUATOR_MANIFEST.json",
     "docs/research/CONTEMPORANEOUS_STATE_CONTROL_LESSON_V1.md",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "Not a rerun. A different question needs its own design and owner go. Not 4h recomputation of the paired-cohort Spearman. Not a route driven by RV_PREV. Not 2025/2026. Not E1. Not a product forecast.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. A later WIDTH question is a new owner decision from a new external basis, not a continuation of this line. Earlier text: Not a rerun. A different question needs its own design and owner go. Not 4h recomputation of the paired-cohort Spearman. Not a route driven by RV_PREV. Not 2025/2026. Not E1. Not a product forecast.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "CLOSED_ON_SURFACE",
@@ -23665,7 +23661,7 @@
    "function": "One cell. V=(high-low)/P0. ACTIVITY is next-hour RV. Covariate is RV_FORMATION. Week-block bootstrap B=2000 seed 20261108 quantile 0.05. Stability split 2022-08-17. One outcome read 2026-10-09T07:56:02Z. Evaluator 52b2c9b6. Rerun refused.",
    "id": "FORMATION-WIDTH-ACTIVITY-BYBIT-FEASIBILITY-V1",
    "mechanism": "MODE=ONE_OUTCOME_READ of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Same calendar as the Binance discovery window, different venue. Not a time-disjoint confirmation.",
-   "note": "EXECUTED ONCE. Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Evaluator 52b2c9b6. Rerun REFUSING_RERUN. The support census row stays EXPOSED and the outcome line is CONSUMED. Not a time-disjoint confirmation and not a product signal.",
+   "note": "EXECUTED ONCE. Route POSITIVE_BUT_BELOW_PRACTICAL_SCALE. Class SAME_CALENDAR_CROSS_VENUE_EXPOSED_REPLICATION. Evaluator 52b2c9b6. Rerun REFUSING_RERUN. The support census row stays EXPOSED and the outcome line is CONSUMED. Not a time-disjoint confirmation and not a product signal. Line closed 2026-10-09. Route and point unchanged. NEXT_UNIT = NONE.",
    "period": "one outcome read; Bybit BTCUSDT linear perpetual 5m 2020-04-01..2024-12-31; analysis sample 1613 days, 240 ISO weeks",
    "practical_bar": "The cell passes only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. The bar is not lowered to the discovery point.",
    "program": "FORMATION_WIDTH_V1",
@@ -23678,10 +23674,11 @@
     "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_RESULT.json",
     "docs/research/FORMATION_WIDTH_ACTIVITY_BYBIT_FEASIBILITY_V1_EVALUATOR_MANIFEST.json",
     "docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "Not a rerun. A later question needs its own design and owner go. Not a lower bar. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. A later WIDTH question is a new owner decision from a new external basis, not a continuation of this line. Earlier text: Not a rerun. A later question needs its own design and owner go. Not a lower bar. Not BitMEX inside this unit. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "CLOSED_ON_SURFACE",
@@ -23699,7 +23696,7 @@
    "function": "One cell. V=(high-low)/P0. ACTIVITY is next-hour RV. Covariate is RV_FORMATION. Week-block bootstrap B=2000 seed 20261108 quantile 0.05. Support census 2026-10-09T06:08:44Z. Information forecast failed the frozen 80% power floor. Endpoint not computed. Evaluator refuses.",
    "id": "FORMATION-WIDTH-ACTIVITY-CONFIRMATION-V1",
    "mechanism": "MODE=CONFIRMATION of the ACTIVITY incremental cell selected by FORMATION_WIDTH_REGIME_V1. Relative width of the completed UTC midnight hour, partial Spearman with next-hour activity given formation-hour RV. Spot tape, not the USD-M perpetual. Class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION.",
-   "note": "CONFIRMATION stopped before the endpoint. Route INFORMATIONALLY_WEAK_BEFORE_OUTCOME. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Equal-width 4h resolution on this window stays a neighboring consumed contrast. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO.",
+   "note": "CONFIRMATION stopped before the endpoint. Route INFORMATIONALLY_WEAK_BEFORE_OUTCOME. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Equal-width 4h resolution on this window stays a neighboring consumed contrast. Evaluator still returns REFUSING_OUTCOME_BEFORE_OWNER_GO. Line closed 2026-10-09. Endpoint still unread. NEXT_UNIT = NONE.",
    "period": "design frozen before the endpoint; Binance spot BTCUSDT 5m 2017-09-01..2019-12-31; support census 827 analysis days, 123 ISO weeks; endpoint not read",
    "practical_bar": "A later read would pass only if the partial association is at least +0.10, the one-sided 95% lower bound is above 0, the sign is positive, and the frozen stability and lag-placebo rules pass. That read is not authorized. The bar is not lowered.",
    "program": "FORMATION_WIDTH_V1",
@@ -23708,10 +23705,11 @@
     "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.md",
     "docs/research/FORMATION_WIDTH_ACTIVITY_CONFIRMATION_V1_SUPPORT.json",
     "docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md",
+    "docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "A prospective accrual of this same frozen claim, with its own design note and owner go, after a dated freeze. Not a read of this spot endpoint. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
+   "reopen": "LINE CLOSED 2026-10-09. NEXT_UNIT = NONE. The prospective accrual named below is withdrawn with the line. A later WIDTH question is a new owner decision from a new external basis. Earlier text: A prospective accrual of this same frozen claim, with its own design note and owner go, after a dated freeze. Not a read of this spot endpoint. Not 2025/2026. Not E1. Not a reread of the discovery surface.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "INFORMATIONALLY_WEAK",

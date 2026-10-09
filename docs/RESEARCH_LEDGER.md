@@ -8940,3 +8940,21 @@ WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 and BYBIT_BTCUSDT_PUBLIC_HISTORY VOLATILI
 OUTCOME_READ = yes; LABEL = WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; PROSPECTIVE_FORWARD_READ = no
 ```
+
+## 2026-10-09 — FORMATION WIDTH line closed, no successor
+
+**Mode.** Line closure. No new market read. Historical result files are not rewritten. Old thresholds remain the frozen decision rules of the units that used them. They are not natural market boundaries.
+- **Label.** `REPRODUCIBLE_SMALL_INCREMENTAL_STATE_SIGNAL_DECISION_VALUE_NOT_DEMONSTRATED`.
+- **Conclusion.** Formation WIDTH has a small reproducible incremental association with next-hour ACTIVITY beyond contemporaneous `RV_FORMATION`, about `+0.10` on Binance (`+0.10245095315584887`) and Bybit (`+0.09903883442772482`). Historical OOS loss improved by about `+0.64%` of baseline MSE on both venues, and both intervals include 0. In the frozen upper-quartile decision architecture, WIDTH changed 14 of 1455 Binance calls and 5 of 1352 Bybit calls. Net accuracy points are slightly positive. Brier and AUROC points are worse on both venues. Those intervals include 0. WIDTH stays a state descriptor. Practical forecast decision value is not demonstrated.
+- **Preserved.** Binance route `FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT`. Bybit route `POSITIVE_BUT_BELOW_PRACTICAL_SCALE`. Rule `rho >= +0.10` stays where it was frozen. Predictive-value label `POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO`. Decision-value label `WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN`.
+- **Prospective.** `FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1` atlas state `CLOSED_BEFORE_START`. Status `SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION`. `outcome_read = false`. `future_association_read = false`. No formal checkpoint. No forward partial rho. Alpha spent 0. Accrued analysis N 0. Parent design SHA256 `d07b83ca9baea11d0af16424da6f7a7a29d43a2a61b6d850d974c8ed80da9612` unchanged. Amendment A1 unchanged. Not a statistical failure and not a negative prospective result. `BINANCE_UM_LIVE_FORWARD` outcome stays unconsumed.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. WIDTH does not enter the forecast layer, `/btc`, pushes, probability wording, activity decisions, product ranking, or the feature set. Production code unchanged.
+- **Successor.** `NEXT_UNIT = NONE`. No BitMEX, other venue, other hour, other horizon, other activity threshold, nonlinear model, interaction, subgroup, 2025/2026, E1, or replacement prospective unit. A return of WIDTH would be a new owner decision from a new external basis.
+- **Lesson.** Signalbot does not require the market to meet arbitrary effect thresholds. The research process freezes observables and evaluation rules to prevent self-deception, then estimates the magnitude and utility the market actually provides. Statistical association alone does not justify forecast or product inclusion. A feature may be scientifically real and still be excluded when downstream decision value is not demonstrated.
+- **Pointer.** `docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md`.
+
+```
+WINDOWS_CONSUMED = none new; prospective BINANCE_UM_LIVE_FORWARD outcome not consumed
+OUTCOME_READ = no new read; PROSPECTIVE_OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none; NEXT_UNIT = NONE
+```

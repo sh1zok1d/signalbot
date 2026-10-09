@@ -1,3 +1,16 @@
+## FORMATION WIDTH line — CLOSED / NO ACTIVE SUCCESSOR — 2026-10-09
+
+`LINE = FORMATION_WIDTH_V1 | STATUS = CLOSED / NO ACTIVE SUCCESSOR | NEXT_UNIT = NONE`
+`LABEL = REPRODUCIBLE_SMALL_INCREMENTAL_STATE_SIGNAL_DECISION_VALUE_NOT_DEMONSTRATED`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | WIDTH is outside the forecast layer, /btc, pushes, probability wording, activity decisions, product ranking, and the feature set`
+`PROSPECTIVE = CLOSED_BEFORE_START | SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION | outcome_read = false | future_association_read = false | alpha spent 0 | no checkpoint | forward partial rho not computed`
+`PRESERVED = Binance discovery route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT | partial +0.10245095315584887 | Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE | partial +0.09903883442772482 | rho >= +0.10 stays the rule of the units that froze it | predictive-value and decision-value labels unchanged`
+`NOT OPENED = BitMEX, another venue, another hour, another horizon, another activity threshold, a nonlinear model, interactions, subgroups, 2025/2026, E1, a replacement prospective unit`
+
+Canonical pointer: `docs/research/FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md`.
+
+The sections below are the lineage. They are not an active queue. Prospective natural accumulation is not an active research obligation.
+
 ## FORMATION_WIDTH_DECISION_VALUE_V1 — one decision-value characterization — 2026-10-09
 
 `MODE = POST_OUTCOME_CHARACTERIZATION / FORECAST_ARCHITECTURE_DEVELOPMENT | outcome_read = true | evidence tier unchanged | not a confirmation`
@@ -61,6 +74,7 @@ Design: `docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md
 `GOVERNANCE_HOLD = ON_HOLD_PENDING_PREDICTIVE_VALUE_CHARACTERIZATION | forward scoring is not started | checkpoints, Amendment A1 budget, and the refusing evaluator are unchanged | forward association not read`
 `GOVERNANCE_HOLD_UPDATE = ON_HOLD_PENDING_DECISION_VALUE_REVIEW | the line above stays the record of the earlier pause | forward association still not read | checkpoints and Amendment A1 unchanged | evaluator still refuses`
 `DECISION_VALUE_RECORDED = yes | label WIDTH_SIGNAL_PRESENT_DECISION_VALUE_UNCERTAIN | the hold stays until the owner reviews that characterization | amendments are not rewritten`
+`LINE_CLOSURE = CLOSED_BEFORE_START | SUPERSEDED_BEFORE_OUTCOME_BY_DOWNSTREAM_DECISION_VALUE_CHARACTERIZATION | the AWAITING_START lines above are the pre-closure record | outcome_read false | future_association_read false | alpha spent 0 | no checkpoint | NEXT_UNIT = NONE | see FORMATION_WIDTH_RESEARCH_LINE_CLOSURE_V1.md`
 
 Amendment: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md`.
 
