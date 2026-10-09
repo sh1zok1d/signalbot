@@ -1,0 +1,451 @@
+{
+ "pre_outcome": {
+  "program": "DIRECTIONAL_STATE_SEARCH_V2",
+  "mode": "DISCOVERY",
+  "exposure_class": "ADAPTIVE_HISTORICAL_DISCOVERY",
+  "claim_ceiling": "DISCOVERY_ONLY",
+  "design": "docs/research/DIRECTIONAL_STATE_SEARCH_V2_DESIGN.md",
+  "design_sha256": "a361ff35fdb30cd051d7c6f6de1d4b9c70a5329f3250933963396a3d31b52c52",
+  "surface": "CORE_BTC_BINANCE_V0 BTCUSDT perpetual 1m->5m 2020-01-01..2024-12-31",
+  "core_zip_list_sha256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b",
+  "target": "R_1H (only horizon)",
+  "baseline": [
+   "RP4H",
+   "RET_4H",
+   "RV_4H"
+  ],
+  "budget": {
+   "families_max": 8,
+   "families_active": 6,
+   "formulations_per_family_max": 3,
+   "formulations_per_family_used_max": 2,
+   "primary_objects_max": 24,
+   "primary_objects": 9
+  },
+  "objects": [
+   {
+    "id": "F1a",
+    "family": "SIGNED_PATH_ASYMMETRY",
+    "state": "SPA_24H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H",
+     "RV_24H"
+    ],
+    "planned_cells": [
+     "F1a:raw",
+     "F1a:incremental"
+    ],
+    "outcome_blind_support_n": 175292,
+    "grades": {
+     "simplicity": "A",
+     "novelty": "A",
+     "distance_from_consumed": "A"
+    },
+    "replication_surfaces": [
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (D2 canonical)",
+     "Binance spot BTCUSDT 5m 2017-08..2019-12",
+     "Binance USD-M BTCUSDT 5m 2025-01..2026-10 minus the E1 window (needs its own per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F1b",
+    "family": "SIGNED_PATH_ASYMMETRY",
+    "state": "UPFRAC_24H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H",
+     "RV_24H"
+    ],
+    "planned_cells": [
+     "F1b:raw",
+     "F1b:incremental"
+    ],
+    "outcome_blind_support_n": 175292,
+    "grades": {
+     "simplicity": "A",
+     "novelty": "B",
+     "distance_from_consumed": "A"
+    },
+    "replication_surfaces": [
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (D2 canonical)",
+     "Binance spot BTCUSDT 5m 2017-08..2019-12",
+     "Binance USD-M BTCUSDT 5m 2025-01..2026-10 minus the E1 window (needs its own per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F2a",
+    "family": "PATH_OCCUPANCY_RESIDUAL",
+    "state": "OCC_MEAN_4H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "planned_cells": [
+     "F2a:raw",
+     "F2a:incremental"
+    ],
+    "outcome_blind_support_n": 175292,
+    "grades": {
+     "simplicity": "A",
+     "novelty": "B",
+     "distance_from_consumed": "B"
+    },
+    "replication_surfaces": [
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (D2 canonical)",
+     "Binance spot BTCUSDT 5m 2017-08..2019-12",
+     "Binance USD-M BTCUSDT 5m 2025-01..2026-10 minus the E1 window (needs its own per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F3a",
+    "family": "REJECTION_DECAY",
+    "state": "REJ_DECAY_24H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RP_24H"
+    ],
+    "planned_cells": [
+     "F3a:raw",
+     "F3a:incremental"
+    ],
+    "outcome_blind_support_n": 25439,
+    "grades": {
+     "simplicity": "C",
+     "novelty": "B",
+     "distance_from_consumed": "B"
+    },
+    "replication_surfaces": [
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (D2 canonical)",
+     "Binance spot BTCUSDT 5m 2017-08..2019-12",
+     "Binance USD-M BTCUSDT 5m 2025-01..2026-10 minus the E1 window (needs its own per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F4a",
+    "family": "COUNTERMOVE_DECAY",
+    "state": "CMD_UP_24H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "RET_24H"
+    ],
+    "planned_cells": [
+     "F4a:raw",
+     "F4a:incremental"
+    ],
+    "outcome_blind_support_n": 175292,
+    "grades": {
+     "simplicity": "B",
+     "novelty": "B",
+     "distance_from_consumed": "B"
+    },
+    "replication_surfaces": [
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (D2 canonical)",
+     "Binance spot BTCUSDT 5m 2017-08..2019-12",
+     "Binance USD-M BTCUSDT 5m 2025-01..2026-10 minus the E1 window (needs its own per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F6a",
+    "family": "US_OPEN_DRIVE",
+    "state": "US_OPEN_DRIVE",
+    "source": "session",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "planned_cells": [
+     "F6a:raw",
+     "F6a:incremental"
+    ],
+    "outcome_blind_support_n": 1258,
+    "grades": {
+     "simplicity": "A",
+     "novelty": "A",
+     "distance_from_consumed": "A"
+    },
+    "replication_surfaces": [
+     "Binance USD-M BTCUSDT 2025-01..2026-10 minus the E1 window (needs a 2025-26 NYSE calendar pin incl. 2025-01-09)",
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (needs 2016-19 NYSE calendar pins)"
+    ]
+   },
+   {
+    "id": "F6b",
+    "family": "SESSION_HANDOFF",
+    "state": "SESSION_HANDOFF",
+    "source": "session",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H"
+    ],
+    "planned_cells": [
+     "F6b:raw",
+     "F6b:incremental"
+    ],
+    "outcome_blind_support_n": 1258,
+    "grades": {
+     "simplicity": "A",
+     "novelty": "A",
+     "distance_from_consumed": "B"
+    },
+    "replication_surfaces": [
+     "Binance USD-M BTCUSDT 2025-01..2026-10 minus the E1 window (needs a 2025-26 NYSE calendar pin incl. 2025-01-09)",
+     "BitMEX XBTUSD 5m 2016-05..2019-12 (needs 2016-19 NYSE calendar pins)"
+    ]
+   },
+   {
+    "id": "F7a",
+    "family": "EFFORT_TO_RESULT",
+    "state": "FLOW_RESPONSE_CHANGE_4H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H"
+    ],
+    "planned_cells": [
+     "F7a:raw",
+     "F7a:incremental"
+    ],
+    "outcome_blind_support_n": 175262,
+    "grades": {
+     "simplicity": "B",
+     "novelty": "A",
+     "distance_from_consumed": "B"
+    },
+    "replication_surfaces": [
+     "Binance spot BTCUSDT 5m klines with taker-buy quote 2017-08..2019-12",
+     "BitMEX XBTUSD trades 2017-08..2019-12 (taker side; DH1_BITMEX_XBTUSD_TRADES_5M_V0 provenance to check)",
+     "Binance USD-M BTCUSDT 5m klines 2025-01..2026-10 minus the E1 window (per-question exposure audit)"
+    ]
+   },
+   {
+    "id": "F7b",
+    "family": "EFFORT_TO_RESULT",
+    "state": "SIDE_ASYM_CHANGE_4H",
+    "source": "core",
+    "target": "R_1H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H"
+    ],
+    "planned_cells": [
+     "F7b:raw",
+     "F7b:incremental"
+    ],
+    "outcome_blind_support_n": 175060,
+    "grades": {
+     "simplicity": "B",
+     "novelty": "B",
+     "distance_from_consumed": "C"
+    },
+    "replication_surfaces": [
+     "Binance spot BTCUSDT 5m klines with taker-buy quote 2017-08..2019-12",
+     "BitMEX XBTUSD trades 2017-08..2019-12 (taker side; DH1_BITMEX_XBTUSD_TRADES_5M_V0 provenance to check)",
+     "Binance USD-M BTCUSDT 5m klines 2025-01..2026-10 minus the E1 window (per-question exposure audit)"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "id": "F2a-v",
+    "parent": "F2a",
+    "state": "OCC_THIRDS_4H",
+    "planned_cells": [
+     "F2a-v:raw",
+     "F2a-v:incremental"
+    ]
+   }
+  ],
+  "sensitivities": [
+   {
+    "id": "F7a-s",
+    "parent": "F7a",
+    "state": "FLOW_RESPONSE_CHANGE_4H",
+    "controls": [
+     "RP4H",
+     "RET_4H",
+     "RV_4H",
+     "IMB_4H",
+     "LOG_LAMBDA_4H"
+    ],
+    "planned_cells": [
+     "F7a-s:incremental"
+    ]
+   }
+  ],
+  "placebo": [
+   {
+    "object": "F6a",
+    "planned_cells": [
+     "F6a:placebo",
+     "F6a:clock_minus_placebo"
+    ]
+   },
+   {
+    "object": "F6b",
+    "planned_cells": [
+     "F6b:placebo",
+     "F6b:clock_minus_placebo"
+    ]
+   }
+  ],
+  "stage2_interactions": "only for objects whose incremental interval excludes zero: one cell <id>:x_RP4H each",
+  "blocked_families": {
+   "FAILED_PROGRESS": "inside the owner-closed divergence / selling-exhaustion line (catalog \u00a76 price-only momentum divergence; E2 price leg)",
+   "OI_RESPONSE": "inside the owner-closed DH3 line (catalog E3/E4) or exact-consumed MARKET-01; OI-only read needs its own owner permit"
+  },
+  "abandoned_before_outcome": [
+   {
+    "family": "FAILED_PROGRESS",
+    "formulation": "PROGRESS_SIGNED_24H: progress per attempt over 24 1h segments (new 24h-window lows/highs; log last/third-last extension on the active side)",
+    "reason": "inside the owner-closed divergence/selling-exhaustion line (catalog \u00a76; E2 price leg; NEW_LOW_DEPTH_ATR)"
+   },
+   {
+    "family": "OI_RESPONSE",
+    "formulation": "OI_PRICE_EFFICIENCY_CHANGE: recent vs prior beta of 5m price return on OI log-change",
+    "reason": "catalog E4 inside the owner-closed DH3 line; needs an owner ruling and an OI-only permit"
+   },
+   {
+    "family": "OI_RESPONSE",
+    "formulation": "OI built, price refused (|dOI_4H| large, |RET_4H| small)",
+    "reason": "DH3-P1/E3 (owner-closed) or MARKET-01 (exact-consumed) when signed by price"
+   },
+   {
+    "family": "EFFORT_TO_RESULT",
+    "formulation": "displacement residual RET_4H - beta_30d * NF_4H",
+    "reason": "reduces to the imbalance level (H05 neighbour); E5 under the exhaustion line"
+   },
+   {
+    "family": "EFFORT_TO_RESULT",
+    "formulation": "SIDE_RESPONSE_ASYM_24H as a level",
+    "reason": "not a change in response; the owner E1 ruling admits only change forms"
+   },
+   {
+    "family": "SESSION_HANDOFF",
+    "formulation": "08:00 Europe/London handoff",
+    "reason": "08:00 UTC funding settlement in winter; UK calendars not pinned; weak D12 EU diagnostic"
+   },
+   {
+    "family": "SESSION_HANDOFF",
+    "formulation": "Tokyo / 00:00 UTC handoff",
+    "reason": "anchor of the owner-closed opening-range/WIDTH line; funding settlement"
+   }
+  ],
+  "exposure_before": {
+   "CORE_x_DIRECTION_cells": "\u2248813 (lower bound)",
+   "neighbours": [
+    "atlas close_pos_4h, rv_4h, frac_near_*, midpoint_slope_4h, last_rejection_*_4h, touch_count_*_4h, flow_beta_1h, flow_corr_1h vs R_1H..R_24H on these anchors",
+    "generic hourly 4h race stream (unconditional)",
+    "B2-03, B2-04, H04, H05, B2-05 exact objects"
+   ]
+  },
+  "outcome_blind_preflight": {
+   "base_anchors": 175292,
+   "bars_5m": 526176,
+   "state_rank_correlation": {
+    "matrix": [
+     [
+      1.0,
+      0.0228,
+      -0.1344,
+      0.024,
+      -0.204,
+      0.0548,
+      0.0368
+     ],
+     [
+      0.0228,
+      1.0,
+      -0.0786,
+      0.0502,
+      -0.1219,
+      -0.0112,
+      0.1188
+     ],
+     [
+      -0.1344,
+      -0.0786,
+      1.0,
+      0.0286,
+      -0.1173,
+      0.0108,
+      0.2053
+     ],
+     [
+      0.024,
+      0.0502,
+      0.0286,
+      1.0,
+      0.0346,
+      0.0096,
+      -0.0077
+     ],
+     [
+      -0.204,
+      -0.1219,
+      -0.1173,
+      0.0346,
+      1.0,
+      -0.0004,
+      -0.2224
+     ],
+     [
+      0.0548,
+      -0.0112,
+      0.0108,
+      0.0096,
+      -0.0004,
+      1.0,
+      0.0208
+     ],
+     [
+      0.0368,
+      0.1188,
+      0.2053,
+      -0.0077,
+      -0.2224,
+      0.0208,
+      1.0
+     ]
+    ],
+    "names": [
+     "SPA_24H",
+     "UPFRAC_24H",
+     "OCC_MEAN_4H",
+     "REJ_DECAY_24H",
+     "CMD_UP_24H",
+     "FLOW_RESPONSE_CHANGE_4H",
+     "SIDE_ASYM_CHANGE_4H"
+    ]
+   }
+  }
+ }
+}
