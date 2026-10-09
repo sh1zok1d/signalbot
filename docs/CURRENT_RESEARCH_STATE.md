@@ -1,3 +1,15 @@
+## FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 — Amendment A1, error budget repaired, endpoint unread — 2026-10-09
+
+`MODE = PROSPECTIVE_SEQUENTIAL_VALIDATION | AMENDMENT = A1 | status = AWAITING_START | outcome_read = false | future_association_read = false`
+`START = 2026-10-10T00:00:00Z | accrued analysis N = 0 | parent design SHA256 d07b83ca9baea11d0af16424da6f7a7a29d43a2a61b6d850d974c8ed80da9612 | parent HEAD 6b178352e464fac7cc3c847448cb3bc9018ae6a4`
+`BUDGET = overall decisive magnitude error 0.05 | lower tail 0.025 | upper tail 0.025 | A(t) = 0.025 * t | Kim-DeMets exponent 1`
+`CHECKPOINTS = N 1460 first look, expected 2030-10-14 | N 2920 maturity and terminal, expected 2034-10-19 | parent grid 1095/1825/2190 is not active`
+`POSITIVE RELATION = option A | same lower bound | no third alpha family`
+`NOT OPENED = forward association, BitMEX, another historical venue, 2025/2026 archive, E1, product`
+`GO = a separate owner go is required for the first formal checkpoint, and only once N reaches 1460 | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+
+Amendment: `docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md`.
+
 ## FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 — sequential design frozen, endpoint unread — 2026-10-09
 
 `MODE = PROSPECTIVE_SEQUENTIAL_VALIDATION | status = AWAITING_START | outcome_read = false | future_association_read = false`

@@ -904,7 +904,7 @@
     {
      "function": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
      "id": "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
-     "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Not a new discovery and not another historical venue. Relative width of the completed UTC midnight hour, next-hour RV, covariate RV_FORMATION."
+     "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue."
     },
     {
      "function": "FORMATION_WIDTH_REGIME_V1",
@@ -7769,7 +7769,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "e2ef345ed06ea7597599e7e02d8431b084eb123d70bc7987e6b0ef6377734d42",
+ "SOURCES_DIGEST": "28a7ce952414a7679d5e2b8ec0a38f2dc7453efb8a8d03eaf94122341fccff42",
  "SURFACES": [
   {
    "also_cols": [

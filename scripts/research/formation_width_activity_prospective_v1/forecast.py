@@ -1,8 +1,9 @@
-"""Outcome-blind information compiler for the prospective formation-width claim.
+"""Parent outcome-blind compiler for the prospective formation-width claim.
 
-Uses the published discovery dependence number and the confirmation forecast
-function. Does not load a market tape and does not score a forward endpoint.
-Historical point estimates are stored as context and are not inputs.
+Amendment A1 supersedes the per-side alpha and the checkpoint grid. This
+module still reproduces the parent spec. The active contract is
+`amendment_a1`. It does not load a market tape and does not score a forward
+endpoint. Historical point estimates are context, not inputs.
 """
 
 from __future__ import annotations

@@ -1577,7 +1577,7 @@
    "native": true,
    "region": "VOLATILITY_STATE",
    "revisit": [
-    "First formal checkpoint at analysis N 1095, expected formation date 2029-10-13. Nothing earlier. Later looks only at N 1825 and N 2190."
+    "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that."
    ],
    "row": "VOLATILITY_STATE.range_forecast",
    "row_name": "Range / volatility scale forecast",
@@ -15576,7 +15576,7 @@
   {
    "col": "CANDLES",
    "revisit": [
-    "First formal checkpoint at analysis N 1095, expected formation date 2029-10-13. Nothing earlier. Later looks only at N 1825 and N 2190."
+    "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that."
    ],
    "row": "VOLATILITY_STATE.range_forecast",
    "units": [
@@ -15596,7 +15596,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "e2ef345ed06ea7597599e7e02d8431b084eb123d70bc7987e6b0ef6377734d42",
+ "SOURCES_DIGEST": "28a7ce952414a7679d5e2b8ec0a38f2dc7453efb8a8d03eaf94122341fccff42",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -23463,29 +23463,31 @@
    "datasets": [
     "BINANCE_UM_LIVE_FORWARD"
    ],
-   "forbidden": "reading the forward association before the first checkpoint; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration",
-   "function": "Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1095, 1825 and 2190. Kim-DeMets spending exponent 1, alpha 0.05 per one-sided family. No look between checkpoints.",
+   "forbidden": "reading the forward association before the first checkpoint; executing the parent 0.05-per-side budget; a BitMEX or other historical rescue; pooling venues; lowering 0.10; changing the UTC hour, the 60-minute horizon, V, or RV_FORMATION; adding displacement, open interest, funding, or flow; an empirical prior from the historical points; L3 wording; product integration",
+   "function": "Partial Spearman by the discovery rank-residual procedure. ISO-week block bootstrap B=2000 seed 20261109 at N 1460 and 2920. Kim-DeMets exponent 1. Each tail spends A(t)=0.025*t. Positive relation uses the same lower bound. No look between checkpoints and none after 2920.",
    "id": "FORMATION-WIDTH-ACTIVITY-PROSPECTIVE-V1",
-   "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Not a new discovery and not another historical venue. Relative width of the completed UTC midnight hour, next-hour RV, covariate RV_FORMATION.",
-   "note": "DESIGN_FROZEN and AWAITING_START. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Historical discovery and Bybit outcome are context, not a prior. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
-   "period": "forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; no outcome read; pre-start bars are not the sample",
-   "practical_bar": "Scientific reference +0.10, unchanged. A prospective pass is not the historical knife-edge on the point estimate. Magnitude supported means the spent-alpha lower bound is at least +0.10. Magnitude not supported means a mature upper bound is below +0.10.",
+   "mechanism": "MODE=PROSPECTIVE_SEQUENTIAL_VALIDATION. Exact frozen ACTIVITY incremental cell. Amendment A1 repairs the sequential error budget before any forward score. Not a new discovery and not another historical venue.",
+   "note": "DESIGN_FROZEN and AWAITING_START. Amendment A1 is the active error budget and checkpoint grid. Parent design file is unchanged. Class PROSPECTIVE_AFTER_FREEZE for formation dates on or after 2026-10-10. Accrued N 0. Endpoint not read. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "forward Binance USD-M BTCUSDT 5m from 2026-10-10T00:00:00Z; accrued analysis N 0; Amendment A1 before any outcome; pre-start bars are not the sample",
+   "practical_bar": "Scientific reference +0.10, unchanged. Magnitude supported means the lower bound from the 0.025 lower tail is at least +0.10. Magnitude not supported means the mature upper bound from the 0.025 upper tail is below +0.10. The two tails share one 0.05 union bound.",
    "program": "FORMATION_WIDTH_V1",
    "records": [
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_DESIGN.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.md",
+    "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_AMENDMENT_A1.json",
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SPEC.json",
     "docs/research/FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1_SUPPORT.md",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "Not a rerun of Binance 2020-2024 or of Bybit. The first formal checkpoint needs its own owner go once analysis N has reached 1095. Not a look before that N. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.",
-   "revisit": "First formal checkpoint at analysis N 1095, expected formation date 2029-10-13. Nothing earlier. Later looks only at N 1825 and N 2190.",
+   "reopen": "Not a rerun of Binance 2020-2024 or of Bybit. The first formal checkpoint needs its own owner go once analysis N has reached 1460. Not a look before that N. Not the superseded parent grid 1095/1825/2190. Not BitMEX. Not 2025/2026 archive. Not E1. Not a product change.",
+   "revisit": "First formal checkpoint at analysis N 1460, expected formation date 2030-10-14. Nothing earlier. Maturity and terminal at N 2920, expected 2034-10-19. No look after that.",
    "row": "VOLATILITY_STATE.range_forecast",
    "source": "ATLAS_UNITS_V1",
    "state": "FUTURE_NATURAL_ACCUMULATION",
    "title": "FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1",
-   "units_n": "none yet; first look at analysis N 1095; maturity at 1825; terminal at 2190",
-   "verdict": "NOT_EXECUTED. Accrual AWAITING_START. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association."
+   "units_n": "none yet; first look at analysis N 1460; maturity and terminal at 2920",
+   "verdict": "NOT_EXECUTED. Accrual AWAITING_START. Amendment A1. Start 2026-10-10T00:00:00Z. outcome_read false. future_association_read false. Evaluator refuses. No route and no forward association."
   },
   {
    "col": "CANDLES",

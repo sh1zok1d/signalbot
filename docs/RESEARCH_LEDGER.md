@@ -8860,3 +8860,20 @@ WINDOWS_EXPOSED = BINANCE_UM_LIVE_FORWARD VOLATILITY_STATE.range_forecast from 2
 OUTCOME_READ = no; ROUTE = not scored; STATUS = AWAITING_START
 OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_ACTIVITY_PROSPECTIVE_V1 Amendment A1, endpoint unread
+
+**Mode.** Pre-outcome repair of the sequential error budget. `outcome_read = false`. `future_association_read = false`. `accrued_analysis_n = 0`. The parent design file is not rewritten.
+- **Parent.** Design SHA256 `d07b83ca9baea11d0af16424da6f7a7a29d43a2a61b6d850d974c8ed80da9612`. HEAD `6b178352e464fac7cc3c847448cb3bc9018ae6a4`. The parent spec remains on disk as a superseded budget. It is not the active contract.
+- **Reason.** The parent design assigned alpha `0.05` to each one-sided family. The two decisive magnitude verdicts then had a union bound of `0.10`.
+- **Budget.** Overall decisive magnitude error `0.05`. Lower tail `0.025`. Upper tail `0.025`. Spending `A(t) = 0.025 * t`, Kim–DeMets exponent `1`.
+- **Positive relation.** Option A. The same lower bound is compared with 0 and with `+0.10`. There is no third alpha family.
+- **Schedule.** Search grid is annual N for 12 years. Bootstrap floor `20/2000 = 0.01`. Information threshold for a look is sequential power `0.50` at planted `+0.10`. Active checkpoints: N `1460` (first look, expected formation date `2030-10-14`) and N `2920` (maturity and terminal, expected `2034-10-19`). Spent-increment MDE80 is about `0.132` and `0.093`. The parent checkpoints `1095`, `1825`, and `2190` are not active.
+- **Unchanged.** Start `2026-10-10T00:00:00Z`. Binance USD-M BTCUSDT. UTC hour, 60-minute horizon, `V`, `ACTIVITY`, `RV_FORMATION`, partial Spearman, reference `+0.10`, bootstrap `B = 2000`, seed `20261109`. Lag placebo and stability stay descriptive. No product change. Not L3.
+- **Evaluator.** `REFUSING_OUTCOME_BEFORE_OWNER_GO`. A separate owner go is required for the first formal checkpoint, and only once analysis N has reached `1460`.
+
+```
+WINDOWS_EXPOSED = BINANCE_UM_LIVE_FORWARD VOLATILITY_STATE.range_forecast from 2026-10-10, path rules only, accrual not started
+OUTCOME_READ = no; AMENDMENT = A1; STATUS = AWAITING_START
+OBJECTS_2025_2026_USED = none; E1 = not touched; BITMEX = not opened; PRODUCT_CHANGE = none
+```
