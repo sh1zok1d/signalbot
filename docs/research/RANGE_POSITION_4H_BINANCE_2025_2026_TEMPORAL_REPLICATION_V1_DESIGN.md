@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-09. **Author:** chief architect. **Owner instruction:** 2026-10-09 (prepare; do not run before the frozen preflight is shown and a GO is given).
 **Mode:** `CONFIRMATION`, one shot. **Track:** `STRUCTURE`. **Rules:** `RESEARCH_RULES_DECISION_V1.md`.
-**Evidence class:** `TEMPORAL_HISTORICAL_REPLICATION / ONE_SHOT`. The surface class for this question follows the exposure audit (§ Exposure).
+**Evidence class:** `TEMPORAL_HISTORICAL_REPLICATION / ONE_SHOT`. **Surface class:** `QUESTION_FRESH_REPLICATION` (not pristine) after the exposure cut (§ Exposure).
 **Claim ceiling:** historical only. Never a current probability. `PRODUCT_INTEGRATION_CANDIDATE = NO`. No fees, entries, stops or PnL.
 **Replaces:** `RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1_DESIGN_DRAFT.md`.
 
@@ -52,11 +52,11 @@ Unit B has only its own data loader, grid bounds and constants.
 
 **Data:**
 - **Source:** Binance USD-M BTCUSDT perpetual, 5m klines from data.binance.vision.
-- **Manifest:** `docs/research_data/RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0/MANIFEST.json`, object-list SHA256 `e7a4f7b426031a43581f3176ee21348753979178fdcfb072e3a7368a436809ed`.
-  - 78 objects: monthly 2025-01 … 2026-07; daily 2026-08-01 … 2026-08-15 and 2026-08-26 … 2026-10-08.
+- **Manifest:** `docs/research_data/RP4H_BINANCE_UM_BTCUSDT_5M_2025_2026_V0/MANIFEST.json`, object-list SHA256 `5369e8dc265ada989fa048fd49e8d694a2478e69916338223fe118f0dd0db621`.
+  - 64 objects: monthly 2025-01 … 2026-07 (19); daily 2026-08-01 (1); daily 2026-08-26 … 2026-10-08 (44).
   - Each object's SHA256 is taken from its published `.CHECKSUM` and pinned before any object body was downloaded.
   - Every downloaded object is verified against it.
-- **Interval:** bar opens 2025-01-01T00:00:00Z … 2026-10-08T23:55:00Z, end exclusive 2026-10-09T00:00:00Z.
+- **Interval:** bar opens 2025-01-01T00:00:00Z … 2026-10-08T23:55:00Z, end exclusive 2026-10-09T00:00:00Z, **minus [2026-08-02T00:00Z, 2026-08-26T00:00Z)**, which is never requested (the E1-development slice and the E1 holdout days; see below).
 - **No warm-up before 2025-01-01:** the 2024 discovery surface is not read even for features. The first anchors are the first with 48 complete bars.
 - **Open times:** microsecond open times in 2025+ archives are converted to ms.
 
@@ -75,16 +75,44 @@ Unit B has only its own data loader, grid bounds and constants.
 - **Anchors:** the refused days are absent timestamps, so an anchor whose window, path or target touches them is dropped by the missingness rule above.
 - **Opening the window instead:** that would need a separate owner permit and an amended design before any outcome. It is not part of this design and cannot be decided after the result.
 
+**E1-RUN-001 development slice — excluded (fixed by the exposure audit before freeze).**
+- **Why:** `[2026-08-02T00:00Z, 2026-08-16T00:00Z)` hosted an exact-class read of Q: E1 development, the CB ordinary range breakout.
+- **Objects:** the daily objects 2026-08-02 … 2026-08-15 are never requested. The code refuses any object overlapping the period before a request (`EXCLUDED_PERIODS`) and drops any row inside it.
+- **Anchors:** they drop as missing, as with the E1 days.
+
 ## Exposure (exact question RP4H → R_1H on this surface)
 
-See `RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md`. Its summary is copied here at freeze.
+Audit: `RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md`.
 
-EXPOSURE_SUMMARY_PENDING
+**Exact-class exposure.**
+- E1-RUN-001 development on live Binance perp, decisions 2026-08-02 … 08-15T20:00, outcomes to 08-16:
+  - direction-aligned 15m–4h returns after fresh 5m closes beyond the trailing 4h (16×15m) high/low;
+  - compression-range crosses.
+- That slice is cut, so S outside the cut is question-fresh for Q, not pristine.
+
+**Adjacent exposures (disclosed; they do not condition on RP4H):**
+- E1 FB 48h breakout and trend pullbacks (inside the cut);
+- the V1 momentum shadow autopsy;
+- product state analogues: signed 1h/4h move bands → P(up) at 1h/4h/24h;
+- product level first-touch holds;
+- distance-reaction holds;
+- the level-race held-out read;
+- P3's fit of the signed 4h-return nuisance;
+- the divergence validation (depth from the 48-bar high, 48h/96h).
+
+**Counted but unrelated:**
+- rangecast (its regressor is the 4h width);
+- the generic race stream;
+- the architect's unconditional read;
+- P4;
+- event and sharp-move statistics.
+
+**The discovery chain** (pre-impulse atlas, Bybit successor, Unit A) read no bar of S.
 
 ## Information (before reading)
 
-- About 646 days, minus the 10 refused days and holes.
-- At most about 61,000 anchors over about 92 ISO weeks.
+- About 646 days, minus the 24 refused days (2026-08-02 … 08-25) and holes.
+- At most about 59,700 anchors over about 92 ISO weeks.
 - Unit A had N 127,303 over 191 weeks. Expected SE of the primary here is about 1.4× Unit A's.
 
 ## What would change the reading
@@ -101,7 +129,7 @@ There is no joint gate with Unit A. A later synthesis reads the recorded results
 
 - **Code:** `scripts/research/rp4h_binance_2025_2026_temporal_v1/`, with tests on synthetic data.
 - **Commands:**
-  - `preflight`: manifest, guard, object hashes, hole census; timestamps only, no price statistic.
-  - `run --go`: the one shot. It refuses unless the design SHA and the census pins match, and if a result exists.
+  - `preflight`: manifest, guards, object hashes, timestamps, hole census, and support N/weeks/years. It uses bar presence and window span only. No return, relation, quintile or outcome statistic is computed.
+  - `run --go`: the one shot. It refuses unless the design SHA, the census pins and the support N match, and if a result exists.
 - **Result:** `RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1.json` / `.md`.
 - **Search exposure added when read:** raw, primary and two secondaries on BINANCE_PERP_BTC_2025_2026 × DIRECTION.

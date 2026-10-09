@@ -12,6 +12,8 @@
 > - spot opened in the same unit;
 > - a mean-shift label.
 > The text below is kept as the withdrawn record. Its code was never executed and was removed.
+>
+> **Erratum (exposure audit, 2026-10-09):** "RANGE_POSITION never read" on RECENT was inaccurate. E1-RUN-001 development read an exact-class equivalent on 2026-08-02 … 08-16 (`RANGE_POSITION_4H_BINANCE_2025_2026_EXPOSURE_AUDIT_V1.md`).
 
 **Date:** 2026-10-09. **Author:** chief architect (research director).
 **Owner order:** RANGE_POSITION_4H first (2026-10-09).

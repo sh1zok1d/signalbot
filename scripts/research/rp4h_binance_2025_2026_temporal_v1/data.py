@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from beta.history_data import drop_protected, in_protected_window, url_refusal
+from beta.history_data import drop_protected, in_protected_window, key_period_ms, url_refusal
 
 from . import constants as K
 
@@ -24,6 +24,27 @@ def _cache() -> Path:
     return Path(os.environ.get("RP4H_B_CACHE", "/tmp/rp4h_b_cache"))
 
 
+def excluded_overlap(start_ms: int, end_ms: int):
+    """The unit-specific excluded period that [start_ms, end_ms) intersects, else None."""
+    for name, a, z in K.EXCLUDED_PERIODS:
+        if int(start_ms) < z and a < int(end_ms):
+            return name
+    return None
+
+
+def in_excluded(ms: int) -> bool:
+    return any(a <= int(ms) < z for _n, a, z in K.EXCLUDED_PERIODS)
+
+
+def refusal(url: str):
+    """Product E1 guard first (fail closed), then the unit's exposure exclusion."""
+    why = url_refusal(url)
+    if why is not None:
+        return why
+    period = key_period_ms(url)
+    return excluded_overlap(*period) if period else "NO_PERIOD_IN_NAME"
+
+
 def manifest() -> list:
     body = json.loads((ROOT / K.MANIFEST).read_text())
     objs = body["OBJECTS"]
@@ -31,14 +52,14 @@ def manifest() -> list:
     if digest != K.OBJECT_LIST_SHA256:
         raise SystemExit("MANIFEST_MISMATCH")
     for o in objs:
-        if url_refusal(K.VISION + o["key"]) is not None:
+        if refusal(K.VISION + o["key"]) is not None:
             raise SystemExit(f"MANIFEST_CONTAINS_PROTECTED_OBJECT {o['key']}")
     return objs
 
 
 def fetch(obj: dict) -> bytes:
     url = K.VISION + obj["key"]
-    why = url_refusal(url)
+    why = refusal(url)
     if why is not None:                                   # refused before any request (fail closed)
         raise SystemExit(f"REFUSED_PROTECTED_OBJECT {obj['key']} {why}")
     path = _cache() / obj["key"]
@@ -79,7 +100,7 @@ def parse(payload: bytes) -> list:
 def series_from_rows(rows: list) -> dict:
     """Every published row is a bar; rows inside a protected window are dropped (the product rule);
     rows outside the surface are refused; duplicates and off-grid times are refused."""
-    rows = drop_protected(rows, "open_ms")
+    rows = [r for r in drop_protected(rows, "open_ms") if not in_excluded(r["open_ms"])]
     rows.sort(key=lambda r: r["open_ms"])
     t = np.array([r["open_ms"] for r in rows], dtype=np.int64)
     if t.size == 0:
@@ -90,7 +111,7 @@ def series_from_rows(rows: list) -> dict:
         raise SystemExit("OFF_GRID_OPEN")
     if t[0] < K.SURFACE_START_MS or t[-1] >= K.SURFACE_END_MS:
         raise SystemExit("ROW_OUTSIDE_SURFACE")
-    if any(in_protected_window(int(x)) for x in t):
+    if any(in_protected_window(int(x)) or in_excluded(int(x)) for x in t):
         raise SystemExit("PROTECTED_ROW_PRESENT")
     return {"open_ms": t, "high": np.array([r["high"] for r in rows]), "low": np.array([r["low"] for r in rows]),
             "close": np.array([r["close"] for r in rows])}
@@ -111,9 +132,12 @@ def holes(open_ms: np.ndarray) -> np.ndarray:
 
 def census(series: dict) -> dict:
     h = holes(series["open_ms"])
-    protected = int(sum(1 for x in h if in_protected_window(int(x))))
-    return {"rows": int(series["open_ms"].size), "holes": int(h.size), "holes_in_e1_window": protected,
-            "holes_outside_e1_window": int(h.size - protected),
+    e1 = int(sum(1 for x in h if in_protected_window(int(x))))
+    dev = int(sum(1 for x in h if in_excluded(int(x))))
+    e1_day_tail = int(sum(1 for x in h if 1_787_678_400_000 <= int(x) < 1_787_702_400_000))  # 2026-08-25 17:20..24:00
+    return {"rows": int(series["open_ms"].size), "holes": int(h.size), "holes_in_e1_window": e1,
+            "holes_in_e1_development_slice": dev, "holes_e1_refused_day_tail": e1_day_tail,
+            "holes_other": int(h.size - e1 - dev - e1_day_tail),
             "holes_sha256": hashlib.sha256(h.astype("<i8").tobytes()).hexdigest(),
             "first_open_ms": int(series["open_ms"][0]), "last_open_ms": int(series["open_ms"][-1])}
 

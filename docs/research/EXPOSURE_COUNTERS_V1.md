@@ -80,3 +80,4 @@ The family split of the 496 PRE_IMPULSE cells follows that unit's feature regist
 - The architect's unconditional read: its exact number of variants was not recorded.
 - Unmerged Cursor units carry `pending_merge` until merged.
 - Full per-unit contributor lists are in the compilation transcript summary in the 2026-10-09 ledger entry.
+- **Correction (2026-10-09, RP4H exposure audit):** the ≈50 E1-RUN-001 development cells counted under "Live forward 2026" are reads of Binance BTCUSDT perp 2026-08-02 … 08-16 and belong to BINANCE_PERP_BTC_2025_2026 × DIRECTION under rules §3 (same venue and period). Binance 2025–26 × DIRECTION is therefore ≈122\*.

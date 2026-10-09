@@ -23,11 +23,12 @@ def write_markdown(r: dict, path: Path) -> None:
         f"**Design SHA256:** `{r['design_sha256']}` (commit `{r['design_commit']}`), frozen before this read. "
         f"**Sibling:** `{r['sibling_unit']}`; **parent:** `{r['parent_unit']}`.",
         f"**Objects:** `{r['manifest']}` list SHA256 `{r['object_list_sha256']}`. **Evaluator digest:** `{r['evaluator_digest']}`.",
-        "Nothing else was read: no spot, no BitMEX/Bybit/Binance 2020-24 outcome, no rejection or bars-since, no fees. The E1-RUN-001 window was never requested (pre-fixed exclusion).",
+        "Nothing else was read: no spot, no BitMEX/Bybit/Binance 2020-24 outcome, no rejection or bars-since, no fees. The E1-RUN-001 window and the E1-development slice [2026-08-02, 2026-08-16) were never requested (pre-fixed exclusions).",
         "",
         "## Sample",
         f"Grid slots {r['grid']['slots']}, bars {r['grid']['occupied']}, holes {r['grid']['holes']} "
-        f"(E1 window {r['preflight_census']['holes_in_e1_window']}, other {r['preflight_census']['holes_outside_e1_window']}). "
+        f"(E1 window {r['preflight_census']['holes_in_e1_window']}, E1-development slice {r['preflight_census']['holes_in_e1_development_slice']}, "
+        f"rest of the refused 25th {r['preflight_census']['holes_e1_refused_day_tail']}, other {r['preflight_census']['holes_other']}). "
         f"Phase anchors {r['phase_anchors']}, "
         f"analysis N {r['analysis_n']}, ISO weeks {r['iso_weeks']}, T {r['first_t']} .. {r['last_t']}.",
         "",

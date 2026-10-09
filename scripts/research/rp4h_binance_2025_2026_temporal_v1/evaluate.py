@@ -158,6 +158,7 @@ def run() -> dict:
         "sibling_unit": K.SIBLING_UNIT, "parent_unit": K.PARENT_UNIT,
         "manifest": K.MANIFEST, "object_list_sha256": K.OBJECT_LIST_SHA256, "evaluator_digest": _code_digest(),
         "e1_window": "excluded by the pre-fixed object-level rule (beta.history_data PROTECTED_WINDOWS); never requested",
+        "e1_development_slice": "[2026-08-02, 2026-08-16) excluded before freeze by the exposure audit; never requested",
         "preflight_census": c, "grid": s["grid"], "phase_anchors": s["phase_anchors"],
         "analysis_n": int(s["rp"].size), "iso_weeks": int(np.unique(blocks).size),
         "first_t": ts[0].strftime("%Y-%m-%dT%H:%M:%SZ"), "last_t": ts[-1].strftime("%Y-%m-%dT%H:%M:%SZ"),

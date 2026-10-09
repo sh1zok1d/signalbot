@@ -26,14 +26,15 @@ def test_shared_scientific_identity_with_unit_a():
 def test_manifest_is_pinned_and_never_touches_the_e1_window():
     objs = DB.manifest()
     keys = [o["key"] for o in objs]
-    assert len(keys) == 78 and all(len(o["sha256"]) == 64 for o in objs)
+    assert len(keys) == 64 and all(len(o["sha256"]) == 64 for o in objs)
     assert not any("monthly" in k and "2026-08" in k for k in keys)
-    for d in range(16, 26):
+    for d in range(2, 26):                                                  # dev slice + E1 days: never requested
         assert not any(f"2026-08-{d:02d}" in k for k in keys)
-    assert any("2026-08-15" in k for k in keys) and any("2026-08-26" in k for k in keys) and any("2026-10-08" in k for k in keys)
-    assert all(url_refusal(K.VISION + k) is None for k in keys)
+    assert any("2026-08-01" in k for k in keys) and any("2026-08-26" in k for k in keys) and any("2026-10-08" in k for k in keys)
+    assert all(url_refusal(K.VISION + k) is None and DB.refusal(K.VISION + k) is None for k in keys)
     body = json.loads((DB.ROOT / K.MANIFEST).read_text())
     assert len(body["REFUSED_BY_E1_GUARD"]) == 10
+    assert len(body["EXCLUDED_E1_DEVELOPMENT_SLICE"]["objects_not_requested"]) == 14
 
 
 def test_fetch_refuses_a_protected_object_before_any_request(monkeypatch):
@@ -44,6 +45,8 @@ def test_fetch_refuses_a_protected_object_before_any_request(monkeypatch):
         DB.fetch({"key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-20.zip", "sha256": "0" * 64})
     with pytest.raises(SystemExit, match="REFUSED_PROTECTED_OBJECT"):
         DB.fetch({"key": "data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip", "sha256": "0" * 64})
+    with pytest.raises(SystemExit, match="REFUSED_PROTECTED_OBJECT"):                      # E1-development slice
+        DB.fetch({"key": "data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-05.zip", "sha256": "0" * 64})
 
 
 def _rows(t_list):
@@ -51,9 +54,9 @@ def _rows(t_list):
 
 
 def test_series_drops_protected_rows_and_refuses_bad_rows():
-    t = [K.SURFACE_START_MS + k * K.BAR_MS for k in range(5)] + [E1_START + K.BAR_MS]
+    t = [K.SURFACE_START_MS + k * K.BAR_MS for k in range(5)] + [1_785_628_800_000 + K.BAR_MS, E1_START + K.BAR_MS]
     s = DB.series_from_rows(_rows(t))
-    assert s["open_ms"].tolist() == t[:5]                                   # the row inside E1 is dropped
+    assert s["open_ms"].tolist() == t[:5]                                   # rows in the dev slice and E1 are dropped
     with pytest.raises(SystemExit, match="DUPLICATE_OR_UNSORTED_OPEN"):
         DB.series_from_rows(_rows([K.SURFACE_START_MS, K.SURFACE_START_MS]))
     with pytest.raises(SystemExit, match="OFF_GRID_OPEN"):
@@ -64,14 +67,15 @@ def test_series_drops_protected_rows_and_refuses_bad_rows():
 
 def test_holes_census_counts_e1_slots_separately():
     full = np.arange(K.SURFACE_START_MS, K.SURFACE_END_MS, K.BAR_MS, dtype=np.int64)
-    keep = ~((full >= 1_786_838_400_000) & (full < 1_786_838_400_000 + 10 * 86_400_000))   # 2026-08-16 .. 25 whole days
+    keep = ~((full >= 1_785_628_800_000) & (full < 1_786_838_400_000 + 10 * 86_400_000))   # 2026-08-02 .. 25 whole days
     keep[100] = False                                                                     # one other hole
     series = {"open_ms": full[keep], "high": np.ones(keep.sum()), "low": np.ones(keep.sum()), "close": np.ones(keep.sum())}
     c = DB.census(series)
-    assert c["holes"] == 2880 + 1
-    # the E1 window ends 17:20 on the 25th; the rest of that day is refused with the object but is not inside the window
+    assert c["holes"] == 24 * 288 + 1
     assert c["holes_in_e1_window"] == (E1_END - E1_START) // K.BAR_MS
-    assert c["holes_outside_e1_window"] == c["holes"] - c["holes_in_e1_window"]
+    assert c["holes_in_e1_development_slice"] == 14 * 288
+    assert c["holes_e1_refused_day_tail"] == 80                               # 2026-08-25 17:20..24:00
+    assert c["holes_other"] == 1
 
 
 def test_anchor_phase_matches_unit_a_clock():
