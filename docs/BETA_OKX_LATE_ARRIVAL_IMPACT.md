@@ -1,6 +1,6 @@
 # OKX liquidation events arriving late — impact note
 
-**Status:** `FACTS_FOR_DECISION` (2026-10-09, track A for ОПГ-1). The architect decides. This note contains no code change. The delay numbers are being measured by the owner. The pre-3b checks are in `docs/BETA_PRE3B_DATA_CHECKS.md`, and run 1 is recorded in `docs/BETA_RELEASE_LOG_V1.md`.
+**Status:** `DECIDED: (d)`. Facts are from 2026-10-09. The architect decided the same day, the owner confirmed it, and track A built it for 3b. Sections 1–4 are the facts the decision was taken on. Section 5 is the decision and what was built; section 6 is the step after the beta. The pre-3b checks are in `docs/BETA_PRE3B_DATA_CHECKS.md`, and run 1 is recorded in `docs/BETA_RELEASE_LOG_V1.md`.
 
 **What was observed (run 1, production).**
 - 6 OKX liquidation events with event times from 14:04:48Z were processed by the collector after its 14:59:21Z restart, 57–71 min after their event time. All carry `mapping_version = 2`.
@@ -45,3 +45,50 @@
 - If the owner's numbers show that late arrival is a reconnect/subscribe backlog and steady-state delays are seconds, prefer (c). OKX reaches no surface or vote for about 30 days anyway, and its shown sums are already lower bounds.
 - If steady-state delays routinely exceed the 25 s materialization lag, or Binance/Bybit are late too, prefer (b), decided and backfilled before 3b, so the count is not restarted later.
 - (a) alone does not fix the tape.
+
+## 5. Decision (d) and what was built (2026-10-09)
+**The owner's arrival-delay data.** Last 24 h, preliminary, measured from the collector journal (event time to processing):
+
+| Venue | p50 | p99 | max |
+|---|---|---|---|
+| Binance | 1.1 s | 2.5 s | 3.3 s |
+| Bybit | 0.4 s | 1.2 s | — |
+| OKX | 2.9 s | 18 374 s | 18 432 s (5.1 h) |
+
+On OKX, 34.5 % of events arrive more than 5 min late, 24.4 % more than 30 min late, and p90 is 8 636 s. This is a steady property of OKX's channel, not a reconnect backlog.
+- **(b) is ruled out.** It would break as-of: a decided bucket would change hours later.
+- **(a) is ruled out.** It would have to cover about 5 h.
+- **(c) alone is not enough.** OKX is «н/д» and does not vote only until both sides' percentiles mature (about 30 days after D1). It would then enable itself automatically, around early November, in the middle of the beta.
+
+**Owner, 2026-10-09:** «пока можно убрать метрики OKX… потом можно будет добавить таймер получения данных». The scope is OKX **liquidations** only. OKX price, OI, volume and funding stay unchanged.
+
+**Decision (d), minimal:** a config flag keeps OKX liquidations out of the beta, with no automatic enable.
+- **The flag.** `config/beta_v0.yaml`: `liquidations.okx_enabled: false`. It is validated as a bool, and the section is required with exact keys (`beta/config.py`).
+- **Display.** While the flag is off, `okx_liq_shown` is always false (`beta/liq_mapping.py`, used by `beta/market_view.py`), so OKX amounts stay «н/д» whatever their percentile maturity.
+- **The rule.** `LIQUIDATION_STRESS` marks OKX ineligible with `OKX_LIQUIDATIONS_EXCLUDED` (`beta/rules.py`), so it never votes. Readiness shows it as unavailable, never as a venue on its way to readiness (`beta/readiness.py`).
+- **What stays exactly as before.**
+  - Screens, alerts, push inputs and the briefing (OKX was already «н/д» and not voting).
+  - Binance and Bybit.
+  - The collector, the schema and Stage-2 materialization. OKX values are still stored in the tape.
+- **The rules digest.** The flag is deliberately outside the rules digest. With the flag off, the rule decides exactly as it did, so episode identity holds. Turning the flag on later is a rule change and needs its own rules version.
+- **Texts.**
+  - The liquidation-stress definitions end with «Ликвидации OKX не учитываются.» / «OKX liquidations are excluded.».
+  - `/terms` adds «Ликвидации OKX не учитываются и показаны как «н/д»: OKX присылает данные о ликвидациях с задержкой до нескольких часов.» The EN version is «OKX liquidations are excluded and shown as n/a: OKX sends liquidation data up to several hours late.».
+
+**With two voting venues, `min_eligible_venues: 2` still holds:**
+- Binance and Bybit must both be eligible and both in their own top 5 %.
+- If one of them is dead or immature for a bucket, the rule is `NOT_EVALUABLE` (`INSUFFICIENT_ELIGIBLE_VENUES`): no liquidation episode and no push for that bucket. OKX never fills in.
+- This is what already held in practice: OKX was immature and never voted since D1.
+
+## 6. After the beta: the «таймер получения данных» (not built)
+**A receive time for every row: `received_at`.**
+- **Schema change.** `ALTER TABLE liquidations ADD COLUMN received_at TIMESTAMPTZ`, nullable and without a default, so old rows stay NULL ("unknown") and are never mislabelled. The collector then writes its own receive time on each insert (`storage/db.py insert_liquidations`, one more field).
+- **Cost on the hypertable.** A nullable column without a default is a catalog-only change in PostgreSQL and TimescaleDB: no chunk is rewritten. `storage/schema.sql` sets no compression or retention policy on `liquidations`, so no compressed-chunk restriction applies. It belongs in `storage/schema.sql`, applied by the collector at start like `mapping_version`. The beta never runs it, because it must not lock the collector's table (review of #378).
+- **Use.** Stage 2 and the beta could read a bucket "as known at decision time" (`received_at <= evaluated_at`). A replay then gives the same answer, and OKX could return under a stated as-of instead of hours-late data silently missing.
+
+**A lateness monitor.**
+- Per venue over the last 24 h: p50, p99 and max of `received_at - ts`, and the share of rows later than the 25 s materialization lag. Shown in `--beta-health` / `/admin_health`.
+- An alert when a measured venue's p99 exceeds the lag.
+- **Cost:** one read-only query over a 24 h range of the `(exchange, symbol, ts)` indexes, plus one health line.
+
+**Turning OKX back on** would need all of: these two pieces, a measured OKX lateness within the materialization lag (or an as-of read that tolerates it), `liquidations.okx_enabled: true`, and a new rules version.

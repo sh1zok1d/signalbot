@@ -89,9 +89,12 @@ def correct_raw_rows(rows: Iterable[Mapping[str, Any]]) -> list:
 OKX_LIQ_KEYS = tuple(f"x:okx:{f}" for f in SIDE_FIELDS)
 
 
-def okx_liq_shown(percentiles: Optional[Mapping[str, Any]]) -> bool:
-    """OKX liquidation amounts are printed only once both sides' percentiles are MATURE: 30 days of
-    real history, the same condition under which OKX may vote. Until then «н/д»."""
+def okx_liq_shown(percentiles: Optional[Mapping[str, Any]], *, enabled: bool) -> bool:
+    """OKX liquidation amounts are printed only while `liquidations.okx_enabled` is on (decision (d):
+    off for the beta, its events arrive hours late) and both sides' percentiles are MATURE: 30 days of
+    real history, the same condition under which OKX may vote. Otherwise «н/д»."""
+    if not enabled:
+        return False
     p = percentiles or {}
     return all(((p.get(k) or {}).get("tier") == "mature") for k in OKX_LIQ_KEYS)
 

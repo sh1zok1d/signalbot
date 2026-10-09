@@ -179,6 +179,12 @@ beta:
       last_cohort_day: 27
   regime_d7:
     enabled: true
+  # OKX liquidations (decision (d), 2026-10-09; docs/BETA_OKX_LATE_ARRIVAL_IMPACT.md): OKX's liquidation
+  # events arrive up to hours late, after their 5m bucket is materialized. false = OKX liquidation
+  # amounts are never shown and OKX never votes in LIQUIDATION_STRESS, whatever its percentile
+  # maturity (no automatic enable). OKX price, OI, volume and funding are not affected.
+  liquidations:
+    okx_enabled: false
   # Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8). Policy only: it
   # enters the config digest, never the rules digest. The unusual-hour gate itself
   # reuses context.label_high and has no key of its own (§3.1b).

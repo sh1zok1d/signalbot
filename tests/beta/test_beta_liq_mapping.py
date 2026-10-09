@@ -48,7 +48,9 @@ def test_okx_is_shown_only_with_mature_history_and_then_as_a_lower_bound():
     young = {"x:okx:long_liquidation_notional": {"tier": "building"},
              "x:okx:short_liquidation_notional": {"tier": "mature"}}
     mature = {k: {"tier": "mature"} for k in young}
-    assert not okx_liq_shown(young) and not okx_liq_shown(None) and okx_liq_shown(mature)
+    assert not okx_liq_shown(young, enabled=True) and not okx_liq_shown(None, enabled=True)
+    assert okx_liq_shown(mature, enabled=True)
+    assert not okx_liq_shown(mature, enabled=False)          # decision (d): the flag wins over maturity
     assert without_okx_liq({"x:okx:long_liquidation_notional": 5.0, "c:y": 1})["x:okx:long_liquidation_notional"] is None
     h = {"24h": {"liquidations": {"venues": {
         "okx": {"long": {"amount": 500.0, "missing": False, "lower_bound": False},

@@ -350,12 +350,12 @@ def test_liquidation_renders_vote_count_not_a_sum_and_details_keep_the_venues():
            ("okx", "long_liquidation_notional"): (1e5, 0.40)}
     states, _ = run([snap(liq=liq)])
     out = format_btc(CFG, _view(states))
-    assert "Long-side liquidations 2/3 exchanges" in out and "TRIGGERED" not in out
+    assert "Long-side liquidations 2/2 exchanges" in out and "TRIGGERED" not in out   # OKX excluded (d)
     assert "$6.1M" not in out
     _assert_compact(out)
     d = format_context_details(CFG, states[-1]["open"]["LIQUIDATION_STRESS_LONG"], states[-1])
-    # OKX's feed "doesn't represent the total" either: a lower bound like Binance (data reliability D2)
-    assert "Binance ≥$5M" in d and "Bybit $1M" in d and "OKX ≥$100K" in d
+    # OKX never votes while liquidations.okx_enabled is false (decision (d)), so it is «n/a» here
+    assert "Binance ≥$5M" in d and "Bybit $1M" in d and "OKX n/a" in d and "OKX ≥" not in d
     assert "top-5%" not in d and "≥ — lower bound:" in d
 
 

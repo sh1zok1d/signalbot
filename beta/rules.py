@@ -77,6 +77,9 @@ def _liquidation_rule(snapshot, cfg: BetaConfig, side_field: str):
     eligible, votes, why_not = [], [], {}
     for ex in cfg.exchanges:
         v = venues.get(ex) or {}
+        if ex == "okx" and not cfg.okx_liquidations_enabled:
+            why_not[ex] = "OKX_LIQUIDATIONS_EXCLUDED"       # decision (d): never a vote, whatever its maturity
+            continue
         if not v.get("declared_available"):
             why_not[ex] = "FEED_NOT_DECLARED_AVAILABLE"
             continue

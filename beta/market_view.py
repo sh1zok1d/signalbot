@@ -135,7 +135,7 @@ async def _tape_and_oi(conn, cfg: BetaConfig, view: Mapping[str, Any], *,
                                                since=through - FUNDING_MAX_AGE)
     from .liq_mapping import okx_liq_shown, without_okx_liq
     metrics = {b: m for b, m in hist}
-    if not okx_liq_shown((latest.get("snapshot") or {}).get("percentiles")):
+    if not okx_liq_shown((latest.get("snapshot") or {}).get("percentiles"), enabled=cfg.okx_liquidations_enabled):
         metrics = {b: without_okx_liq(m) for b, m in metrics.items()}
     return {"as_of": as_of, "metrics": metrics, "oi": oi, "funding": funding}
 

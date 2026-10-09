@@ -78,18 +78,23 @@ def test_not_fresh_evaluation_is_not_evaluable():
 
 def test_liquidation_stress_votes_and_not_evaluable_paths():
     hi = _p(0.99)
-    s = snap(liq={("binance", "long"): hi, ("okx", "long"): hi})
+    s = snap(liq={("binance", "long"): hi, ("bybit", "long"): hi})
     assert evaluate_bucket(CFG, s, None)["LIQUIDATION_STRESS_LONG"]["status"] == QUALIFIES
     assert evaluate_bucket(CFG, s, None)["LIQUIDATION_STRESS_SHORT"]["status"] == NOT_QUALIFIES
+    # a mature OKX never votes while liquidations.okx_enabled is false (decision (d))
+    so = evaluate_bucket(CFG, snap(liq={("binance", "long"): hi, ("okx", "long"): hi}), None)["LIQUIDATION_STRESS_LONG"]
+    assert so["status"] == NOT_QUALIFIES and so["detail"]["ineligible"]["okx"] == "OKX_LIQUIDATIONS_EXCLUDED"
     # one venue extreme cannot trigger a 2-venue event
     s1 = snap(liq={("binance", "long"): hi})
     assert evaluate_bucket(CFG, s1, None)["LIQUIDATION_STRESS_LONG"]["status"] == NOT_QUALIFIES
     # only one eligible venue -> NOT_EVALUABLE
     venues = {"binance": {"declared_available": True, "heartbeat_healthy": True},
-              "bybit": {"declared_available": False, "heartbeat_healthy": True},
-              "okx": {"declared_available": True, "heartbeat_healthy": False}}
+              "bybit": {"declared_available": True, "heartbeat_healthy": False},
+              "okx": {"declared_available": True, "heartbeat_healthy": True}}
     ev = evaluate_bucket(CFG, snap(venues=venues, liq={("binance", "long"): hi}), None)["LIQUIDATION_STRESS_LONG"]
-    assert ev["status"] == NOT_EVALUABLE and ev["detail"]["ineligible"]["okx"] == "HEARTBEAT_UNHEALTHY"
+    # one of Binance / Bybit dead: not evaluable, and OKX never fills in (decision (d))
+    assert ev["status"] == NOT_EVALUABLE and ev["detail"]["ineligible"]["bybit"] == "HEARTBEAT_UNHEALTHY"
+    assert ev["detail"]["ineligible"]["okx"] == "OKX_LIQUIDATIONS_EXCLUDED"
     # immature / unmeasured venues are not eligible
     s2 = snap(liq={("binance", "long"): _p(0.99, tier="building"), ("bybit", "long"): _p(None, value=None)})
     assert evaluate_bucket(CFG, s2, None)["LIQUIDATION_STRESS_LONG"]["status"] == NOT_EVALUABLE
@@ -99,7 +104,7 @@ def test_measured_zero_counts_as_eligible():
     zero = {"value": 0.0, "rank": 0.5, "tier": "mature", "sample_size": 100}
     s = snap(liq={(ex, "long"): zero for ex in ("binance", "bybit", "okx")})
     ev = evaluate_bucket(CFG, s, None)["LIQUIDATION_STRESS_LONG"]
-    assert ev["status"] == NOT_QUALIFIES and len(ev["detail"]["eligible"]) == 3
+    assert ev["status"] == NOT_QUALIFIES and ev["detail"]["eligible"] == ["binance", "bybit"]   # OKX excluded (d)
 
 
 def test_streaks_chain_and_reset():
