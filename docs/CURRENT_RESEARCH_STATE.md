@@ -1,3 +1,20 @@
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — design frozen, model not fit — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES | model_fit = false | claim ceiling RETROSPECTIVE_FORECAST_PROTOTYPE`
+`OBJECT STATUS = CROSS_VENUE_AND_MULTI_EPOCH_REPLICATED_DIRECTIONAL_STATE / HISTORICAL_ONLY`
+`QUESTION = does frozen RANGE_POSITION_4H improve walk-forward P(UP next 1h) beyond RET_4H, RV_4H, RET_1H and RET_15M`
+`TARGET = Y = 1 if R_1H > 0 else 0 | exact zero excluded | rule ZERO_RETURN_EXCLUDED`
+`SEGMENTS = BitMEX 2016-2019 labeled 125983 | Binance 2020-2024 labeled 175309 | Binance 2025-2026 labeled 60999 | grids not stitched | no venue dummy`
+`FOLDS = expanding ISO week | train strictly before Monday 00:00Z | floors 1000 rows and 20 weeks | 15m test rows 113210 + 162084 + 60999`
+`MODEL = unpenalized logistic Newton | no C | training-only mean and population std | raw probabilities`
+`NOT FIT = Brier, log loss, AUROC, coefficients, calibration, bootstrap | evaluator exits AWAITING_OWNER_GO`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`
+`SUPPORT SHA256 = 8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`
+`FOLDS SHA256 = ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_DESIGN.md`.
+
 ## RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 — one Binance 2025–2026 read — 2026-10-09
 
 `MODE = MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = true | claim ceiling HISTORICAL_ONLY`

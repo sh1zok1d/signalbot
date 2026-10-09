@@ -8999,6 +8999,22 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 design frozen, model not fit
+
+**Mode.** Outcome-blind freeze of one retrospective forecast prototype. `model_fit = false`. Evidence class `RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`. Claim ceiling `RETROSPECTIVE_FORECAST_PROTOTYPE`. The object status at opening is `CROSS_VENUE_AND_MULTI_EPOCH_REPLICATED_DIRECTIONAL_STATE / HISTORICAL_ONLY`. The three surfaces were already read for this feature. This is not a pristine holdout.
+- **Question.** Does frozen `RANGE_POSITION_4H` improve a walk-forward probability of the next-hour direction beyond `RET_4H`, `RV_4H`, `RET_1H`, and `RET_15M`.
+- **Target.** `Y = 1` when `R_1H > 0` and `Y = 0` when `R_1H < 0`. Exact zeros are excluded. Rule `ZERO_RETURN_EXCLUDED`.
+- **Segments.** BitMEX 2016–2019, feature rows `127303`, exact zeros dropped `1320`, labeled `125983`. Binance 2020–2024 from `CORE_BTC_BINANCE_V0`, feature rows `175372`, zeros `63`, labeled `175309`. Binance 2025–2026, feature rows `61016`, zeros `17`, labeled `60999`. Grids are not stitched. No venue dummy. E1 objects were not requested.
+- **Folds.** Expanding ISO week. Training timestamps are strictly before Monday 00:00Z. Floors are 1000 labeled rows and 20 ISO weeks. Primary 15-minute test rows: BitMEX `113210` over 171 weeks, Binance 2020–2024 `162084` over 242 weeks, Binance 2025–2026 `60999` over 92 weeks. The week of `2024-12-30` is split by segment. Its 189 late-2024 anchors are not training rows for the 2025 block that shares that Monday.
+- **Model, not fit.** Unpenalized logistic Newton. No `C`. Scaler moments come from the training block only. Raw probabilities. Bootstrap seed `20261120` is reserved and was not used. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`. Support SHA256 `8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`. Folds SHA256 `ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`.
+- **Not computed.** Brier score, log loss, AUROC, calibration, coefficients, probability shifts. The evaluator exits `AWAITING_OWNER_GO`. `PRODUCT_INTEGRATION_CANDIDATE = NO`.
+
+```
+WINDOWS_CONSUMED = none beyond the already consumed price paths; the census counted labeled anchors and weeks only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = DESIGN_AND_SUPPORT_FROZEN
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 one Binance read
 
 **Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. The surface had already been opened for other product questions. This relation had not. It is not a pristine holdout. Design commit `ba2f9a2177f3869742dd72446340c8af223c061e`. Design SHA256 `9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370`. Support SHA256 `84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab`. Evaluator digest `51d8aa6beccaa89dab428df9688268f84a2199311f985c84fd76fac90e2fb19b`. A second read returns `REFUSING_RERUN`.

@@ -1,0 +1,138 @@
+{
+  "binance_2025_2026_sha256": "64c1646acf7b371904ee6fcb25373383589e16c368d23267f136f4481f9894b9",
+  "bitmex_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "brier_computed": false,
+  "bybit_included": false,
+  "coefficients_computed": false,
+  "core_snapshot": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+  "e1_objects_requested": false,
+  "grids_stitched": false,
+  "logloss_computed": false,
+  "model_metrics_computed": false,
+  "p_up_computed": false,
+  "probabilities_computed": false,
+  "segments": {
+    "BINANCE_2020_2024": {
+      "first_labeled_t": "2020-01-01T04:15:00Z",
+      "first_test": {
+        "block_start": "2020-05-18T00:00:00Z",
+        "iso_week": 21,
+        "iso_year": 2020,
+        "n_train": 13225,
+        "n_train_weeks": 20
+      },
+      "hourly_first_test": {
+        "block_start": "2020-05-18T00:00:00Z",
+        "iso_week": 21,
+        "iso_year": 2020,
+        "n_train": 3307,
+        "n_train_weeks": 20
+      },
+      "hourly_labeled": 43830,
+      "hourly_test_rows": 40523,
+      "hourly_test_weeks": 242,
+      "labeled_by_calendar_year": {
+        "2020": 35111,
+        "2021": 35040,
+        "2022": 35020,
+        "2023": 35013,
+        "2024": 35125
+      },
+      "last_labeled_t": "2024-12-31T23:00:00Z",
+      "last_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_test": 189
+      },
+      "n_exact_zero_excluded": 63,
+      "n_feature_eligible": 175372,
+      "n_labeled": 175309,
+      "primary_test_rows": 162084,
+      "primary_test_weeks": 242,
+      "primary_warmup_rows": 13225,
+      "primary_warmup_weeks": 20
+    },
+    "BINANCE_2025_2026": {
+      "first_labeled_t": "2025-01-01T04:15:00Z",
+      "first_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_train": 175120,
+        "n_train_weeks": 261
+      },
+      "hourly_first_test": {
+        "block_start": "2024-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2025,
+        "n_train": 43782,
+        "n_train_weeks": 261
+      },
+      "hourly_labeled": 15252,
+      "hourly_test_rows": 15252,
+      "hourly_test_weeks": 92,
+      "labeled_by_calendar_year": {
+        "2025": 35014,
+        "2026": 25985
+      },
+      "last_labeled_t": "2026-10-08T23:00:00Z",
+      "last_test": {
+        "block_start": "2026-10-05T00:00:00Z",
+        "iso_week": 41,
+        "iso_year": 2026,
+        "n_test": 381
+      },
+      "n_exact_zero_excluded": 17,
+      "n_feature_eligible": 61016,
+      "n_labeled": 60999,
+      "primary_test_rows": 60999,
+      "primary_test_weeks": 92,
+      "primary_warmup_rows": 0,
+      "primary_warmup_weeks": 0
+    },
+    "BITMEX_2016_2019": {
+      "first_labeled_t": "2016-05-13T16:00:00Z",
+      "first_test": {
+        "block_start": "2016-09-26T00:00:00Z",
+        "iso_week": 39,
+        "iso_year": 2016,
+        "n_train": 12773,
+        "n_train_weeks": 20
+      },
+      "hourly_first_test": {
+        "block_start": "2016-09-26T00:00:00Z",
+        "iso_week": 39,
+        "iso_year": 2016,
+        "n_train": 3187,
+        "n_train_weeks": 20
+      },
+      "hourly_labeled": 31510,
+      "hourly_test_rows": 28323,
+      "hourly_test_weeks": 171,
+      "labeled_by_calendar_year": {
+        "2016": 21835,
+        "2017": 34932,
+        "2018": 34599,
+        "2019": 34617
+      },
+      "last_labeled_t": "2019-12-31T23:00:00Z",
+      "last_test": {
+        "block_start": "2019-12-30T00:00:00Z",
+        "iso_week": 1,
+        "iso_year": 2020,
+        "n_test": 186
+      },
+      "n_exact_zero_excluded": 1320,
+      "n_feature_eligible": 127303,
+      "n_labeled": 125983,
+      "primary_test_rows": 113210,
+      "primary_test_weeks": 171,
+      "primary_warmup_rows": 12773,
+      "primary_warmup_weeks": 20
+    }
+  },
+  "unit": "RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1",
+  "venue_dummy": false,
+  "zero_return_rule": "ZERO_RETURN_EXCLUDED"
+}
