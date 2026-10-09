@@ -156,10 +156,14 @@ def test_cell_clear_uses_the_frozen_scale():
     )
 
 
-def test_outcome_evaluator_refuses_before_owner_go():
+def test_outcome_evaluator_refuses_a_second_official_run(monkeypatch, tmp_path):
+    monkeypatch.setattr(evaluate, "OUT_JSON", tmp_path / "result.json")
+    monkeypatch.setattr(evaluate, "OUT_MD", tmp_path / "result.md")
+    monkeypatch.setattr(evaluate, "OUT_MANIFEST", tmp_path / "manifest.json")
+    (tmp_path / "result.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit) as exc:
         evaluate.main()
-    assert str(exc.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+    assert str(exc.value) == K.REFUSAL_RERUN
 
 
 def test_official_a1_support_is_outcome_blind_and_refuses_a_second_write():

@@ -135,10 +135,14 @@ def test_supporting_names_follow_endpoint_order_and_rv_prev_cannot_enter():
         )
 
 
-def test_outcome_evaluator_still_refuses_and_sample_is_unchanged():
+def test_outcome_evaluator_still_refuses_and_sample_is_unchanged(monkeypatch, tmp_path):
+    monkeypatch.setattr(evaluate, "OUT_JSON", tmp_path / "result.json")
+    monkeypatch.setattr(evaluate, "OUT_MD", tmp_path / "result.md")
+    monkeypatch.setattr(evaluate, "OUT_MANIFEST", tmp_path / "manifest.json")
+    (tmp_path / "result.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit) as exc:
         evaluate.main()
-    assert str(exc.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+    assert str(exc.value) == "REFUSING_RERUN"
     design = hashlib.sha256(Path("docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md").read_bytes()).hexdigest()
     a1 = hashlib.sha256(Path("docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md").read_bytes()).hexdigest()
     support = json.loads(
