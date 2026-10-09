@@ -1,3 +1,17 @@
+## RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 — design and support frozen, outcome unread — 2026-10-09
+
+`MODE = HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = false | claim ceiling HISTORICAL_ONLY`
+`QUESTION = does RANGE_POSITION_4H keep a negative next-1h association after RET_4H and RV_4H on BitMEX 2016-2019`
+`SURFACE = D2_BITMEX_PRE2020_XBTUSD canonical_5m.jsonl.gz | SHA256 8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa | last-trade price, not inverted`
+`SUPPORT = eligible 127303 | ISO weeks 191 | phase anchors 127440 | gap exclusions 116 | lookback exclusions 18 | future exclusions 3 | T 2016-05-13T16:00:00Z through 2019-12-31T23:00:00Z | relation_computed = false`
+`PRIMARY = partial Spearman of RP4H with R_1H given RET_4H and RV_4H | seed 20261118 | B 2000 | ISO weeks`
+`NOT OPENED = the BitMEX association, D7 bytes, rejection, bars-since, a second horizon, fees`
+`DESIGN SHA256 = 124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`
+`SUPPORT SHA256 = a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1_DESIGN.md`.
+
 ## RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 — one Bybit read — 2026-10-09
 
 `MODE = CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT | outcome_read = true | claim ceiling HISTORICAL_ONLY`

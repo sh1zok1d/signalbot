@@ -1,0 +1,23 @@
+{
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261118,
+  "claim_ceiling": "HISTORICAL_ONLY",
+  "d2_sha256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "d7_gzip_sha256_not_read": "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c",
+  "d7_ohlc_matches_d2_on_shared_opens": true,
+  "evidence_class": "HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION",
+  "gap_end_open": "2016-12-07T23:50:00Z",
+  "gap_start_open": "2016-12-06T23:55:00Z",
+  "horizon_bars": 12,
+  "lookback_bars": 48,
+  "min_eligible": 1000,
+  "min_valid_draws": 1900,
+  "min_weeks": 20,
+  "parent_epoch": "2020-01-01T00:00:00Z",
+  "phase_residue": 2,
+  "price_transform": "last_trade_price_space_no_inverse",
+  "product_integration_candidate": false,
+  "relation_already_read_on_bitmex": false,
+  "surface_end_exclusive": "2020-01-01T00:00:00Z",
+  "unit": "RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1"
+}

@@ -8999,6 +8999,21 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_BITMEX_TEMPORAL_REPLICATION_V1 design and support frozen
+
+**Mode.** Outcome-blind freeze of one temporal replication. `outcome_read = false`. Evidence class `HISTORICAL_TEMPORAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`.
+- **Question.** On BitMEX XBTUSD 2016–2019, does `RANGE_POSITION_4H` still associate with `R_1H` after `RET_4H` and `RV_4H`.
+- **Surface.** `D2_BITMEX_PRE2020_XBTUSD` `canonical_5m.jsonl.gz`, SHA256 `8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa`. Last-trade prices. Not inverted. D7 is not read. The only hole is the 288-bar run `2016-12-06T23:55:00Z` through `2016-12-07T23:50:00Z`.
+- **Support.** Eligible anchors `127303`. ISO weeks `191`. Phase anchors `127440`. Lost to the gap `116`. Lost to incomplete lookback `18`. Lost to incomplete future `3`. `T` from `2016-05-13T16:00:00Z` through `2019-12-31T23:00:00Z`. No rank correlation is in the census. Support SHA256 `a564c68222d4117ab97f8462bf020426c9f6b7f1992d26316f4562c2172c74f3`.
+- **Primary.** Partial Spearman imported from the Bybit successor. Bootstrap `B = 2000`, seed `20261118`, ISO weeks. Design SHA256 `124653de520dbacfd3e1945a52162fc9fd18b996866531368113307c6a69db3c`.
+- **Not in this unit.** A second horizon, rejection, bars-since, fees, a new discovery scan.
+
+```
+WINDOWS_CONSUMED = none for the association; the support census counted anchors only
+OUTCOME_READ = no; STATUS = DESIGN_AND_SUPPORT_FROZEN
+OBJECTS_2025_2026_USED = none; D7 = not read; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_INCREMENTAL_REPLICATION_V1 one Bybit read
 
 **Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `CROSS_VENUE_HISTORICAL_REPLICATION / ONE_SHOT`. Claim ceiling `HISTORICAL_ONLY`. Design commit `4c6c5583ee93f4541224363e129d5b9505167fe8`. Design SHA256 `8132f181fd4ced19ee1c356a99022e195c005f0b2e95ac2135074ad7cc4c0e7d`. Evaluator digest `bb0f5f548497d9ceec7c849d929973fac9f9aebb43e7f78785225271d5a5e07b`. A second read returns `REFUSING_RERUN`.
