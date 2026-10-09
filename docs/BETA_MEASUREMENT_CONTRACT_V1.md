@@ -350,6 +350,7 @@ Nothing else in the product changes during the test (`PRODUCT_FIRST_DECISION_V1`
 
 | Event | Date (UTC) | Metrics split at the date |
 |---|---|---|
+| **Preview period** `[preview deploy, official start)` (owner, 2026-10-09; `docs/BETA_PREVIEW_V1.md`) | *the preview deploy's UTC time, then the official start's, both filled in when they run* | Excluded from **every** metric of the test and from the observation week (`ORCHESTRATION_V1.md` §4a), not split. Claim-journal rows written in it are kept: the level-race line needs its rows. They are reported as the preview period and never pooled with test rows. |
 | Forecast layer: model states (`L3_HISTORY_BACKED` / `L3_LIVE` / `FALLBACK`) replace `HIST` | *to be announced* | every metric of the test (U1a, U1b, U2, U3 inputs) and every forecast-layer accuracy line |
 | Forecast layer: each later correction | *to be announced, one row each* | every metric of the test and the layer's accuracy lines |
 | D2: the liquidation fix (OKX / Bybit mapping, `mapping_version`) reaches production | *filled in after the deploy* | every metric in which `LIQUIDATION_STRESS`, the «вынос лонгов / шортов» lines or the liquidation votes take part |
@@ -359,7 +360,7 @@ A row is never removed or back-dated, and a date is never moved after a number o
 ### 12.3 Claim cohorts and text changes
 
 - **Cohort boundary.** A journal row carries the `template_digest` of its class: a sha256 over the RU / EN texts its numbers are printed with (`beta/claims.py`). Any change to one of those texts starts a **new claim cohort** of that class. Accuracy lines and the claim journal's reports count each cohort on its own; rows of the two cohorts are never pooled.
-- **#403.** It changes the `pa_next` template, which is part of `L3_LEVEL_TOUCH_24H`. Its deploy is therefore a cohort boundary for that class: the first row with the new digest opens the new cohort. The date is the step-3 deploy, before Day 0, so the boundary falls before the test.
+- **#403.** It changes the `pa_next` template, which is part of `L3_LEVEL_TOUCH_24H`. Its deploy is therefore a cohort boundary for that class: the first row with the new digest opens the new cohort. The date is the **preview deploy** (owner, 2026-10-09: the step-3 deploy became the preview), before Day 0, so the boundary falls before the test.
 - **Journal = display.** A chance is journaled as shown only where its number is printed. Since #403 (`fa0ccb2`), `claims.shown_keys` journals a level alert's `L3_LEVEL_TOUCH_24H` only when the payload's `next.touch_24h_wording.mode` is `"B"`. A chance shown in the «исторически» fallback, or not printed at all, is never journaled as shown. The rule takes effect at the same #403 deploy date as the cohort boundary.
 - **A text change that is not a cohort boundary.** #402's 4h-corridor record in the level and price alerts (`pa_corridor`, `pa_corridor_now`, `pa_track_live`, `pa_track_hold`) is in no claim class's template, so no digest changes. It is a text change: it does not restart the observation week (`ORCHESTRATION_V1.md` §4a) and resets no count.
 - **A display-definition change that is not in the contract.** #410 (HORIZON V4: the OI headline needs ≥ 2 venues on every horizon) changes what a surface shows, not a definition or a query of this contract, and no metric of the test reads it. It resets no count. D3(c) (funding, a HORIZON bump) gets the same check when it ships; if it touches nothing here, one line saying so is added.
@@ -367,7 +368,7 @@ A row is never removed or back-dated, and a date is never moved after a number o
 
 | Template change | Classes | Date (UTC) |
 |---|---|---|
-| #403 `pa_next` (merged as `a6b0129`) | `L3_LEVEL_TOUCH_24H` | the step-3 deploy (its UTC date recorded here when it runs) |
+| #403 `pa_next` (merged as `a6b0129`) | `L3_LEVEL_TOUCH_24H` | the preview deploy (its UTC date recorded here when it runs) |
 
 ## 13. Owner decisions of 2026-10-08 (OUT-1…5, before any number of the test)
 

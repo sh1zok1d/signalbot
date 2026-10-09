@@ -168,6 +168,13 @@ For schema, push, collectors, the measurement contract, any forecast display and
 - **Restarts the clock:** any change to the collectors or the schema, to push gating or limits, to metric definitions or to the claim journal, and turning on a Day-0 flag after the start.
 - **Does not restart it:** text fixes, display-only flags whose code was in the starting deploy, and bug fixes that do not change the observed behavior. ОПГ-1 states which kind a fix is in its record, and the architect confirms.
 
+**Preview deploys (owner, 2026-10-09).** A deploy that the release log declares `PREVIEW` never starts the observation week and never counts toward it. Under preview:
+- the owner reviews the UX with every ready surface on;
+- automated sends go to the owner only (`access.preview_owner_only`);
+- the test stays `NOT_OPEN`, and Day 0 is unset.
+
+The week starts only at the deploy the owner names after accepting the UX. That deploy gets its own release-candidate record. Nothing measured under preview carries over into the week (`BETA_MEASUREMENT_CONTRACT_V1.md` §12.2; `docs/BETA_PREVIEW_V1.md`).
+
 ## 5. Records
 
 Decisions live in documents on main, not in chat. A decision given in a session message is written into the relevant document by the PR that implements it.
