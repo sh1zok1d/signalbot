@@ -536,6 +536,20 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
   - `brief` and `weekly` are rendered from the current state.
   - It writes nothing but its `admin_preview` audit row: no outbox row, no claim display, no view, no activity, and no fuse or limit is used.
 
+**Pulsy UX V2, P0 owner tools (2026-10-09; nothing changes on user surfaces).**
+- **`/admin_export_views [n]`** (owner only; n ≤ 50, default 20; `beta/ux_export.py`).
+  - Sends the owner one JSON file: the last n persisted views, market alerts and pushed decisions with their episode.
+  - Market data only. A denylist (user ids, chat ids, fingerprints, feedback, …) is dropped at any depth.
+  - It is read-only and audited as `admin_export_views`.
+- **`/admin_preview v2 <btc|levels|brief|alert|push>`** (owner only, behind `access.ux_v2_preview`; `beta/ux_preview.py`).
+  - Renders the V2 template (L1) on live data, with L2 «Почему так?» / L3 «Данные» buttons (`x2:<screen>:<level>`).
+  - Those buttons resolve only for the owner while the flag is on.
+  - It writes only its audit row.
+  - The renderer is `beta.ux.render(screen, level, lang, facts)` (track A); until that lands, `stub_render`.
+- **The gallery:** `python -m tools.ux_gallery.build --export pulsy_views.json --out ux_gallery.html`.
+  - It builds one self-contained HTML page: 360 px and wide bubbles, RU and EN, three levels with in-page buttons.
+  - Its states are the REAL export, labelled with each snapshot time, plus SYNTHETIC states from `tools/beta_user_sim`; 18 by default.
+
 **Delivery latency (backlog A4; `beta/latency.py`).** `/admin_latency [days]` (default 7, at most 90) reports, per class, how long delivered messages took from the moment their fact existed to delivery (`finished_at` of the SENT row). Each value is a nearest-rank P50, P95 and max with its N, plus detection (source → decision) and sending (decision → delivery) apart. Messages that expired undelivered are counted per class. The source time per class:
 - `level`, `price`: the close of the 1m or 5m bar that touched;
 - `move`: the close of the 5m bar that completed the move;
