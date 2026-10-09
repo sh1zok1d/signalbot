@@ -87,7 +87,38 @@ No other return, lag, TWAP or EMA residual, RSI, lag grid, variant, horizon or i
 
 ## 9. Exact exposure audit (before freeze)
 
-AUDIT_PLACEHOLDER
+Read-only audit of every recorded read of BitMEX XBTUSD 2016–19: atlas surfaces and units, ledger, unit records and code, Cursor branches. Nothing was computed.
+
+**Verdict: Q = OCC_MEAN_4H → R_1H has never been read on S, and neither has any equivalent form.** Checked forms:
+- the close's distance from a trailing SMA or TWAP;
+- price z-score against a rolling mean, or Bollinger %B;
+- occupancy or frac_near;
+- midpoint slope;
+- the A1 occupancy residual.
+
+S is therefore `QUESTION_FRESH_REPLICATION` for Q: time-disjoint from the discovery, but not pristine.
+
+| read of S | conditioning | outcome | class vs Q |
+|---|---|---|---|
+| D2 corrected replication (daily 2017–19) | RV_24H > trailing P90, side = sign(RET_24H) | 24h aligned MAE | unrelated |
+| D7 confirmatory (hourly 2016–19) | \|return\| per relative quote volume | same state next hour | unrelated |
+| #357 / #368 (DH1 trades 5m 2017-09 … 2019-12) | structural first touches, real vs pseudo | resolution / RV change | unrelated |
+| **Unit A** RP4H BitMEX (identical anchors, N 127,303) | RP4H raw; given RET_4H, RV_4H; given RET_4H; given B0 + RET_1H + RET_15M; width; quintiles, years, halves | R_1H | **adjacent (closest)** |
+| Cursor's parallel RP4H BitMEX read | RP4H raw and partials (subset of Unit A), no OCC | R_1H | adjacent |
+| DH1/DH2 replications, R03 cards, G01, GV0 cards, event-corridor §6, withdrawn joint design | no outcome opened on S | — | none |
+
+**Disclosed adjacent exposure:**
+- Unit A ran on the same anchors with the same R_1H vector.
+- It exposed the RP4H term of OCC = RP4H − (close − SMA₄₇)/(H − L) in full: raw and partials, quintiles, years and halves.
+- It used the local path as a control. Its local-path secondary for RP4H was −0.0106 [−0.0186, −0.0024], against −0.0474 for its primary. The designer of this unit knows that attenuation.
+- Unit A never published RET_1H's or RET_15M's own association with R_1H.
+- The only new content of Q on S is the term (close − SMA₄₇)/(H − L) beyond the controls.
+
+**Canonical-file caveats:**
+- **Zero-trade buckets** (22,728, clustered in thin early periods) enter the 47-close mean as published. This follows Unit A for parity. No zero-trade sensitivity is added (owner: no extra variants).
+- **Inverse contract:** last-trade USD price, not inverted. OCC is invariant to an affine price map.
+- **The DH1 trades file is a different construction** and is not used.
+- BitMEX × DIRECTION had 4 cells before this unit (all from Unit A).
 
 ## 10. Mathematical identity audit (outcome-blind)
 

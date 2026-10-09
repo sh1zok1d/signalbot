@@ -35,7 +35,7 @@ ROUTE_NOT = "OCC_NOT_TEMPORALLY_REPLICATED"
 FLAG_PRIMARY_OPPOSES = "PRIMARY_SIGN_OPPOSES"
 
 # ---- pins (design SHA set in the freeze commit; support pinned after the outcome-blind preflight)
-DESIGN_SHA256 = "PENDING"
+DESIGN_SHA256 = "788029c561570900bab4f54682265c98cc08bfb22d791a8339ec395afa9cf75d"
 DESIGN_COMMIT = "PENDING"
 EXPECTED_N = None
 EXPECTED_WEEKS = None
