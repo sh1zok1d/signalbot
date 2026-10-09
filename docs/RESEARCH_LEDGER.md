@@ -8735,3 +8735,62 @@ EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_ROUTE_UNCHANGED = yes
 OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
 PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 design and support census
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. Not a confirmation and not a rescue of +9.48 pp.
+- **Design.** `docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md`, SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. Code digest `e0fb0ac0a2c33229733005eabeb44dd659dd70b2c0db80461eff1144545de971`. Census `2026-10-09T04:49:09Z`.
+- **Object.** Relative width of the completed UTC midnight hour. One horizon, the next 60m. Two unread endpoints: realized variation and directionless displacement. Incremental baseline is the previous hour's volatility, not the formation hour's own volatility.
+- **Surface.** Already consumed `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`, exposure only for this census. No 2025/2026, E1, BitMEX, or prospective tape.
+- **Support.** Calendar days 1827. Usable formations 1821. Analysis sample 1820. ISO weeks 262. Relative-width p50 0.00823, p90/p10 5.91. Lag-1 rank correlation of width 0.55. Status `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`. The gate does not authorize Y.
+- **Not computed.** Future RV, future range, displacement, signed return, and any association of width with a future path.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 VOLATILITY_STATE.range_forecast 2020-01-01..2024-12-31, formation-width availability only
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 amendment A1, before any outcome
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. The original design file is not rewritten.
+- **Amendment.** `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md`. Original design SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`.
+- **Change.** The incremental covariate is `RV_FORMATION`, the realized variation of the completed UTC midnight hour. `RV_PREV` remains descriptive secondary context and cannot set the route. No joint regression.
+- **Support.** Path presence only, `2026-10-09T05:08:01Z`. `RV_FORMATION` complete on 1820 days. Overlap with the original analysis sample 1820. ISO weeks 262. `sample_n_changed = false`.
+- **Not computed.** Future RV, future displacement, Spearman with Y, and partial Spearman with Y.
+
+```
+WINDOWS_EXPOSED = unchanged; A1 did not open a new surface and did not consume the row
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; SAMPLE_N_CHANGED = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 amendment A2, before any outcome
+
+**Mode.** `DISCOVERY`. `outcome_read = false`. `future_association_read = false`. The original design and amendment A1 are not rewritten.
+- **Amendment.** `docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md`. Original design SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. A1 SHA256 `a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e`.
+- **Change.** Specificity is per endpoint. A foundation failure on one endpoint cannot withhold `FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT` earned by the other endpoint's own chain.
+- **Unchanged.** Statistics, thresholds, bootstrap, sample, surface, and outcome definitions. Analysis N 1820. ISO weeks 262. No new census.
+- **Not computed.** Future RV, future displacement, Spearman with Y, and partial Spearman with Y.
+
+```
+WINDOWS_EXPOSED = unchanged; A2 did not open a new surface
+OUTCOME_READ = no; FUTURE_ASSOCIATION_READ = no; SAMPLE_N_CHANGED = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — FORMATION_WIDTH_REGIME_V1 one outcome read
+
+**Mode.** `DISCOVERY`. One read of the frozen map. `ROUTE = FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT`. Claim ceiling L2 on an exposed surface. Not a confirmation, not an edge, and not a product change.
+- **Evaluator.** Commit `b1f36a56a5dfefd96f344238cf1bf071f6c42884`, digest `94c01af8e2ab9e2a9abc7e7eff54dd92e8dc57afe5e11bf2e948e0e60a8dab31`. Read `2026-10-09T05:40:02Z`. Design SHA256 `64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6`. A1 SHA256 `a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e`. A2 SHA256 `a76c0a891fedb7a907544878ef49cd136d3831fb6782d89e56a00ce96e49e07a`.
+- **Sample.** `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`. N 1820. ISO weeks 262. Seed `20261107`. B 2000.
+- **ACTIVITY.** Foundation Spearman +0.681, family interval [+0.634, +0.722], clears. Incremental given `RV_FORMATION` +0.102, interval [+0.048, +0.155], clears. Year-stable. Lag placebo +0.506. `current_state_specific` true.
+- **DISPLACEMENT.** Foundation +0.321, interval [+0.265, +0.375], clears. Incremental +0.014, interval [−0.037, +0.068], does not clear. Year-stable. Lag placebo +0.284. `current_state_specific` true.
+- **Route inputs.** Supporting endpoint ACTIVITY only. `RV_PREV` stayed secondary: Spearman(V, RV_PREV) +0.696. It did not enter the route.
+- **Not started.** No fresh confirmation, no 2025/2026, no E1, no other venue, no forecast, no product feature. Rerun returns `REFUSING_RERUN`.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 VOLATILITY_STATE.range_forecast 2020-01-01..2024-12-31, one read of the frozen formation-width map
+OUTCOME_READ = yes; ROUTE = FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT; CONFIRMATION = false
+OBJECTS_2025_2026_USED = none; E1 = not touched; PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```

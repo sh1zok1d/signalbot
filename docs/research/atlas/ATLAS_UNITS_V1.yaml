@@ -4254,3 +4254,35 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'EXECUTED ONCE. Route NO_WIDTH_HELD_RESOLUTION_DIFFERENCE. Evaluator c51e7da0. Support census remains EXPOSED and the outcome line is CONSUMED. 241 off-grid February 2018 opens were not placed. Rerun REFUSING_RERUN. No product change.'
+  - id: FORMATION-WIDTH-REGIME-V1
+    title: FORMATION_WIDTH_REGIME_V1
+    program: FORMATION_WIDTH_V1
+    row: VOLATILITY_STATE.range_forecast
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'one outcome read; Binance USD-M BTCUSDT 2020-01-01..2024-12-31; analysis sample 1820 days, 262 ISO weeks'
+    units_n: 'N 1820, 262 ISO weeks; ACTIVITY foundation Spearman +0.681 clears, incremental given RV_FORMATION +0.102 clears; DISPLACEMENT foundation +0.321 clears, incremental +0.014 does not'
+    practical_bar: 'A cell clears only if absolute Spearman is at least 0.10 and the week-block family interval excludes 0. Two endpoints, foundation and incremental given RV_FORMATION. Not a target copied from the already-read 4h correlation.'
+    mechanism: 'MODE=DISCOVERY. Relative width of the completed UTC midnight hour may be a PIT-safe regime state. Not a special-boundary claim and not a rescue of +9.48 pp. Amendment A1 asks whether width adds information beyond RV of that same hour. RV of the previous hour is descriptive context and is not the route covariate.'
+    function: 'One anchor. V=(high-low)/P0. Horizon is the next 60m. Endpoints ACTIVITY and DISPLACEMENT. Partial Spearman after RV_FORMATION. Week-block bootstrap, B=2000, seed 20261107. Amendment A2 route. One outcome read 2026-10-09T05:40:02Z. Evaluator b1f36a56. Rerun refused.'
+    verdict: 'EXECUTED ONCE (2026-10-09T05:40:02Z). Route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT. Supporting endpoint ACTIVITY only. ACTIVITY foundation +0.681, family interval about [+0.634, +0.722], incremental given RV_FORMATION +0.102, interval about [+0.048, +0.155], both clear. DISPLACEMENT foundation +0.321 clears; its incremental +0.014 does not. Both endpoints are year-stable and current-state specific under the frozen point rule. Discovery on an exposed surface. Not a forecast, not an edge, not a current probability.'
+    why_closed: 'The one allowed outcome read of this frozen map was consumed on CORE_BTC_BINANCE_V0 2020-01-01..2024-12-31. A second official run is refused.'
+    forbidden: 'a second read of this estimand; a route driven by RV_PREV; recomputing the paired-cohort 4h Spearman; a threshold, tercile, horizon, or clock rescue; 2025/2026; E1; a product forecast or a trading signal'
+    reopen: 'Not a rerun. A different question needs its own design and owner go. Not 4h recomputation of the paired-cohort Spearman. Not a route driven by RV_PREV. Not 2025/2026. Not E1. Not a product forecast.'
+    records:
+    - docs/research/FORMATION_WIDTH_REGIME_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A1_SUPPORT.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_AMENDMENT_A2.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_FEASIBILITY.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.md
+    - docs/research/FORMATION_WIDTH_REGIME_V1_RESULT.json
+    - docs/research/FORMATION_WIDTH_REGIME_V1_EVALUATOR_MANIFEST.json
+    - docs/research/CONTEMPORANEOUS_STATE_CONTROL_LESSON_V1.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'EXECUTED ONCE. Route FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT on the exposed discovery surface. Supporting endpoint ACTIVITY. Evaluator b1f36a56. Rerun REFUSING_RERUN. Not a confirmation and not a product forecast. Neighbor of the frozen-hour diagnosis 4h Spearman, which is not recomputed. Not PRODUCT-V2-RANGE and not H01.'

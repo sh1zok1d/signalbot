@@ -1,0 +1,214 @@
+{
+  "amendment_a1_sha256": "a2e00c68e4360fe08db89ade31e4f222dc148ace0aea58e9143a27d4d386d49e",
+  "amendment_a2_sha256": "a76c0a891fedb7a907544878ef49cd136d3831fb6782d89e56a00ce96e49e07a",
+  "anchor": "UTC_00",
+  "boot_draws": 2000,
+  "boot_seed": 20261107,
+  "design_sha256": "64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6",
+  "endpoints_reported_in_order": [
+    "ACTIVITY",
+    "DISPLACEMENT"
+  ],
+  "evaluator_digest": "94c01af8e2ab9e2a9abc7e7eff54dd92e8dc57afe5e11bf2e948e0e60a8dab31",
+  "event_start": "2020-01-01",
+  "exposure_class": "EXPOSED_SURFACE_DISCOVERY",
+  "family_quantiles": [
+    0.0125,
+    0.9875
+  ],
+  "foundation": {
+    "activity": {
+      "abs_rho_meets_scale": true,
+      "clears": true,
+      "interpretable": true,
+      "interval": [
+        0.6339811470492576,
+        0.722247768790352
+      ],
+      "interval_excludes_zero": true,
+      "iso_weeks": 262,
+      "n": 1820,
+      "rho": 0.6811016466273577,
+      "valid_fraction": 1.0
+    },
+    "displacement": {
+      "abs_rho_meets_scale": true,
+      "clears": true,
+      "interpretable": true,
+      "interval": [
+        0.26488055335326177,
+        0.37457189821299525
+      ],
+      "interval_excludes_zero": true,
+      "iso_weeks": 262,
+      "n": 1820,
+      "rho": 0.32136816054659284,
+      "valid_fraction": 1.0
+    }
+  },
+  "future_association_read": true,
+  "horizon_bars": 12,
+  "incremental_covariate": "RV_FORMATION",
+  "incremental_qualified_but_not_specific_endpoints": [],
+  "incremental_rv_formation": {
+    "activity": {
+      "abs_rho_meets_scale": true,
+      "clears": true,
+      "interpretable": true,
+      "interval": [
+        0.04797984625391018,
+        0.15534901403484885
+      ],
+      "interval_excludes_zero": true,
+      "iso_weeks": 262,
+      "n": 1820,
+      "rho": 0.10245095315584887,
+      "valid_fraction": 1.0
+    },
+    "displacement": {
+      "abs_rho_meets_scale": false,
+      "clears": false,
+      "interpretable": true,
+      "interval": [
+        -0.037496432858746036,
+        0.06816219403325402
+      ],
+      "interval_excludes_zero": false,
+      "iso_weeks": 262,
+      "n": 1820,
+      "rho": 0.01393879464962625,
+      "valid_fraction": 1.0
+    }
+  },
+  "information_limited": false,
+  "interpretation": "Formation width historically carried monotone information about at least one predeclared next-hour observable beyond contemporaneous realized volatility of the same formation hour, on this exposed discovery surface.",
+  "iso_weeks": 262,
+  "lag_placebo": {
+    "activity": {
+      "current_state_specific": true,
+      "rho": 0.5056007236086596
+    },
+    "displacement": {
+      "current_state_specific": true,
+      "rho": 0.28425674645227333
+    }
+  },
+  "lag_placebo_n": 1819,
+  "mode": "DISCOVERY",
+  "n": 1820,
+  "not_established": "This read does not establish a forecast, a current probability, an edge, a causal mechanism, or a trading signal.",
+  "outcome_read": true,
+  "practical_abs_rho": 0.1,
+  "pre_outcome_evaluator_commit": "b1f36a56a5dfefd96f344238cf1bf071f6c42884",
+  "read_at": "2026-10-09T05:40:02Z",
+  "route": "FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT",
+  "route_decision": {
+    "endpoints": [
+      {
+        "current_state_specific": true,
+        "endpoint": "ACTIVITY",
+        "foundation_clears": true,
+        "foundation_rho": 0.6811016466273577,
+        "incremental_clears": true,
+        "incremental_rho": 0.10245095315584887,
+        "lag_placebo_rho": 0.5056007236086596,
+        "year_stable": true,
+        "year_unstable": false
+      },
+      {
+        "current_state_specific": true,
+        "endpoint": "DISPLACEMENT",
+        "foundation_clears": true,
+        "foundation_rho": 0.32136816054659284,
+        "incremental_clears": false,
+        "incremental_rho": 0.01393879464962625,
+        "lag_placebo_rho": 0.28425674645227333,
+        "year_stable": true,
+        "year_unstable": false
+      }
+    ],
+    "incremental_covariate": "RV_FORMATION",
+    "incremental_qualified_but_not_specific_endpoints": [],
+    "interpretable_as_current_state": true,
+    "route": "FORMATION_WIDTH_REGIME_STRUCTURE_PRESENT",
+    "route_supporting_endpoints": [
+      "ACTIVITY"
+    ],
+    "rv_prev_role": "DESCRIPTIVE_SECONDARY_NOT_A_ROUTE_INPUT"
+  },
+  "route_supporting_endpoints": [
+    "ACTIVITY"
+  ],
+  "rv_prev": {
+    "partial_activity": 0.45302199508989743,
+    "partial_displacement": 0.16432519665175266,
+    "role": "DESCRIPTIVE_SECONDARY_NOT_A_ROUTE_INPUT",
+    "route_input": false,
+    "spearman_v": 0.6960177446372497
+  },
+  "successor_started": false,
+  "surface": "CORE_BTC_BINANCE_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "unit": "FORMATION_WIDTH_REGIME_V1",
+  "width": "W/P0",
+  "year_unstable": {
+    "activity": false,
+    "displacement": false
+  },
+  "years": {
+    "activity": {
+      "2020": {
+        "counts_for_stability": true,
+        "n": 365,
+        "rho": 0.7185167179552987
+      },
+      "2021": {
+        "counts_for_stability": true,
+        "n": 364,
+        "rho": 0.6183549949427907
+      },
+      "2022": {
+        "counts_for_stability": true,
+        "n": 363,
+        "rho": 0.5884454571044224
+      },
+      "2023": {
+        "counts_for_stability": true,
+        "n": 363,
+        "rho": 0.6239278049925966
+      },
+      "2024": {
+        "counts_for_stability": true,
+        "n": 365,
+        "rho": 0.5602110442891939
+      }
+    },
+    "displacement": {
+      "2020": {
+        "counts_for_stability": true,
+        "n": 365,
+        "rho": 0.281884789362894
+      },
+      "2021": {
+        "counts_for_stability": true,
+        "n": 364,
+        "rho": 0.25970443006557575
+      },
+      "2022": {
+        "counts_for_stability": true,
+        "n": 363,
+        "rho": 0.31622194982315527
+      },
+      "2023": {
+        "counts_for_stability": true,
+        "n": 363,
+        "rho": 0.29535181041961556
+      },
+      "2024": {
+        "counts_for_stability": true,
+        "n": 365,
+        "rho": 0.18274974520202455
+      }
+    }
+  }
+}

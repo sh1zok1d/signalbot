@@ -1,0 +1,63 @@
+{
+  "analysis_iso_weeks": 262,
+  "anchor": "UTC_00",
+  "by_year": {
+    "2020": {
+      "analysis": 365,
+      "usable": 366
+    },
+    "2021": {
+      "analysis": 364,
+      "usable": 364
+    },
+    "2022": {
+      "analysis": 363,
+      "usable": 363
+    },
+    "2023": {
+      "analysis": 363,
+      "usable": 363
+    },
+    "2024": {
+      "analysis": 365,
+      "usable": 365
+    }
+  },
+  "code_digest": "e0fb0ac0a2c33229733005eabeb44dd659dd70b2c0db80461eff1144545de971",
+  "counts": {
+    "analysis_sample": 1820,
+    "calendar_days": 1827,
+    "formation_incomplete": 6,
+    "future_path_incomplete": 0,
+    "past_hour_incomplete": 1,
+    "usable_formation": 1821
+  },
+  "degenerate": false,
+  "design_sha256": "64407200533eec23abe63391f546ba83c3fae69c30d4a4f83a6d468300985ae6",
+  "event_start": "2020-01-01",
+  "future_association_read": false,
+  "horizon_bars": 12,
+  "information_authorizes_outcome": false,
+  "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+  "lag1_n": 1814,
+  "lag1_relative_width_rank_correlation": 0.5483151377537036,
+  "mode": "DISCOVERY",
+  "outcome_read": false,
+  "read_at": "2026-10-09T04:49:09Z",
+  "relative_width": {
+    "mean": 0.010728589560127823,
+    "n": 1821,
+    "p90_over_p10": 5.906550334781437,
+    "quantiles": {
+      "p10": 0.0034548440703991764,
+      "p25": 0.005191357915939807,
+      "p50": 0.008228569934674673,
+      "p75": 0.013298811608240493,
+      "p90": 0.02040621040063392
+    }
+  },
+  "surface": "CORE_BTC_BINANCE_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "unit": "FORMATION_WIDTH_REGIME_V1",
+  "width": "W/P0"
+}
