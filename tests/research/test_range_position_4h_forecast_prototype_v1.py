@@ -309,21 +309,22 @@ def test_hourly_walk_forward_keeps_sunday_2300_and_drops_later_quarter_hours():
         seed=0,
         min_rows=8,
         min_weeks=2,
+        cadence="secondary_hourly",
+        audit_rows=True,
     )
     assert result["implementation_ok"] is True
+    assert result["diagnostic_only"] is True
+    assert result["route"] is None
     assert result["probabilities_computed_on_market"] is False
     monday = _ms("2024-12-30T00:00:00")
     sunday = _ms("2024-12-29T23:00:00")
-    _x, _y, admitted, ready, _names = evaluate.build_training_matrix(
-        close_ms, x, y, segment, monday, ("BINANCE_2020_2024",),
-    )
-    assert sunday in admitted.tolist()
-    assert _ms("2024-12-29T23:15:00") not in close_ms.tolist()
-    assert int(ready.max()) <= monday
     matched = [row for row in result["folds"] if row["block_start_ms"] == monday]
     assert matched
-    assert matched[0]["max_train_label_available_at_ms"] <= monday
-    assert matched[0]["n_train"] == int(admitted.shape[0])
+    admitted = matched[0]["train_close_ms"]
+    assert sunday in admitted.tolist()
+    assert matched[0]["max_train_label_available_at_ms"] == monday
+    assert np.all(matched[0]["train_label_available_at_ms"] <= monday)
+    assert np.intersect1d(admitted, matched[0]["test_close_ms"]).size == 0
 
 
 def test_walk_forward_keeps_bitmex_out_of_the_2025_training_matrix():
@@ -478,6 +479,199 @@ def test_a_repeated_bootstrap_block_repeats_its_rows_and_does_not_fit():
 def test_pre_a1_census_hashes_stay_the_rewrite_guard():
     assert support.PRE_A1_SUPPORT_SHA256 == "8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4"
     assert support.PRE_A1_FOLDS_SHA256 == "ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5"
+
+
+def _features(close_ms: np.ndarray, rng: np.random.Generator):
+    n = int(close_ms.shape[0])
+    position = rng.uniform(0.05, 0.95, size=n)
+    x = np.column_stack([rng.normal(scale=0.01, size=(n, 4)), position])
+    logit = 1.4 * (position - 0.5)
+    y = (rng.random(n) < 1.0 / (1.0 + np.exp(-logit))).astype(np.float64)
+    return x, y
+
+
+def _boundary_clock():
+    origin = np.datetime64("2024-11-04T00:00:00")
+    boundary = np.datetime64("2024-12-30T00:00:00")
+    stamps = []
+    for week in range(10):
+        monday = origin + np.timedelta64(week * 7, "D")
+        if monday == boundary:
+            for minute in (23 * 60, 23 * 60 + 15, 23 * 60 + 30, 23 * 60 + 45):
+                stamps.append(monday - np.timedelta64(1, "D") + np.timedelta64(minute, "m"))
+        for step in range(8):
+            stamps.append(monday + np.timedelta64(15 * step, "m"))
+    return np.asarray(stamps, dtype="datetime64[ms]").astype(np.int64)
+
+
+def _run(train_close, train_x, train_y, train_names, test_close, test_x, test_y, name, cadence, allowed=None):
+    segment = {
+        "name": name,
+        "train_close_ms": train_close,
+        "train_y": train_y,
+        "train_x": train_x,
+        "train_segment": train_names,
+        "test_close_ms": test_close,
+        "test_y": test_y,
+        "test_x": test_x,
+    }
+    if allowed is not None:
+        segment["allowed_train_segments"] = allowed
+    return evaluate.evaluate_frame(
+        [segment],
+        draws=K.BOOT_DRAWS,
+        seed=0,
+        min_rows=8,
+        min_weeks=2,
+        cadence=cadence,
+        audit_rows=True,
+    )
+
+
+def _fold_at(result, block_start_ms: int) -> dict:
+    return next(row for row in result["folds"] if row["block_start_ms"] == block_start_ms)
+
+
+def _coef(result, block_start_ms: int):
+    fold = _fold_at(result, block_start_ms)
+    for row in result["coefficients"]:
+        if row["iso_year"] == fold["iso_year"] and row["iso_week"] == fold["iso_week"] and row["segment"] == fold["segment"]:
+            return row
+    raise AssertionError("missing coefficients")
+
+
+def _block_probability(result, block_start_ms: int):
+    fold = _fold_at(result, block_start_ms)
+    stored = result["stored_probabilities"]
+    mask = np.isin(stored["close_ms"], fold["test_close_ms"])
+    return stored["p_candidate"][mask], stored["p_climatology"][mask]
+
+
+@pytest.mark.parametrize("cadence", ["primary_15m", "secondary_hourly"])
+def test_scorer_training_matrix_obeys_the_sunday_boundary(cadence):
+    rng = np.random.default_rng(7)
+    close_ms = _boundary_clock()
+    x, y = _features(close_ms, rng)
+    names = np.array(["BINANCE_2020_2024"] * close_ms.shape[0])
+    monday = _ms("2024-12-30T00:00:00")
+    quarters = [_ms(f"2024-12-29T{minute}:00") for minute in ("23:15", "23:30", "23:45")]
+    sunday = _ms("2024-12-29T23:00:00")
+    result = _run(close_ms, x, y, names, close_ms, x, y, "BINANCE_2020_2024", cadence)
+    assert result["implementation_ok"] is True
+    assert result["probabilities_computed_on_market"] is False
+    assert result["cadence"] == cadence
+    if cadence == "primary_15m":
+        assert result["route_applies"] is True
+        assert result["route"] in {K.ROUTE_SUPPORTED, K.ROUTE_UNCERTAIN, K.ROUTE_NONE}
+    else:
+        assert result["diagnostic_only"] is True
+        assert result["route"] is None
+    fold = _fold_at(result, monday)
+    train = fold["train_close_ms"]
+    assert sunday in train.tolist()
+    for quarter in quarters:
+        assert quarter not in train.tolist()
+    assert fold["max_train_label_available_at_ms"] == monday
+    assert np.all(fold["train_label_available_at_ms"] <= monday)
+    assert np.all(train < monday)
+    assert np.intersect1d(train, fold["test_close_ms"]).size == 0
+    assert np.all(fold["test_close_ms"] >= monday)
+    assert fold["climatology_rate"] == pytest.approx(float(fold["train_y"].mean()))
+    assert fold["baseline_mean"] == pytest.approx(fold["train_x"][:, :4].mean(axis=0))
+    assert fold["baseline_std"] == pytest.approx(fold["train_x"][:, :4].std(axis=0))
+    assert fold["rp_mean"] == pytest.approx(float(fold["train_x"][:, 4].mean()))
+    _candidate, climatology = _block_probability(result, monday)
+    assert np.allclose(climatology, fold["climatology_rate"])
+    if cadence == "secondary_hourly":
+        assert np.all(train % K.HOUR_MS == 0)
+        assert np.all(fold["test_close_ms"] % K.HOUR_MS == 0)
+    previous = None
+    for row in result["folds"]:
+        if previous is not None:
+            assert row["n_train"] >= previous["n_train"]
+            assert np.all(np.isin(previous["train_close_ms"], row["train_close_ms"]))
+        previous = row
+    flipped_late = y.copy()
+    flipped_late[np.isin(close_ms, quarters)] = 1.0 - flipped_late[np.isin(close_ms, quarters)]
+    late = _run(close_ms, x, flipped_late, names, close_ms, x, flipped_late, "BINANCE_2020_2024", cadence)
+    late_fold = _fold_at(late, monday)
+    assert late_fold["climatology_rate"] == pytest.approx(fold["climatology_rate"])
+    assert _coef(late, monday)["candidate"] == pytest.approx(_coef(result, monday)["candidate"])
+    assert _block_probability(late, monday)[0] == pytest.approx(_block_probability(result, monday)[0])
+    flipped_sunday = y.copy()
+    flipped_sunday[close_ms == sunday] = 1.0 - flipped_sunday[close_ms == sunday]
+    used = _run(close_ms, x, flipped_sunday, names, close_ms, x, flipped_sunday, "BINANCE_2020_2024", cadence)
+    assert _fold_at(used, monday)["climatology_rate"] != pytest.approx(fold["climatology_rate"])
+    perturbed = x.copy()
+    target = int(fold["test_close_ms"][0])
+    perturbed[np.flatnonzero(close_ms == target)[0], 0] += 50.0
+    shifted = _run(close_ms, perturbed, y, names, close_ms, perturbed, y, "BINANCE_2020_2024", cadence)
+    shifted_fold = _fold_at(shifted, monday)
+    assert shifted_fold["baseline_mean"] == pytest.approx(fold["baseline_mean"])
+    assert shifted_fold["climatology_rate"] == pytest.approx(fold["climatology_rate"])
+    assert _coef(shifted, monday)["baseline"] == pytest.approx(_coef(result, monday)["baseline"])
+
+
+@pytest.mark.parametrize("cadence", ["primary_15m", "secondary_hourly"])
+def test_scorer_keeps_the_2025_block_on_binance_and_off_bitmex(cadence):
+    rng = np.random.default_rng(8)
+    close_ms = _boundary_clock()
+    x, y = _features(close_ms, rng)
+    monday = _ms("2024-12-30T00:00:00")
+    bitmex_t = _ms("2019-06-03T00:00:00")
+    train_close = np.concatenate([np.array([bitmex_t], dtype=np.int64), close_ms])
+    train_x = np.vstack([np.array([[0.02, 0.01, -0.01, 0.003, 0.4]]), x])
+    train_y = np.concatenate([np.array([0.0]), y])
+    train_names = np.concatenate([
+        np.array(["BITMEX_2016_2019"]),
+        np.where(close_ms < monday, "BINANCE_2020_2024", "BINANCE_2025_2026"),
+    ])
+    test = close_ms >= monday
+    allowed = ("BINANCE_2020_2024", "BINANCE_2025_2026")
+    result = _run(
+        train_close, train_x, train_y, train_names, close_ms[test], x[test], y[test],
+        "BINANCE_2025_2026", cadence, allowed,
+    )
+    assert result["implementation_ok"] is True
+    assert result["probabilities_computed_on_market"] is False
+    fold = _fold_at(result, monday)
+    assert fold["train_segments"] == ["BINANCE_2020_2024"]
+    assert bitmex_t not in fold["train_close_ms"].tolist()
+    assert _ms("2024-12-29T23:00:00") in fold["train_close_ms"].tolist()
+    for minute in ("23:15", "23:30", "23:45"):
+        assert _ms(f"2024-12-29T{minute}:00") not in fold["train_close_ms"].tolist()
+    assert np.all(fold["train_close_ms"] < monday)
+    assert np.all(fold["test_close_ms"] >= monday)
+    assert np.intersect1d(fold["train_close_ms"], fold["test_close_ms"]).size == 0
+    assert fold["max_train_label_available_at_ms"] == monday
+    previous = None
+    for row in result["folds"]:
+        assert "BITMEX_2016_2019" not in row["train_segments"]
+        if previous is not None:
+            assert np.all(np.isin(previous["train_close_ms"], row["train_close_ms"]))
+        previous = row
+    train_y_flipped = train_y.copy()
+    train_y_flipped[0] = 1.0
+    flipped = _run(
+        train_close, train_x, train_y_flipped, train_names, close_ms[test], x[test], y[test],
+        "BINANCE_2025_2026", cadence, allowed,
+    )
+    assert _fold_at(flipped, monday)["climatology_rate"] == pytest.approx(fold["climatology_rate"])
+    assert _block_probability(flipped, monday)[0] == pytest.approx(_block_probability(result, monday)[0])
+    if cadence == "primary_15m":
+        assert result["route_applies"] is True
+    else:
+        assert result["route"] is None
+
+
+def test_an_unknown_cadence_is_invalid():
+    rng = np.random.default_rng(9)
+    close_ms, x, y = _series(6, 6, "2020-01-06T00:00:00", rng)
+    names = np.array(["BINANCE_2020_2024"] * close_ms.shape[0])
+    result = _run(close_ms, x, y, names, close_ms, x, y, "BINANCE_2020_2024", "daily")
+    assert result["route"] == K.ROUTE_INVALID
+    assert result["reason"] == "UNKNOWN_CADENCE"
+    assert result["fallback_fit"] is False
 
 
 def test_a_second_census_rewrite_is_refused(monkeypatch):

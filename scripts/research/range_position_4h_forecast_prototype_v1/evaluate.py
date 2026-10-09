@@ -244,7 +244,26 @@ def _invalid(reason: str) -> dict:
     }
 
 
-def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_rows: int, min_weeks: int) -> dict:
+def _hourly_mask(close_ms: np.ndarray) -> np.ndarray:
+    return np.asarray(close_ms, dtype=np.int64) % np.int64(K.HOUR_MS) == 0
+
+
+def _select_cadence(close_ms, y, x, row_segment, cadence: str):
+    """Keep every primary row. The hourly path keeps exact-hour closes only."""
+    close_ms = np.asarray(close_ms, dtype=np.int64)
+    y = np.asarray(y, dtype=np.float64)
+    x = np.asarray(x, dtype=np.float64)
+    if cadence == "primary_15m":
+        return close_ms, y, x, row_segment
+    if cadence != "secondary_hourly":
+        raise ImplementationInvalid("UNKNOWN_CADENCE")
+    keep = _hourly_mask(close_ms)
+    names = None if row_segment is None else np.asarray(row_segment)[keep]
+    return close_ms[keep], y[keep], x[keep], names
+
+
+def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_rows: int, min_weeks: int,
+                            cadence: str, audit_rows: bool) -> dict:
     if int(draws) < 1:
         raise ImplementationInvalid("BOOTSTRAP_DRAWS_INVALID")
     pooled_y = []
@@ -271,7 +290,16 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
         test_x = np.asarray(segment["test_x"], dtype=np.float64)
         if train_x.ndim != 2 or train_x.shape[1] != N_FEATURES or test_x.shape[1] != N_FEATURES:
             raise ImplementationInvalid("FEATURE_WIDTH")
+        train_close, train_y, train_x, train_segment = _select_cadence(
+            train_close, train_y, train_x, train_segment, cadence,
+        )
+        test_close, test_y, test_x, _unused_names = _select_cadence(
+            test_close, test_y, test_x, None, cadence,
+        )
+        if train_segment is None:
+            raise ImplementationInvalid("TRAINING_SOURCE_VIOLATION")
         source_ok = np.isin(train_segment, np.asarray(list(allowed)))
+        previous_train = None
         schedule = assign_folds(test_close, train_close[source_ok], min_rows=min_rows, min_weeks=min_weeks)
         _year, _week, test_monday = iso_parts(test_close)
         seg_y = []
@@ -281,16 +309,22 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
         last = None
         for fold in schedule["test_folds"]:
             start = int(fold["block_start_ms"])
-            x_tr, y_tr, _t_tr, available, seg_tr = build_training_matrix(
+            x_tr, y_tr, t_tr, available, seg_tr = build_training_matrix(
                 train_close, train_x, train_y, train_segment, start, allowed,
             )
             if int(y_tr.shape[0]) != int(fold["n_train"]):
                 raise ImplementationInvalid("TRAIN_COUNT_DIVERGED")
-            if y_tr.size and int(available.max()) > start:
+            if y_tr.size and (int(available.max()) > start or np.any(available > start) or np.any(t_tr >= start)):
                 raise ImplementationInvalid("LABEL_AVAILABILITY_VIOLATION")
+            if previous_train is not None:
+                if int(t_tr.shape[0]) < int(previous_train.shape[0]) or not np.all(np.isin(previous_train, t_tr)):
+                    raise ImplementationInvalid("EXPANDING_WINDOW_SHRANK")
+            previous_train = t_tr
             test_mask = test_monday == start
             if int(test_mask.sum()) != int(fold["n_test"]):
                 raise ImplementationInvalid("TEST_COUNT_DIVERGED")
+            if np.intersect1d(t_tr, test_close[test_mask]).size:
+                raise ImplementationInvalid("TRAIN_TEST_OVERLAP")
             x_te = test_x[test_mask]
             y_te = test_y[test_mask]
             t_te = test_close[test_mask]
@@ -325,7 +359,7 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
             seg_clim.append(p_clim)
             seg_base.append(p_b)
             seg_cand.append(p_c)
-            fold_rows.append({
+            fold_row = {
                 "segment": name,
                 "iso_year": fold["iso_year"],
                 "iso_week": fold["iso_week"],
@@ -337,7 +371,18 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
                 "block_start_ms": start,
                 "train_segments": sorted(set(seg_tr.tolist())),
                 "climatology_rate": rate,
-            })
+                "baseline_mean": [float(v) for v in mu4],
+                "baseline_std": [float(v) for v in sd4],
+                "rp_mean": float(mu_rp[0]),
+                "rp_std": float(sd_rp[0]),
+            }
+            if audit_rows:
+                fold_row["train_close_ms"] = t_tr.copy()
+                fold_row["train_label_available_at_ms"] = available.copy()
+                fold_row["train_y"] = y_tr.copy()
+                fold_row["train_x"] = x_tr.copy()
+                fold_row["test_close_ms"] = t_te.copy()
+            fold_rows.append(fold_row)
             coefficients.append({
                 "segment": name,
                 "iso_year": fold["iso_year"],
@@ -373,10 +418,11 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
     pooled = _loss_block(y, p_clim, p_base, p_cand)
     boot = _bootstrap_losses(y, p_clim, p_base, p_cand, block_id, draws, seed)
     slope, intercept = calibration_coefficients(y, p_cand)
+    route_applies = cadence == "primary_15m"
     route = assign_route(
         pooled["delta_brier"], pooled["delta_logloss"], boot["brier_hi"], slope,
         int(boot["valid_draws"]), True,
-    )
+    ) if route_applies else None
     years = calendar_year(close)
     eras = []
     for year in range(2016, 2027):
@@ -403,6 +449,9 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
     segment_deltas = [row["delta_brier"] for row in per_segment]
     return {
         "route": route,
+        "route_applies": route_applies,
+        "diagnostic_only": not route_applies,
+        "cadence": cadence,
         "implementation_ok": True,
         "reason": None,
         "regularization_added": False,
@@ -425,10 +474,7 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
         "auroc_baseline": auroc(y, p_base),
         "predicted_separation": separation,
         "era": eras,
-        "folds": [{key: row[key] for key in _FOLD_PUBLIC} | {
-            "max_train_label_available_at_ms": row["max_train_label_available_at"],
-            "block_start_ms": row["block_start_ms"],
-        } for row in fold_rows],
+        "folds": [_public_fold(row, audit_rows) for row in fold_rows],
         "coefficients": coefficients,
         "illustrative": illustrative,
         "stored_probabilities": {
@@ -443,15 +489,39 @@ def _evaluate_frame_checked(segments: list[dict], draws: int, seed: int, min_row
     }
 
 
+def _public_fold(row: dict, audit_rows: bool) -> dict:
+    public = {key: row[key] for key in _FOLD_PUBLIC}
+    public.update({
+        "max_train_label_available_at_ms": row["max_train_label_available_at"],
+        "block_start_ms": row["block_start_ms"],
+        "climatology_rate": row["climatology_rate"],
+        "baseline_mean": row["baseline_mean"],
+        "baseline_std": row["baseline_std"],
+        "rp_mean": row["rp_mean"],
+        "rp_std": row["rp_std"],
+    })
+    if audit_rows:
+        public.update({
+            "train_close_ms": row["train_close_ms"],
+            "train_label_available_at_ms": row["train_label_available_at_ms"],
+            "train_y": row["train_y"],
+            "train_x": row["train_x"],
+            "test_close_ms": row["test_close_ms"],
+        })
+    return public
+
+
 def evaluate_frame(segments: list[dict], *, draws: int = K.BOOT_DRAWS, seed: int = K.BOOT_SEED,
-                   min_rows: int = K.MIN_TRAIN_ROWS, min_weeks: int = K.MIN_TRAIN_WEEKS) -> dict:
+                   min_rows: int = K.MIN_TRAIN_ROWS, min_weeks: int = K.MIN_TRAIN_WEEKS,
+                   cadence: str = "primary_15m", audit_rows: bool = False) -> dict:
     """Score one in-memory walk-forward. A failure returns `FORECAST_IMPLEMENTATION_INVALID`.
 
-    The defaults are the frozen market protocol. A synthetic call may pass a smaller floor
-    or a different seed. It may not change those defaults.
+    `primary_15m` assigns the frozen route. `secondary_hourly` returns the same losses
+    as a diagnostic and does not assign a route. The defaults are the frozen market
+    protocol. A synthetic call may pass a smaller floor or a different seed.
     """
     try:
-        return _evaluate_frame_checked(segments, draws, seed, min_rows, min_weeks)
+        return _evaluate_frame_checked(segments, draws, seed, min_rows, min_weeks, cadence, audit_rows)
     except ImplementationInvalid as exc:
         return _invalid(str(exc))
 

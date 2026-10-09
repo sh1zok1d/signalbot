@@ -5,10 +5,10 @@
 `CENSUS = labeled counts unchanged | 15m test rows 113210 + 162084 + 60999 | test weeks 171, 242, 92 unchanged | hourly train counts unchanged`
 `TRAIN ROWS = BitMEX first block 12773 -> 12770 | Binance 2020-2024 13225 -> 13222 | Binance 2025-2026 175120 -> 175117 | train weeks unchanged | max drop 3`
 `PROOF = 1086 blocks checked | max(train_label_available_at) <= block_start on every block | violations 0`
-`EVALUATOR = walk-forward scorer implemented | synthetic checks only | market entry exits AWAITING_OWNER_GO`
+`EVALUATOR = walk-forward scorer | primary 15m assigns the route | hourly is diagnostic only | both cadences checked on the rows the scorer fit | market entry exits AWAITING_OWNER_GO`
 `NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
 `DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
-`AMENDMENT SHA256 = 52e14a0d20365aaa444eec8c97fef646e66b06a8c9162e49719e66dbbb409bfb`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf`
 `SUPPORT SHA256 = f63f7f970e8689a1b0f6290984278eab4a907f75efdea5d72f91c3d5ac7a2ebd`
 `FOLDS SHA256 = 798ee69e4bd6b7effd1c586c810214b76624a5aedf1bef986b884499dfca2ee2`
 `PRODUCT_INTEGRATION_CANDIDATE = NO`

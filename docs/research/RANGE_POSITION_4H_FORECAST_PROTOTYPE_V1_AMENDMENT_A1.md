@@ -79,3 +79,18 @@ Every block with at least one training row, primary and hourly, warmup and test,
 `main` and `run_market` exit `AWAITING_OWNER_GO` before any price load. The market frame is not assembled in this revision. Synthetic checks cover the Sunday boundary, both cadences, the 2024/2025 Monday, and Binance-only training. They do not score BitMEX or Binance prices.
 
 The amendment SHA256 is pinned beside the design hashes. It is not written in this file.
+
+## Scorer-level validation
+
+`evaluate_frame` is the walk-forward scorer. Every row that enters the scaler, the climatology rate, the baseline, and the candidate has already passed `label_available_at <= block_start` inside that fit. A training timestamp at or after the block start, a train/test timestamp overlap, or a shrinking training set stops the run as `FORECAST_IMPLEMENTATION_INVALID`.
+
+`cadence = primary_15m` assigns the frozen route. `cadence = secondary_hourly` keeps exact-hour closes, returns the same loss calculations, and does not assign a route.
+
+Synthetic frames, read back from the timestamps the scorer fit, on both cadences:
+
+- The Monday `2024-12-30T00:00:00Z` block contains Sunday `23:00`. Its latest training label is available at that Monday. Sunday `23:15`, `23:30`, and `23:45` are absent. Flipping those three labels leaves the block's climatology, coefficients, and probabilities unchanged. Flipping the `23:00` label changes the climatology.
+- Test timestamps of a block do not intersect its training timestamps. Each later block's training timestamps contain the earlier block's training timestamps.
+- The Binance 2025 block at that Monday trains on `BINANCE_2020_2024` rows only. A BitMEX timestamp placed in the pool stays out. Flipping its label leaves the Binance probabilities unchanged. The two price grids are not concatenated.
+- The recorded scaler moments and climatology rate match the admitted training rows. Changing a test-row feature leaves those moments and the block coefficients unchanged.
+
+No market series was scored. `OWNER_GO` remains false.
