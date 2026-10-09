@@ -23,6 +23,12 @@ FORBIDDEN_KEYS = {
     "p_up", "mean_return", "brier", "logloss", "log_loss", "auroc", "coefficient",
     "probability", "delta_brier", "delta_logloss",
 }
+PRE_A1_SUPPORT_SHA256 = "8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4"
+PRE_A1_FOLDS_SHA256 = "ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5"
+_PUBLIC_FOLD_KEYS = (
+    "iso_year", "iso_week", "block_start", "n_train", "n_train_weeks", "n_test",
+    "n_excluded_by_label_lag", "max_train_label_available_at",
+)
 
 
 def sha256(path: Path) -> str:
@@ -159,14 +165,16 @@ def _segment(name: str, close_ms: np.ndarray, train_close_ms: np.ndarray | None,
     }
 
 
+def _public_row(row: dict) -> dict:
+    return {key: row[key] for key in _PUBLIC_FOLD_KEYS}
+
+
 def _public_folds(block: dict) -> dict:
     """Drop the internal millisecond field from the committed schedule."""
-    folds = []
-    for row in block["test_folds"]:
-        folds.append({k: row[k] for k in (
-            "iso_year", "iso_week", "block_start", "n_train", "n_train_weeks", "n_test")})
+    folds = [_public_row(row) for row in block["test_folds"]]
+    warmup = [_public_row(row) for row in block["warmup_weeks"]]
     return {
-        "warmup_weeks": block["warmup_weeks"],
+        "warmup_weeks": warmup,
         "test_folds": folds,
         "n_warmup_weeks": block["n_warmup_weeks"],
         "n_test_weeks": block["n_test_weeks"],
@@ -175,6 +183,77 @@ def _public_folds(block: dict) -> dict:
         "first_test": block["first_test"],
         "last_test": block["last_test"],
     }
+
+
+def _label_proof(folds: dict) -> dict:
+    checked = 0
+    max_excluded = 0
+    for segment in folds["segments"].values():
+        for cadence in ("primary_15m", "secondary_hourly"):
+            block = segment[cadence]
+            for row in block["test_folds"] + block["warmup_weeks"]:
+                if not row["n_train"]:
+                    continue
+                checked += 1
+                if row["max_train_label_available_at"] > row["block_start"]:
+                    raise SystemExit("LABEL_AVAILABILITY_VIOLATION")
+                max_excluded = max(max_excluded, int(row["n_excluded_by_label_lag"]))
+    return {
+        "rule": "T + HORIZON * BAR_MS <= block_start",
+        "horizon": K.HORIZON,
+        "bar_ms": K.BAR_MS,
+        "label_lag_ms": int(K.HORIZON) * int(K.BAR_MS),
+        "blocks_checked": checked,
+        "violations": 0,
+        "max_train_label_available_at_le_block_start": True,
+        "max_n_excluded_by_label_lag": max_excluded,
+    }
+
+
+def _compare_block(old_block: dict, new_block: dict) -> dict:
+    old_rows = old_block["test_folds"]
+    new_rows = new_block["test_folds"]
+    old_keys = [(row["iso_year"], row["iso_week"]) for row in old_rows]
+    new_keys = [(row["iso_year"], row["iso_week"]) for row in new_rows]
+    aligned = old_keys == new_keys
+    deltas = []
+    weeks_same = True
+    tests_same = True
+    lag_matches = True
+    if aligned:
+        for old, new in zip(old_rows, new_rows):
+            delta = int(old["n_train"]) - int(new["n_train"])
+            deltas.append(delta)
+            weeks_same = weeks_same and int(old["n_train_weeks"]) == int(new["n_train_weeks"])
+            tests_same = tests_same and int(old["n_test"]) == int(new["n_test"])
+            lag_matches = lag_matches and delta == int(new["n_excluded_by_label_lag"])
+    return {
+        "aligned": aligned,
+        "n_test_weeks_before": len(old_rows),
+        "n_test_weeks_after": len(new_rows),
+        "n_test_rows_before": int(old_block["n_test_rows"]),
+        "n_test_rows_after": int(new_block["n_test_rows"]),
+        "train_weeks_unchanged": weeks_same,
+        "test_rows_unchanged": tests_same,
+        "train_row_delta_equals_label_lag_exclusion": lag_matches,
+        "min_train_row_delta": None if not deltas else int(min(deltas)),
+        "max_train_row_delta": None if not deltas else int(max(deltas)),
+        "first_n_train_before": None if not old_rows else int(old_rows[0]["n_train"]),
+        "first_n_train_after": None if not new_rows else int(new_rows[0]["n_train"]),
+        "first_n_train_weeks_before": None if not old_rows else int(old_rows[0]["n_train_weeks"]),
+        "first_n_train_weeks_after": None if not new_rows else int(new_rows[0]["n_train_weeks"]),
+    }
+
+
+def _compare_schedules(old_folds: dict, new_folds: dict) -> dict:
+    compared = {}
+    for name, new_segment in new_folds["segments"].items():
+        old_segment = old_folds["segments"][name]
+        compared[name] = {
+            "primary_15m": _compare_block(old_segment["primary_15m"], new_segment["primary_15m"]),
+            "secondary_hourly": _compare_block(old_segment["secondary_hourly"], new_segment["secondary_hourly"]),
+        }
+    return compared
 
 
 def build_census() -> tuple[dict, dict]:
@@ -232,6 +311,9 @@ def build_census() -> tuple[dict, dict]:
     folds = {
         "unit": K.UNIT,
         "model_metrics_computed": False,
+        "label_availability_rule": "T + HORIZON * BAR_MS <= block_start",
+        "horizon": K.HORIZON,
+        "bar_ms": K.BAR_MS,
         "cadence_primary": "15m",
         "cadence_secondary": "hourly_close",
         "min_train_rows": K.MIN_TRAIN_ROWS,
@@ -244,6 +326,9 @@ def build_census() -> tuple[dict, dict]:
             for name, row in segments.items()
         },
     }
+    proof = _label_proof(folds)
+    support["label_availability"] = proof
+    folds["label_availability"] = proof
     _guard(support)
     _guard(folds)
     return support, folds
@@ -254,6 +339,8 @@ def _markdown(support: dict) -> str:
         "# RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — support census",
         "",
         "Row and week counts only. No probability was fit. No Brier score, log loss, AUROC, or coefficient was computed.",
+        "",
+        "Training admission after amendment A1: `T + 12 * 300000 <= block_start`.",
         "",
         f"Zero-return rule: `{support['zero_return_rule']}`.",
         "",
@@ -266,20 +353,54 @@ def _markdown(support: dict) -> str:
             f"{row['primary_test_rows']} | {row['primary_test_weeks']} | {row['hourly_test_rows']} |"
         )
     lines.append("")
+    effect = support.get("label_lag_effect")
+    if effect:
+        lines.append("Train-row change versus the pre-A1 rule `T < block_start`. Week identity is the ISO week of each test block.")
+        lines.append("")
+        lines.append("| segment | cadence | test weeks | test rows changed | first n_train before | first n_train after | max train-row delta |")
+        lines.append("|---|---|---:|---|---:|---:|---:|")
+        for name, cadences in effect.items():
+            for cadence, row in cadences.items():
+                rows_changed = "no" if row["test_rows_unchanged"] else "yes"
+                lines.append(
+                    f"| {name} | {cadence} | {row['n_test_weeks_before']} -> {row['n_test_weeks_after']} | {rows_changed} | "
+                    f"{row['first_n_train_before']} | {row['first_n_train_after']} | {row['max_train_row_delta']} |"
+                )
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 
 def main() -> None:
+    import sys
+
     support_path = ROOT / K.SUPPORT
     folds_path = ROOT / K.FOLDS
-    if support_path.exists() or folds_path.exists():
+    rewrite = "--rewrite-a1" in sys.argv
+    if (support_path.exists() or folds_path.exists()) and not rewrite:
         raise SystemExit("CENSUS_EXISTS")
+    old_folds = None
+    if rewrite:
+        if sha256(support_path) != PRE_A1_SUPPORT_SHA256 or sha256(folds_path) != PRE_A1_FOLDS_SHA256:
+            raise SystemExit("CENSUS_REWRITE_REFUSED")
+        old_folds = json.loads(folds_path.read_text(encoding="utf-8"))
     support, folds = build_census()
+    if old_folds is not None:
+        support["label_lag_effect"] = _compare_schedules(old_folds, folds)
+        folds["label_lag_effect"] = support["label_lag_effect"]
+        _guard(support)
+        _guard(folds)
     _write(support_path, support)
     _write(folds_path, folds)
     (ROOT / K.SUPPORT_MD).write_text(_markdown(support), encoding="utf-8")
     total_test = sum(row["primary_test_rows"] for row in support["segments"].values())
     print(f"labeled census written; primary test rows {total_test}; model metrics false")
+    proof = support["label_availability"]
+    print(
+        f"label proof blocks {proof['blocks_checked']}; "
+        f"max excluded {proof['max_n_excluded_by_label_lag']}; violations {proof['violations']}"
+    )
+    if "label_lag_effect" in support:
+        print(json.dumps(support["label_lag_effect"], indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

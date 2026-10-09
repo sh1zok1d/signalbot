@@ -8999,6 +8999,22 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 amendment A1, model not fit
+
+**Mode.** Pre-outcome repair of the training clock. `model_fit = false`. `OWNER_GO = false`. The original design file is unchanged. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`. Design commit `483dc4028f3baa0ed5c4ef4d382639926f249937`.
+- **Reason.** `R_1H(T)` is known at `T + 1h`. The frozen census admitted every `T < block_start`, including Sunday 23:15, 23:30, and 23:45.
+- **Rule.** `T + HORIZON * BAR_MS <= block_start`, with `HORIZON = 12` and `BAR_MS = 300000`. The predicate runs inside the training-matrix builder. Sunday 23:00 stays in. The next three quarter-hours stay out.
+- **Census.** Labeled rows unchanged: BitMEX `125983`, Binance 2020–2024 `175309`, Binance 2025–2026 `60999`. Primary test rows and test weeks unchanged. Hourly training counts unchanged. First 15-minute training counts: BitMEX `12773` to `12770`, Binance 2020–2024 `13225` to `13222`, Binance 2025–2026 `175120` to `175117`. Training weeks unchanged. The largest drop on a block is 3 rows.
+- **Proof.** 1086 blocks with a training row satisfy `max(train_label_available_at) <= block_start`. Violations: 0. The 2025 block that starts `2024-12-30` has its latest training label available at that same Monday 00:00.
+- **Evaluator.** The walk-forward scorer is implemented and checked on synthetic frames. `main` exits `AWAITING_OWNER_GO` before any price load. Market probabilities, coefficients, and losses were not computed.
+- **Hashes.** Amendment SHA256 `52e14a0d20365aaa444eec8c97fef646e66b06a8c9162e49719e66dbbb409bfb`. Support SHA256 `f63f7f970e8689a1b0f6290984278eab4a907f75efdea5d72f91c3d5ac7a2ebd`. Folds SHA256 `798ee69e4bd6b7effd1c586c810214b76624a5aedf1bef986b884499dfca2ee2`. Pre-A1 support SHA256 `8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`. Pre-A1 folds SHA256 `ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`.
+
+```
+WINDOWS_CONSUMED = none beyond the already consumed price paths; the census recounted labeled anchors and weeks only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = AMENDMENT_A1_PRE_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 design frozen, model not fit
 
 **Mode.** Outcome-blind freeze of one retrospective forecast prototype. `model_fit = false`. Evidence class `RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`. Claim ceiling `RETROSPECTIVE_FORECAST_PROTOTYPE`. The object status at opening is `CROSS_VENUE_AND_MULTI_EPOCH_REPLICATED_DIRECTIONAL_STATE / HISTORICAL_ONLY`. The three surfaces were already read for this feature. This is not a pristine holdout.
