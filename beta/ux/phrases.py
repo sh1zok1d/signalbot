@@ -56,7 +56,7 @@ PHRASES = {
     "win_line": ("📅 За {hours} ч ({start}–{end} Киев): BTC {pct}, диапазон {low}–{high}.",
                  "📅 Last {hours} h ({start}–{end} Kyiv): BTC {pct}, range {low}–{high}.",
                  "the view carries a complete market window (the brief / catchup view): market.window"),
-    "cx_episode": ("сейчас {name}", "{name} is on", "an active episode in state TRIGGERED"),
+    "cx_episode": ("сейчас {name}", "{name} is on", "an active episode in state TRIGGERED; name from epn_*"),
     "cx_range_extreme": ("цена ходит намного шире обычного для этого часа",
                          "the price swings far wider than usual for this hour",
                          "1h range rank >= context.label_extreme, tier mature"),
@@ -85,8 +85,51 @@ PHRASES = {
     "now_degraded": ("Неполные: {inputs}. Цифры по ним не показываю, остальные — по полным данным.",
                      "Partial: {inputs}. Their numbers are not shown; the rest comes from complete data.",
                      "st_degraded"),
-    "now_episode": ("Идёт {name}: {meaning}", "{name} is on: {meaning}",
-                    "cx_episode; meaning = formatter.event_description of the episode's event type"),
+    # one line per event type: its name with the right verb agreement and a one-clause meaning in trader
+    # language, consistent with the rule (formatter desc_*); no thresholds, no new numbers
+    "ep_down": ("Идёт резкое падение: цена за пять минут упала сильнее обычного, а открытых позиций стало "
+                "меньше — на нескольких биржах.",
+                "Sharp drop: the price fell more than usual in five minutes while open positions shrank, "
+                "on several exchanges.",
+                "episode PRICE_OI_CONTRACTION_DOWN: 5m price move in its bottom 5% (30d) while OI fell in its bottom "
+                "10%, on >= 2 exchanges"),
+    "ep_up": ("Идёт резкий рост: цена за пять минут выросла сильнее обычного, а открытых позиций стало "
+              "меньше — на нескольких биржах.",
+              "Sharp rise: the price rose more than usual in five minutes while open positions shrank, "
+              "on several exchanges.",
+              "episode PRICE_OI_CONTRACTION_UP: 5m price move in its top 5% (30d) while OI fell in its bottom 10%, "
+              "on >= 2 exchanges"),
+    "ep_buildup": ("Идёт набор позиций в узком диапазоне: открытых позиций всё больше, а цена почти стоит "
+                   "при объёме не ниже обычного.",
+                   "Positions building in a narrow range: open positions keep growing while the price barely "
+                   "moves on at least usual volume.",
+                   "episode POSITION_BUILDUP_COMPRESSION: OI growth in its top 20% (30d), 5m range in its bottom "
+                   "40%, volume >= median, for 45 minutes"),
+    "ep_buy": ("Идут агрессивные покупки: покупки по рынку сильнее обычного две пятиминутки подряд.",
+               "Strong buying: market buys stronger than usual for two 5-minute periods in a row.",
+               "episode TAKER_FLOW_EXTREME_BUY: taker delta in its top 5% (30d) for two consecutive 5m buckets"),
+    "ep_sell": ("Идут агрессивные продажи: продажи по рынку сильнее обычного две пятиминутки подряд.",
+                "Strong selling: market sells stronger than usual for two 5-minute periods in a row.",
+                "episode TAKER_FLOW_EXTREME_SELL: taker delta in its bottom 5% (30d) for two consecutive 5m buckets"),
+    "ep_liq_long": ("Идут ликвидации лонгов: лонгов закрывают принудительно намного больше обычного — "
+                    "на нескольких биржах.",
+                    "Long liquidations: far more longs are force-closed than usual, on several exchanges.",
+                    "episode LIQUIDATION_STRESS_LONG: long liquidation notional in its top 5% (30d) on >= 2 live "
+                    "exchanges in one 5m bucket (OKX excluded)"),
+    "ep_liq_short": ("Идут ликвидации шортов: шортов закрывают принудительно намного больше обычного — "
+                     "на нескольких биржах.",
+                     "Short liquidations: far more shorts are force-closed than usual, on several exchanges.",
+                     "episode LIQUIDATION_STRESS_SHORT: short liquidation notional in its top 5% (30d) on >= 2 live "
+                     "exchanges in one 5m bucket (OKX excluded)"),
+    # the episode's short name inside an L1 / brief sentence («сейчас {name}»)
+    "epn_down": ("резкое падение", "a sharp drop", "PRICE_OI_CONTRACTION_DOWN"),
+    "epn_up": ("резкий рост", "a sharp rise", "PRICE_OI_CONTRACTION_UP"),
+    "epn_buildup": ("набор позиций в узком диапазоне", "positions building in a narrow range",
+                    "POSITION_BUILDUP_COMPRESSION"),
+    "epn_buy": ("агрессивные покупки", "strong buying", "TAKER_FLOW_EXTREME_BUY"),
+    "epn_sell": ("агрессивные продажи", "strong selling", "TAKER_FLOW_EXTREME_SELL"),
+    "epn_liq_long": ("ликвидации лонгов", "long liquidations", "LIQUIDATION_STRESS_LONG"),
+    "epn_liq_short": ("ликвидации шортов", "short liquidations", "LIQUIDATION_STRESS_SHORT"),
     "now_level_at": ("Цена стоит у уровня: {name} {edge}.", "The price is at a level: {name} {edge}.",
                      "decision.levels.at is set"),
     "now_range_extreme": ("За последний час цена прошла намного больше, чем обычно в это время суток.",
@@ -205,3 +248,9 @@ EMOJI = ("₿", "💤", "⚡", "📈", "📉", "🎯", "📅", "💬", "🔎", "
 def text(key: str, lang: str, **kw) -> str:
     ru, en, _rule = PHRASES[key]
     return (ru if lang == "ru" else en).format(**kw)
+
+
+EPISODES = {"PRICE_OI_CONTRACTION_DOWN": "down", "PRICE_OI_CONTRACTION_UP": "up",
+            "POSITION_BUILDUP_COMPRESSION": "buildup", "TAKER_FLOW_EXTREME_BUY": "buy",
+            "TAKER_FLOW_EXTREME_SELL": "sell", "LIQUIDATION_STRESS_LONG": "liq_long",
+            "LIQUIDATION_STRESS_SHORT": "liq_short"}

@@ -380,11 +380,9 @@ def test_stale_shows_nothing_current_and_degraded_names_the_partial_input():
 def test_architect_text_fixes():
     f = from_view(_ranked(_busy(), range_rank=0.5, volume_rank=0.5))
     f["episode"] = {"event_type": "PRICE_OI_CONTRACTION_DOWN", "state": "TRIGGERED", "triggered": True}
-    from beta.formatter import event_description
     l2 = norm(plain(render("btc", 2, "ru", f)[0]))
-    assert "Идёт резкое падение: движение цены за 5м" in l2 and "условия выполняются" not in l2
-    assert norm(event_description("PRICE_OI_CONTRACTION_DOWN", "en")).lower() in \
-        norm(plain(render("btc", 2, "en", f)[0])).lower()
+    assert "Идёт резкое падение: цена за пять минут упала сильнее обычного" in l2 and "условия выполняются" not in l2
+    assert "Sharp drop: the price fell more than usual" in norm(plain(render("btc", 2, "en", f)[0]))
     for lang in LANGS:                                                  # 📊 is data only; L2 block titles plain
         h = render("btc", 2, lang, f)[0]
         assert "📊" not in h and h.startswith("<b>🔎")
@@ -396,3 +394,29 @@ def test_architect_text_fixes():
                              "open": 63100.0, "close": 62250.0, "move_pct": -1.35, "every_days": 9, "near": []})
     assert "Для 15 минут это резкое движение." in plain(render("move", 1, "ru", mv)[0])
     assert "For 15 minutes, this is a sharp move." in plain(render("move", 1, "en", mv)[0])
+
+
+_THRESHOLDS = re.compile(r"\d+\s*%|\b30\b|\b45\b|дн(ей|я)\b|\bdays?\b|\b30d\b|медиан|median|5м|\b5m\b|"
+                         r"bottom|top |нижних|верхних|бакет|bucket|delta", re.I)
+
+
+def test_every_event_type_has_a_trader_line_without_thresholds():
+    from beta.config import EVENT_TYPES
+    from beta.ux.phrases import EPISODES
+    assert set(EPISODES) == set(EVENT_TYPES)
+    for et in EVENT_TYPES:
+        for prefix in ("ep_", "epn_"):
+            ru, en, rule = PHRASES[prefix + EPISODES[et]]
+            assert ru and en and rule
+        f = from_view(_ranked(_busy(), range_rank=0.5, volume_rank=0.5))
+        f["episode"] = {"event_type": et, "state": "TRIGGERED", "triggered": True}
+        for lang in LANGS:
+            i = 0 if lang == "ru" else 1
+            names = (PHRASES["epn_" + EPISODES[et]][i].lower(), PHRASES["ep_" + EPISODES[et]][i].split(":")[0].lower())
+            assert not _THRESHOLDS.search(PHRASES["ep_" + EPISODES[et]][0 if lang == "ru" else 1])
+            for lv in (1, 2):                          # the rendered episode lines carry no rule threshold
+                lines = [x for x in norm(plain(render("btc", lv, lang, f)[0])).splitlines() if any(n in x.lower() for n in names)]
+                assert lines and not any(_THRESHOLDS.search(x) for x in lines), (et, lang, lv, lines)
+        assert not re.search(r"Идёт (агрессивные|ликвидации)|Идут (резк|набор)", norm(plain(render("btc", 2, "ru", f)[0])))
+    en = norm(plain(render("btc", 2, "en", f)[0]))
+    assert "initiated" not in en

@@ -12,7 +12,7 @@ Every screen has up to three levels, and each level allows only certain claims:
 | Level | Name | What it may say | What it may not say |
 |---|---|---|---|
 | **L1** | summary | Current observations only, as words from frozen rules (§4, §5), each with its own current number. | Any **historical number**: no percent of history, no «× обычного», no N, no chance, no interval. |
-| **L2** | «Почему так?» | Trader language in 2–3 blocks: «Что видно сейчас» (one line per L1 observation; an episode reads «Идёт {name}: {its event_description}»), «Что было в похожих ситуациях» (verdict words only), «Чего это не значит» (only when a misreading is likely). | New observations that are not on L1. Historical numbers (they are on L3). |
+| **L2** | «Почему так?» | Trader language in 2–3 blocks: «Что видно сейчас» (one line per L1 observation; an episode reads its own line `ep_*`: the name with the right verb agreement and a one-clause meaning in trader language, consistent with the rule but with no thresholds), «Что было в похожих ситуациях» (verdict words only), «Чего это не значит» (only when a misreading is likely). | New observations that are not on L1. Historical numbers (they are on L3). |
 | **L3** | «Данные» | Numbers in bold groups «Цена и диапазон», «Позиции и поток», «Уровни», «История похожих», each with its baseline («обычно (медиана 30 дн.)»); directional history with N, the random-level baseline and the 95 % interval. | A number without its baseline. A chance without its exact calibration (P1). |
 
 ### 1.1 L1 anatomy
@@ -52,7 +52,7 @@ The low band is a display band, not a salience rule: `PULSY_SALIENCE_V1` is unch
 🔎 Почему так
 
 Что видно сейчас
-Идёт резкое падение: движение цены за 5м в нижних 5% последних 30 дней при снижении открытого интереса в его нижних 10%, не менее чем на 2 биржах.
+Идёт резкое падение: цена за пять минут упала сильнее обычного, а открытых позиций стало меньше — на нескольких биржах.
 Цена стоит у уровня: минимум вчера 62 490.
 За последний час цена прошла намного больше, чем обычно в это время суток.
 
@@ -161,7 +161,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `in_calc` | расчёт последнего часа | the last hour's calculation | status reason MATERIALIZATION_FAILED, STALE_COHERENCE_BARRIER or EVALUATION_NOT_FRESH |
 | `in_any` | часть входных данных | some inputs | DATA DEGRADED with no known reason |
 | `win_line` | 📅 За {hours} ч ({start}–{end} Киев): BTC {pct}, диапазон {low}–{high}. | 📅 Last {hours} h ({start}–{end} Kyiv): BTC {pct}, range {low}–{high}. | the view carries a complete market window (the brief / catchup view): market.window |
-| `cx_episode` | сейчас {name} | {name} is on | an active episode in state TRIGGERED |
+| `cx_episode` | сейчас {name} | {name} is on | an active episode in state TRIGGERED; name from epn_* |
 | `cx_range_extreme` | цена ходит намного шире обычного для этого часа | the price swings far wider than usual for this hour | 1h range rank >= context.label_extreme, tier mature |
 | `cx_range_high` | цена ходит шире обычного для этого часа | the price swings wider than usual for this hour | 1h range rank >= context.label_high (below extreme), tier mature |
 | `cx_volume_high` | объём выше обычного | volume is above usual | 1h volume rank >= context.label_high, tier mature |
@@ -176,7 +176,20 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | `b_now` | Что видно сейчас | What we see now | always on L2 |
 | `now_stale` | Новых данных давно не было, поэтому текущих цифр нет. | No new data has arrived for a while, so there are no current numbers. | st_stale |
 | `now_degraded` | Неполные: {inputs}. Цифры по ним не показываю, остальные — по полным данным. | Partial: {inputs}. Their numbers are not shown; the rest comes from complete data. | st_degraded |
-| `now_episode` | Идёт {name}: {meaning} | {name} is on: {meaning} | cx_episode; meaning = formatter.event_description of the episode's event type |
+| `ep_down` | Идёт резкое падение: цена за пять минут упала сильнее обычного, а открытых позиций стало меньше — на нескольких биржах. | Sharp drop: the price fell more than usual in five minutes while open positions shrank, on several exchanges. | episode PRICE_OI_CONTRACTION_DOWN: 5m price move in its bottom 5% (30d) while OI fell in its bottom 10%, on >= 2 exchanges |
+| `ep_up` | Идёт резкий рост: цена за пять минут выросла сильнее обычного, а открытых позиций стало меньше — на нескольких биржах. | Sharp rise: the price rose more than usual in five minutes while open positions shrank, on several exchanges. | episode PRICE_OI_CONTRACTION_UP: 5m price move in its top 5% (30d) while OI fell in its bottom 10%, on >= 2 exchanges |
+| `ep_buildup` | Идёт набор позиций в узком диапазоне: открытых позиций всё больше, а цена почти стоит при объёме не ниже обычного. | Positions building in a narrow range: open positions keep growing while the price barely moves on at least usual volume. | episode POSITION_BUILDUP_COMPRESSION: OI growth in its top 20% (30d), 5m range in its bottom 40%, volume >= median, for 45 minutes |
+| `ep_buy` | Идут агрессивные покупки: покупки по рынку сильнее обычного две пятиминутки подряд. | Strong buying: market buys stronger than usual for two 5-minute periods in a row. | episode TAKER_FLOW_EXTREME_BUY: taker delta in its top 5% (30d) for two consecutive 5m buckets |
+| `ep_sell` | Идут агрессивные продажи: продажи по рынку сильнее обычного две пятиминутки подряд. | Strong selling: market sells stronger than usual for two 5-minute periods in a row. | episode TAKER_FLOW_EXTREME_SELL: taker delta in its bottom 5% (30d) for two consecutive 5m buckets |
+| `ep_liq_long` | Идут ликвидации лонгов: лонгов закрывают принудительно намного больше обычного — на нескольких биржах. | Long liquidations: far more longs are force-closed than usual, on several exchanges. | episode LIQUIDATION_STRESS_LONG: long liquidation notional in its top 5% (30d) on >= 2 live exchanges in one 5m bucket (OKX excluded) |
+| `ep_liq_short` | Идут ликвидации шортов: шортов закрывают принудительно намного больше обычного — на нескольких биржах. | Short liquidations: far more shorts are force-closed than usual, on several exchanges. | episode LIQUIDATION_STRESS_SHORT: short liquidation notional in its top 5% (30d) on >= 2 live exchanges in one 5m bucket (OKX excluded) |
+| `epn_down` | резкое падение | a sharp drop | PRICE_OI_CONTRACTION_DOWN |
+| `epn_up` | резкий рост | a sharp rise | PRICE_OI_CONTRACTION_UP |
+| `epn_buildup` | набор позиций в узком диапазоне | positions building in a narrow range | POSITION_BUILDUP_COMPRESSION |
+| `epn_buy` | агрессивные покупки | strong buying | TAKER_FLOW_EXTREME_BUY |
+| `epn_sell` | агрессивные продажи | strong selling | TAKER_FLOW_EXTREME_SELL |
+| `epn_liq_long` | ликвидации лонгов | long liquidations | LIQUIDATION_STRESS_LONG |
+| `epn_liq_short` | ликвидации шортов | short liquidations | LIQUIDATION_STRESS_SHORT |
 | `now_level_at` | Цена стоит у уровня: {name} {edge}. | The price is at a level: {name} {edge}. | decision.levels.at is set |
 | `now_range_extreme` | За последний час цена прошла намного больше, чем обычно в это время суток. | In the last hour the price covered far more ground than usual for this time of day. | cx_range_extreme |
 | `now_range_high` | За последний час цена прошла больше, чем обычно в это время суток. | In the last hour the price covered more ground than usual for this time of day. | cx_range_high |
@@ -248,7 +261,7 @@ Every user-visible phrase, with its formal predicate (the predicate is for the s
 | **G** lively words only by rule | Every phrase has a predicate; the renderer prints only dictionary phrases and fact values | `test_rule_G_every_phrase_has_a_rule_and_the_doc_lists_them` |
 | **H** no machine language | No internal tokens in any rendered output | `test_no_machine_language_reaches_a_user` |
 | **J** distinct states | The calm family (usual, compression, thin, weekend, night window) and stale vs degraded read differently | `test_calm_family_states_read_differently`, `test_stale_shows_nothing_current_and_degraded_names_the_partial_input` |
-| **K** architect text fixes | Episode meaning from event_description; «у цены» level line; «оценка диапазона»; the move push's rule sentence; 📊 data only | `test_architect_text_fixes` |
+| **K** architect text fixes | One trader line per event type (`ep_*`, `epn_*`), no rule thresholds; «у цены» level line; «оценка диапазона»; the move push's rule sentence; 📊 data only | `test_architect_text_fixes`, `test_every_event_type_has_a_trader_line_without_thresholds` |
 | **I** anatomy | L1 header / state / «Рядом» ≤ 2; L3 bold groups; notifications: headline with number, one sentence, window, buttons | `test_l1_anatomy_and_l3_groups`, `test_notifications_have_one_headline_one_sentence_and_a_window` |
 
 Also tested:
