@@ -709,6 +709,7 @@ When adding documentation:
   - **Data:** `research_data/DH2_*`.
   - **Code and tests:** `scripts/research/dh2/`; `tests/research/test_dh2.py`.
 - `research/DH3_DESIGN.md`, `research/DH3_FEASIBILITY.{md,json}`, `research/DH3_PREREG.json`, `research/DH3_RESULT_*.json`, `research/DH3_RESULT.md` (**DH3 — five cards of three, direction and range, owner decision 2026-10-04**).
+- `research/P3_CONFIRMATION_V1_PREREG.md`, `research/P3_CONFIRMATION_V1_PARITY.json`, `research/P3_CONFIRMATION_V1_RESULT.{md,json}` (**P3 confirmation V1 — DH3-P3 one-shot on Binance 2025–2026: NOT_CONFIRMED, TRADING_FAIL; 2026-10-09**).
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.

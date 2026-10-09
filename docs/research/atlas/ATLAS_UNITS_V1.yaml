@@ -3220,17 +3220,18 @@ units:
     program: DIRECTIONAL_AND_RANGE_DH3
     row: DERIVATIVES.leverage_crowding
     col: POSITIONING
-    state: LIVE_SIGNAL
+    state: CLOSED_ON_SURFACE
     datasets:
     - CORE_BTC_BINANCE_V0
     - DH3_BINANCE_UM_BTC_METRICS_5M_V0
     mechanism: see docs/research/DH3_DESIGN.md §3
     function: 'global long/short account ratio z (30 days): top vs bottom quintile -> +X before -X within 4h'
-    verdict: 'PROMISING_PROTOTYPE: -5.92 pp (47.7 % vs 53.5 %), CI -8.32..-3.52, Holm p 0.0015, Brier skill +0.0024; every year
-      negative; confirmation only prospective'
-    why_closed: one-shot discovery under the frozen DH3 rules
-    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
-    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    verdict: 'discovery PROMISING_PROTOTYPE: -5.92 pp (47.7 % vs 53.5 %), CI -8.32..-3.52, Holm p 0.0015, Brier skill +0.0024;
+      P3 confirmation V1 (2026-10-09, Binance 2025-01-01..2026-08-15, one shot, parity exact): NOT_CONFIRMED -1.66 pp (48.0 % vs
+      50.3 %), CI -5.45..+2.19, N 5771, Brier skill -0.0016; trading translation TRADING_FAIL (gross +0.002 %/trade, -0.118 % at 0.12 %)'
+    why_closed: one-shot discovery under the frozen DH3 rules, then one-shot time-disjoint confirmation (P3_CONFIRMATION_V1)
+    reopen: only a new mechanism or a new data surface; not this state on Binance 2020-2026 with other thresholds, windows, horizons, barriers or costs
+    forbidden: re-scoring this cell on 2020-2026; rescuing it with a neighbouring state, endpoint, cost or trade rule
     records:
     - docs/research/DH3_DESIGN.md
     - docs/research/DH3_FEASIBILITY.md
@@ -3240,6 +3241,11 @@ units:
     - docs/research/SCIENTIFIC_TEST_LEDGER.json
     - docs/RESEARCH_LEDGER.md
     - config/beta_research_findings.yaml
+    - docs/research/P3_CONFIRMATION_V1_PREREG.md
+    - docs/research/P3_CONFIRMATION_V1_PARITY.json
+    - docs/research/P3_CONFIRMATION_V1_RESULT.json
+    - docs/research/P3_CONFIRMATION_V1_RESULT.md
+    - scripts/research/p3c/run.py
   - id: DH3-L1
     title: THIN_BOOK_RANGE
     program: DIRECTIONAL_AND_RANGE_DH3
@@ -4156,6 +4162,8 @@ units:
     row: PRICE_STRUCTURE.levels
     col: CANDLES
     state: EXPOSED_ONLY
+    aliases:
+    - LEVEL-RACE-V1
     datasets:
     - CORE_BTC_BINANCE_V0
     - BYBIT_BTCUSDT_PUBLIC_HISTORY

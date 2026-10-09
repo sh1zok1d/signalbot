@@ -97,31 +97,31 @@ findings:
 
   # ---- found once, not replicated --------------------------------------------------------------
   - id: DH3-P3
-    status: DISCOVERY
-    text_ru: "когда доля счетов в лонге на Binance необычно высока, цена в следующие 4 ч реже шла сначала вверх: 48% против 54% при «толпе в шортах»; найдено на 2020–2024, не подтверждено"
-    text_en: "when the share of long accounts on Binance was unusually high, price went up first less often over the next 4h: 48% vs 54% when the crowd was short; found on 2020–2024, not confirmed"
-    data: "Binance BTCUSDT 2020–2024, 14218 часов"
-    record: "docs/research/DH3_RESULT.md"
+    status: NOT_CONFIRMED
+    text_ru: "когда доля лонг-счетов на Binance необычно высока, цена в следующие 4 ч реже шла сначала вверх: на 2020–2024 48% против 54%, но на новых данных 2025–2026 48% против 50%, в пределах случайности"
+    text_en: "when the share of long accounts on Binance was unusually high, price went up first less often over the next 4h: 48% vs 54% on 2020–2024, but 48% vs 50% on new 2025–2026 data, within chance"
+    data: "Binance BTCUSDT: 2020–2024, 14218 часов; проверка 2025–2026, 5771 час"
+    record: "docs/research/P3_CONFIRMATION_V1_RESULT.md"
     contexts: []
     priority: 10
     live:
       state: P3_CROWD
       topic: DIRECTION_4H
       mechanism: crowd_positioning
-      direction: SUPPORTS
+      direction: REFUTES
       horizon_h: 4
-      n: 14218
+      n: 5771
       surfaces: [btc, catchup, brief, details]
-      effect_ru: "при таком перекосе цена в следующие 4 ч реже шла сначала вверх: 48% против 54%, когда толпа в шортах"
-      effect_en: "with such a skew price went up first less often over the next 4h: 48% vs 54% when the crowd was short"
-      effect_alt_ru: "при таком перекосе цена в следующие 4 ч чаще шла сначала вверх: 54% против 48%, когда толпа в лонгах"
-      effect_alt_en: "with such a skew price went up first more often over the next 4h: 54% vs 48% when the crowd was long"
-      comparator_ru: "противоположный перекос толпы (по 7109 часов)"
-      comparator_en: "the opposite crowd skew (7109 hours each)"
-      replication_ru: "найдено на 2020–2024, независимого подтверждения нет"
-      replication_en: "found on 2020–2024, no independent confirmation"
-      limitations_ru: "только BTC и только Binance; «сначала вверх» — раньше дойти до +X, чем до −X (X — половина 4-часового коридора); величина менялась по годам"
-      limitations_en: "BTC and Binance only; 'up first' means reaching +X before −X (X is half of the 4h corridor); the size varied by year"
+      effect_ru: "при таком перекосе на 2020–2024 цена реже шла сначала вверх (48% против 54%), но на 2025–2026 разница 48% против 50% — в пределах случайности"
+      effect_en: "with such a skew price went up first less often on 2020–2024 (48% vs 54%), but on 2025–2026 the gap was 48% vs 50%, within chance"
+      effect_alt_ru: "при таком перекосе на 2020–2024 цена чаще шла сначала вверх (54% против 48%), но на 2025–2026 разница 50% против 48% — в пределах случайности"
+      effect_alt_en: "with such a skew price went up first more often on 2020–2024 (54% vs 48%), but on 2025–2026 the gap was 50% vs 48%, within chance"
+      comparator_ru: "противоположный перекос толпы (2523 и 3248 часов на 2025–2026)"
+      comparator_en: "the opposite crowd skew (2523 and 3248 hours on 2025–2026)"
+      replication_ru: "проверка на 2025–2026 не подтвердила: −1,7 п.п., 95% −5,5 … +2,2"
+      replication_en: "the 2025–2026 check did not confirm it: −1.7 pp, 95% −5.5 … +2.2"
+      limitations_ru: "только BTC и только Binance; «сначала вверх» — раньше дойти до +X, чем до −X (X — половина 4-часового коридора)"
+      limitations_en: "BTC and Binance only; 'up first' means reaching +X before −X (X is half of the 4h corridor)"
   - id: DH3-V3
     status: DISCOVERY
     text_ru: "повторное касание вчерашнего максимума или минимума после отката удерживалось за уровнем чуть чаще первого: 47% против 45% через 4 ч; на 2017–2019 не повторилось"

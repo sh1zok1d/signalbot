@@ -8609,3 +8609,23 @@ WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-10-08 (minus E1
 OBJECTS_2025_2026_USED = 49 kline objects (+ 2024-12 warm-up); E1 objects refused; E1 / V3 untouched
 MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HIST; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-09 — P3 confirmation V1 (one-shot): DH3-P3 crowd positioning NOT_CONFIRMED on 2025–2026; trading translation fails
+
+**Unit.** `P3_CONFIRMATION_V1` (atlas `DH3-P3`, now `CLOSED_ON_SURFACE`). Owner FORECAST FIRST directive 2026-10-09; prereg `docs/research/P3_CONFIRMATION_V1_PREREG.md` frozen and pushed (`1b31db13`) before any 2025/2026 outcome. Code `scripts/research/p3c/run.py`. Records `P3_CONFIRMATION_V1_PARITY.json`, `P3_CONFIRMATION_V1_RESULT.json` / `.md`.
+- **Parity.** The 5m-archive pipeline reproduced DH3-P3 on 2020-10..2024-12 exactly: −5.92 pp, N 14218. Thresholds q20 −1.0324 and q80 +1.2992 come from discovery z only.
+- **Read.** Binance USD-M BTCUSDT 5m klines (monthly 2024-11..2026-07, daily 2026-08-01..14) and daily metrics 2024-11-01..2026-08-14. Decision hours 2025-01-01 → T + 4h ≤ 2026-08-15. No object dated 2026-08-15 or later was requested.
+- **Evidence.** N 5771 (2523 / 3248); up first 48.0 % vs 50.3 %.
+  - Adjusted shift −1.66 pp, 95 % CI −5.45..+2.19, p 0.39, 82 weeks; MDE80 5.45 pp.
+  - Brier skill of the frozen discovery model −0.0016.
+  - By epoch: 2025 −1.0 pp, 2026A −4.7 pp.
+  - Class `NOT_CONFIRMED`.
+- **Trading** (contrarian, ±X or 4h, one position at a time): 2447 trades, win 49.3 %, gross +0.002 % per trade. Net −0.118 % per trade at 0.12 % (CI −0.140..−0.096) and −0.038 % at 0.04 %. Class `TRADING_FAIL`.
+  - Discovery reference: also `TRADING_FAIL` at 0.12 % (−0.068 %).
+- **Bot.** `DH3-P3` in `config/beta_research_findings.yaml` goes DISCOVERY → NOT_CONFIRMED (live direction REFUTES); it now vetoes the crowd_positioning mechanism. No live-screen change (main-surface research lines stay off).
+- **Atlas.** Event seq 29. The LEVEL-RACE-V1 registry id gets the alias it lacked.
+
+```
+WINDOWS_CONSUMED = BINANCE_UM_OI_METRICS_PRODUCT 2025-01-01..2026-08-14 DERIVATIVES.leverage_crowding (one-shot); BINANCE_UM_KLINES_5M_PRODUCT 2024-11..2026-08-14 DERIVATIVES.leverage_crowding (outcomes, trading translation)
+OBJECTS_2025_2026_USED = 5m klines monthly 2025-01..2026-07 + daily 2026-08-01..14; metrics daily 2025-01-01..2026-08-14; E1-RUN-001 objects never requested; E1 / V3 untouched
+CLASS = NOT_CONFIRMED / TRADING_FAIL; RESCUE = forbidden on Binance 2020–2026 (no threshold, horizon, barrier, cost or trade-rule variant)

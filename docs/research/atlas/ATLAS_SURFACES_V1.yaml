@@ -72,6 +72,7 @@ datasets:
       - {period: 2022-2024, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "rangecast fit 2022-2023, 2024 diagnostic holdout examined"}
       - {period: 2025-2026, rows: [VOLATILITY_STATE.range_forecast, PRICE_STRUCTURE.levels, FLOW.flow_conditional_response, DERIVATIVES.oi_buildup, EVENTS.cpi, EVENTS.fomc, EVENTS.expiries], status: PRODUCT_OPEN, note: "PRODUCT_DECISION_V2 §4: consumed for research over the product features"}
       - {period: 2025-01-01..2026-10-08, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-RACE-FORECAST-V1 held-out read, one-shot (2026-10-09): frozen level race model on structural first touches and the generic 4h race stream; E1-RUN-001 objects refused before any request; class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like; not pristine"}
+      - {period: 2024-11..2026-08-14, rows: [DERIVATIVES.leverage_crowding], status: CONSUMED, note: "P3 confirmation V1 one-shot (2026-10-09): 4h up-first outcomes and the trading translation of the DH3-P3 state; monthly 5m objects to 2026-07, daily 2026-08-01..14; E1-RUN-001 objects never requested"}
     records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md, beta/history_data.py]
   - id: C012_DISCOVERY_BTC_1M_V0
     col: CANDLES
@@ -137,6 +138,7 @@ datasets:
     live_in_product: true
     exposure:
       - {period: 2025-2026, rows: [FLOW.flow_conditional_response, DERIVATIVES.oi_buildup], status: PRODUCT_OPEN, note: "product state analogues; also opened for the divergence program (six symbols)"}
+      - {period: 2025-01-01..2026-08-14, rows: [DERIVATIVES.leverage_crowding], status: CONSUMED, note: "P3 confirmation V1 one-shot (2026-10-09): global long/short account ratio z, DH3-P3 state and endpoint; daily metrics objects up to 2026-08-14, E1-RUN-001 objects never requested"}
     records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md]
   - id: MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
     col: POSITIONING
@@ -337,7 +339,7 @@ datasets:
     coverage: 2020-09-01..2024-12-31, 1583 daily objects, checksums verified
     availability: PINNED
     exposure:
-      - {period: 2020-2024, rows: [VOLATILITY_STATE.compression, VOLATILITY_STATE.shock_recovery, DERIVATIVES.leverage_crowding], status: CONSUMED, note: "DH3-P one-shot discovery (P3 crowd long/short is a LIVE_SIGNAL; confirmation only prospective)"}
+      - {period: 2020-2024, rows: [VOLATILITY_STATE.compression, VOLATILITY_STATE.shock_recovery, DERIVATIVES.leverage_crowding], status: CONSUMED, note: "DH3-P one-shot discovery (P3 crowd long/short: time-disjoint confirmation on 2025-2026 NOT_CONFIRMED, P3_CONFIRMATION_V1)"}
     records: [docs/research_data/DH3_BINANCE_UM_BTC_METRICS_5M_V0, docs/research/DH3_RESULT.md]
   - id: DH3_BINANCE_UM_BOOKDEPTH_V0
     col: ORDER_BOOK

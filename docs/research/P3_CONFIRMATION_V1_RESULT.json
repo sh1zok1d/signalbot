@@ -1,0 +1,116 @@
+{
+  "CLASS": "NOT_CONFIRMED",
+  "LAST_OBJECT_DAY": "2026-08-14",
+  "PREREG": "docs/research/P3_CONFIRMATION_V1_PREREG.md",
+  "STATISTICAL": {
+    "ADJUSTED_SHIFT": -0.016613707430830276,
+    "BAR": 0.03,
+    "BTC_ONLY": null,
+    "BY_SYMBOL": {
+      "BTC": {
+        "MEAN_COMPARATOR": 0.5033866995073891,
+        "MEAN_STATE": 0.4803804994054697,
+        "N": 5771
+      }
+    },
+    "CI95": [
+      -0.054452979854362205,
+      0.02185195139091136
+    ],
+    "ENDPOINT": "UP_FIRST_4H",
+    "HETEROGENEITY": {
+      "EPOCHS": {
+        "2025": {
+          "BETA": -0.010061947877264468,
+          "N_COMPARATOR": 1858,
+          "N_STATE": 1671,
+          "SE": 0.02365695039571027
+        },
+        "2026A": {
+          "BETA": -0.04654178495979809,
+          "N_COMPARATOR": 1390,
+          "N_STATE": 852,
+          "SE": 0.030917947372663172
+        }
+      },
+      "REASON": "fewer than 3 epochs with an estimate",
+      "STATUS": "NOT_ASSESSABLE"
+    },
+    "HETEROGENEITY_SYMBOL": {
+      "REASON": "fewer than 3 coins",
+      "STATUS": "NOT_ASSESSABLE"
+    },
+    "MDE_80POWER": 0.05450352231805255,
+    "MEAN_COMPARATOR": 0.5033866995073891,
+    "MEAN_STATE": 0.4803804994054697,
+    "N": 5771,
+    "N_COMPARATOR": 3248,
+    "N_STATE": 2523,
+    "P_BOOT": 0.393,
+    "SKILL": -0.001552166332229321,
+    "SKILL_KIND": "BRIER",
+    "WEEK_CLUSTERS": 82
+  },
+  "SURFACE": "C: 2025-01-01..2026-08-15 (exclusive)",
+  "THRESHOLDS": {
+    "Q20": -1.0323772139418328,
+    "Q80": 1.299169100936417
+  },
+  "TRADING": {
+    "BY_EPOCH": {
+      "2025": {
+        "MEAN_NET_PCT": -0.12216458714602547,
+        "TRADES": 1496
+      },
+      "2026A": {
+        "MEAN_NET_PCT": -0.11158360942866219,
+        "TRADES": 951
+      }
+    },
+    "BY_SIDE": {
+      "long": {
+        "MEAN_NET_PCT": -0.12190695675875811,
+        "TRADES": 1321
+      },
+      "short": {
+        "MEAN_NET_PCT": -0.11353032420851901,
+        "TRADES": 1126
+      }
+    },
+    "CLASS": "TRADING_FAIL",
+    "COST_0.00PCT": {
+      "CI95_MEAN_NET_PCT": [
+        -0.020452698273806805,
+        0.024279414176609337
+      ],
+      "MAX_DRAWDOWN_PCT": 19.298922639325056,
+      "MEAN_NET_IN_X": 0.0017743069296436518,
+      "MEAN_NET_PCT": 0.00194759504000331,
+      "SUM_NET_PCT": 4.7657650628881
+    },
+    "COST_0.04PCT": {
+      "CI95_MEAN_NET_PCT": [
+        -0.06045269827380681,
+        -0.01572058582339067
+      ],
+      "MAX_DRAWDOWN_PCT": 93.73723805582497,
+      "MEAN_NET_IN_X": -0.08161926792641772,
+      "MEAN_NET_PCT": -0.0380524049599967,
+      "SUM_NET_PCT": -93.11423493711192
+    },
+    "COST_0.12PCT": {
+      "CI95_MEAN_NET_PCT": [
+        -0.14045269827380677,
+        -0.09572058582339063
+      ],
+      "MAX_DRAWDOWN_PCT": 289.0172380558274,
+      "MEAN_NET_IN_X": -0.24840641763854032,
+      "MEAN_NET_PCT": -0.11805240495999665,
+      "SUM_NET_PCT": -288.87423493711185
+    },
+    "MEAN_GROSS_PCT": 0.00194759504000331,
+    "MEAN_X_PCT": 0.5698532386040844,
+    "TRADES": 2447,
+    "WIN_RATE_GROSS": 0.49325704944830406
+  }
+}

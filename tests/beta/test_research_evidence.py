@@ -129,7 +129,7 @@ def test_crowd_positioning_matches_p3_on_both_arms_with_their_own_numbers():
         x[j] = 1.5 + shift
         ev = evaluate(now_ms=now, bars=b, ls=x, sources=src("ls_ratio", "bars"))
         m = next(x for x in ev["matches"] if x["finding_id"] == "DH3-P3")
-        assert m["live_state"]["arm"] == arm and m["status"] == "DISCOVERY" and effect in m["historical_effect"]["ru"]
+        assert m["live_state"]["arm"] == arm and m["status"] == "NOT_CONFIRMED" and effect in m["historical_effect"]["ru"]
     x = ls.copy()
     x[j] = 1.5
     assert "DH3-P3" not in ids(evaluate(now_ms=now, bars=b, ls=x, sources=src("ls_ratio", "bars")))
@@ -330,10 +330,13 @@ def test_wording_by_status(lang):
     d2 = line(_m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4.1, "p90_pct": 3.2}), lang)
     assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two exchanges") in d2
     assert d2.endswith(".") and "(D2)" not in d2                       # research ids only in Details (backlog C1)
-    p3 = line(_m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}), lang)
-    assert ("Гипотеза" if lang == "ru" else "Hypothesis") in p3
-    assert ("не подтверждено" if lang == "ru" else "not confirmed") in p3
-    assert "Проверено" not in p3 and "Tested" not in p3                     # a discovery is never «Проверено»
+    v3 = line(_m("DH3-V3", "V3_RETEST", values={"name": "PDH", "price": 64000.0}), lang)
+    assert ("Гипотеза" if lang == "ru" else "Hypothesis") in v3
+    assert ("не подтверждено" if lang == "ru" else "not confirmed") in v3
+    assert "Проверено" not in v3 and "Tested" not in v3                     # a discovery is never «Проверено»
+    p3 = line(_m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}), lang)   # P3 confirmation V1
+    assert ("проверка эффекта не нашла" if lang == "ru" else "found no effect") in p3
+    assert ("2025–2026" in p3) and "Проверено" not in p3 and "Tested" not in p3
     p1 = line(_m("DH3-P1", "P1_LEVERAGE_LOADING", values={"doi4_pct": 0.9, "range4_pct": 0.5}), lang)
     assert ("ниже нашего порога практической величины" if lang == "ru" else "below our materiality bar") in p1
     l2 = line(_m("DH3-L2", "L2_BOOK_SKEW", arm="BID_HEAVY", values={"bid_usd": 3e8, "ask_usd": 1e8}), lang)
@@ -366,15 +369,16 @@ def test_the_hierarchy_resolves_a_topic_conflict_and_a_surface_shows_at_most_two
     ms = [_m("DH3-P1", "P1_LEVERAGE_LOADING", values={"doi4_pct": 1, "range4_pct": 0.3}),     # WEAK, RANGE_4H
           _m("DH3-S1", "S1_STRESS_LEADER", arm="SPOT_LED", values={"hour": "09:00", "range_pct": 2}),  # WEAK, RANGE_4H
           _m("DH3-L1", "L1_THIN_BOOK", values={"ratio_pct": 70}),                              # NOT_CONF, RANGE_4H
-          _m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}),                      # DISCOVERY, DIRECTION
+          _m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}),                      # NOT_CONF, DIRECTION
+          _m("DH3-V3", "V3_RETEST", values={"name": "PDH", "price": 64000.0}),               # DISCOVERY, LEVEL_HOLD
           _m("DH3-L2", "L2_BOOK_SKEW", arm="BID_HEAVY", values={"bid_usd": 2e8, "ask_usd": 1e8}),
           _m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4, "p90_pct": 3})]                     # CONFIRMED, RANGE_24H
     ev = {"matches": ms}
     sel = RE.select(ev, "btc", limit=2, now=now)
-    assert [m["finding_id"] for m in sel] == ["D2", "DH3-P3"]            # CONFIRMED first, then DISCOVERY
+    assert [m["finding_id"] for m in sel] == ["D2", "DH3-V3"]            # CONFIRMED first, then DISCOVERY
     risk = RE.select(ev, "risk", limit=2, now=now, topics=("RANGE_4H", "RANGE_24H"))
     assert [m["finding_id"] for m in risk] == ["D2", "DH3-P1"]          # one per topic: P1 (WEAK) over L1 (NOT_CONF)
-    assert len(RE.select(ev, "details", limit=99, now=now)) == 3       # one per topic even in a full list
+    assert len(RE.select(ev, "details", limit=99, now=now)) == 4       # one per topic even in a full list
     from beta.research_render import details_text
     full = details_text(ev, "ru", now=now)
     assert all(f"<b>{m['finding_id']}</b>" in full for m in ms)        # Details shows the extended set
