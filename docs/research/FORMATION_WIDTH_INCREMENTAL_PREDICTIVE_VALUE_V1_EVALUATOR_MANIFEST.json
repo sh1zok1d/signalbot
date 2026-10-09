@@ -1,0 +1,29 @@
+{
+  "binance_delta_mse": 0.00028872608719753256,
+  "binance_interval": [
+    -0.0002194528657344146,
+    0.0008069594899082358
+  ],
+  "binance_n": 1820,
+  "bitmex_opened": false,
+  "bybit_delta_mse": 0.00028549659106249197,
+  "bybit_interval": [
+    -0.00015741674029945098,
+    0.0007445495241849586
+  ],
+  "bybit_n": 1613,
+  "design_sha256": "260d944f4c3dc665d0b2e040deddc3c263548464bdb579fa07c557d949af83e6",
+  "e1_touched": false,
+  "evaluator_digest": "cc321809c98d2064b8e1797cbe17fdaf0b5cea9d7a884630a6d57f898380871c",
+  "evidence_class": "POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT",
+  "historical_practical_rho_applied": false,
+  "interpretation": "POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO",
+  "objects_2025_2026_used": false,
+  "outcome_read": true,
+  "pre_outcome_evaluator_commit": "29597cb6f54769f76ff14b0b768164200c3dfa3c",
+  "product_change": false,
+  "product_integration_candidate": false,
+  "prospective_forward_read": false,
+  "read_at": "2026-10-09T09:44:11Z",
+  "unit": "FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1"
+}

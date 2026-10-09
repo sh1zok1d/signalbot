@@ -4371,19 +4371,24 @@ units:
     program: FORMATION_WIDTH_V1
     row: VOLATILITY_STATE.range_forecast
     col: CANDLES
-    state: CANDIDATE_UNTESTED
+    state: CLOSED_ON_SURFACE
     datasets:
     - CORE_BTC_BINANCE_V0
     - BYBIT_BTCUSDT_PUBLIC_HISTORY
-    period: 'design frozen before the OOS scores; Binance USD-M BTCUSDT 2020-01-01..2024-12-31 and Bybit linear BTCUSDT 2020-04-01..2024-12-31; both windows already consumed; scores not read'
-    units_n: 'published analysis N 1820 and 1613; OOS years 2021-2024 not yet scored'
-    practical_bar: 'No new yes/no bar. rho >= +0.10 remains the historical rule of the previous units and is not applied here. The question is the size of the out-of-sample loss improvement.'
+    period: 'one OOS characterization 2026-10-09T09:44:11Z on already consumed windows; Binance analysis N 1820, OOS N 1455; Bybit analysis N 1613, OOS N 1352'
+    units_n: 'Binance delta MSE about +0.000289, relative about +0.641 percent, interval includes 0; Bybit delta MSE about +0.000285, relative about +0.650 percent, interval includes 0'
+    practical_bar: 'No new yes/no bar. rho >= +0.10 remains the historical rule of the previous units and is not applied here. The question answered is the size of the out-of-sample loss improvement.'
     mechanism: 'MODE=POST_OUTCOME_CHARACTERIZATION. Incremental predictive value of UTC formation-hour width for next-hour activity beyond formation-hour realized volatility. Not a replay of the Bybit partial-Spearman verdict and not a new discovery.'
-    function: 'Yearly expanding folds. OLS on training-referenced rank scores. Baseline RV_FORMATION. Candidate adds V=(high-low)/P0. Primary paired delta MSE. ISO-week block bootstrap B=2000, seeds 20261110 and 20261111, two-sided 95 percent. Scores not read.'
-    verdict: 'NOT_EXECUTED. Design frozen before the out-of-sample scores. Evidence class POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT. This registration cannot raise the evidence tier. The Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE is unchanged. Prospective forward association is not read.'
-    reopen: 'The one OOS read of this frozen design is the execution. After that read these windows stay closed for this loss comparison. A later prospective validation needs its own design and owner go. Not a model change after scores. Not BitMEX. Not 2025/2026. Not E1.'
+    function: 'Yearly expanding folds. OLS on training-referenced rank scores. Baseline RV_FORMATION. Candidate adds V=(high-low)/P0. Primary paired delta MSE. ISO-week block bootstrap B=2000, seeds 20261110 and 20261111, two-sided 95 percent. One read 2026-10-09T09:44:11Z. Evaluator 29597cb6. Rerun refused.'
+    verdict: 'CHARACTERIZED ONCE (2026-10-09T09:44:11Z). Point estimates favor a small gain on both venues, about +0.64 percent of baseline MSE, and the two 95 percent intervals both include 0. Binance 2024 fold is negative. Label POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO. Evidence class POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT. Evidence tier unchanged. Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE unchanged. Not a confirmation. Not L3. Prospective forward association not read.'
+    why_closed: 'The one allowed predictive-loss characterization on these already consumed windows was read. It does not raise the evidence tier. A second official run is refused. The model, folds, and metric stay as frozen before the scores.'
+    forbidden: 'a second read of this loss comparison; treating the result as a pristine or independent confirmation; transferring rho >= +0.10 into loss space; rewriting the Bybit verdict; scoring the prospective forward association; opening BitMEX, 2025/2026, or E1; a product integration'
+    reopen: 'A later prospective validation of a predeclared loss target needs its own design and owner go. Not a rerun of these windows. Not a model change after these scores. Not BitMEX. Not 2025/2026. Not E1.'
     records:
     - docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_DESIGN.md
+    - docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_RESULT.md
+    - docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_RESULT.json
+    - docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_EVALUATOR_MANIFEST.json
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN_FROZEN. Scores unread. Venues are not pooled. Not a confirmation. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    note: 'CHARACTERIZED ONCE. Point estimates positive and similar, intervals include 0. Not a confirmation. Evaluator 29597cb6. Rerun REFUSING_RERUN. Not L3. PRODUCT_INTEGRATION_CANDIDATE = NO.'

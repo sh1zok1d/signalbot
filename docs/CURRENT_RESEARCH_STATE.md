@@ -1,3 +1,16 @@
+## FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 — one OOS characterization — 2026-10-09
+
+`MODE = POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT | outcome_read = true | evidence tier unchanged | not a confirmation`
+`READ AT = 2026-10-09T09:44:11Z | design commit 29597cb6f54769f76ff14b0b768164200c3dfa3c | digest cc321809c98d2064b8e1797cbe17fdaf0b5cea9d7a884630a6d57f898380871c`
+`LABEL = POINT_ESTIMATES_FAVOR_GAIN_INTERVALS_DO_NOT_BOTH_EXCLUDE_ZERO | sign agreement positive | venues not pooled`
+`BINANCE = N 1820 | OOS 1455 | MSE baseline 0.04506725539102009 | candidate 0.044778529303822555 | delta +0.00028872608719753256 | relative +0.6406560255166168 percent | interval [-0.0002194528657344146, +0.0008069594899082358]`
+`BYBIT = N 1613 | OOS 1352 | MSE baseline 0.04392028870659988 | candidate 0.043634792115537384 | delta +0.00028549659106249197 | relative +0.6500335026704652 percent | interval [-0.00015741674029945098, +0.0007445495241849586]`
+`FOLDS = Binance relative +2.986 / +0.219 / +1.813 / -1.644 percent | Bybit relative +1.595 / +0.058 / +1.090 / +0.249 percent | 2024 Binance fold negative | exact values are in the result`
+`HISTORICAL BAR = rho >= +0.10 not applied | Bybit route POSITIVE_BUT_BELOW_PRACTICAL_SCALE unchanged | Bybit point +0.09903883442772482 not rounded`
+`NOT OPENED = BitMEX, 2025/2026, E1, prospective forward association, product | rerun REFUSING_RERUN | future validation not decided`
+
+Result: `docs/research/FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1_RESULT.md`.
+
 ## FORMATION_WIDTH_INCREMENTAL_PREDICTIVE_VALUE_V1 — design frozen, scores unread — 2026-10-09
 
 `MODE = POST_OUTCOME_CHARACTERIZATION / MODEL_DEVELOPMENT | outcome_read = false | evidence tier unchanged`
