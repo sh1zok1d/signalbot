@@ -108,6 +108,8 @@ Re-cut on 2026-10-09 after the pre-3b checks; the earlier cut `b833f7c6` (RC run
 
 The owner cancelled the 3b observation start of 2026-10-10 00:00 UTC (decision 2026-10-09 ~09:10Z). The 3b record above (`bd35820b`) was never deployed; its contents ship in this preview. Route, ON/OFF list and deploy steps: `docs/BETA_PREVIEW_V1.md`.
 
+**Deployed** by the owner: preview start = **2026-10-09T10:40:04Z** (owner-confirmed: the Telegram process restarted on `45213dda`). This is the preview period's start as a dated forecast-layer event (ОПГ-2's condition; contract §12.2). It is not Day 0; the test stays `NOT_OPEN`.
+
 | Field | Value |
 |---|---|
 | Step / date | PREVIEW, cut 2026-10-09 09:33Z (main after #438, #439, #437). Deployed by the owner when he starts the review; not tied to 00:00 UTC. |
