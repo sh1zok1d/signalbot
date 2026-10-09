@@ -8873,3 +8873,9 @@ WINDOWS_CONSUMED = BINANCE_UM BTCUSDT perp 5m 2025-01-01..2026-10-08 minus [2026
 NOT_READ = B1 on Binance 2020-24 (never computed), excluded August objects, spot, BitMEX, OCC variants, horizons, interactions, OI, E1, PnL | no successor
 FINDINGS_REGISTRY = not updated (no product work)
 ```
+
+## 2026-10-09 — Two adaptation units prepared (owner: "давай те две"); no outcome read
+
+`RP4H_TREND_REGIME_MODULATION_V1 = design frozen 175c95e2 (SHA c1343df4a7399e9c5cb7bab475605c7b2b8feaa289bbbee953df47c8cc2d94d1) | discovery on CORE 2020-24 | TS_24H = |RET_24H|/RV_24H terciles 0.3603/0.8529 (outcome-blind) | PRIMARY delta = RP4H partial (T3 - T1) | N 175,292, 262 weeks | exposure ADJACENT; CORE DISCOVERY_REUSABLE (subgroup clause) | GO pending`
+`ADAPTIVE_B1_FORECAST_V1 = DRAFT, not frozen | walk-forward logistic on B1 over BitMEX -> CORE -> Binance 2025-26 (Unit B surface); 362,347 rows, 104 outer 4-week blocks from 2018-10-29; fold manifest b6bcb931 | SYNTHETIC POWER (outcome-free): P1 static-vs-climatology has power at an RP4H-size effect; P2 adaptive-vs-static is WORSE in every scenario, even a world with the signal switching on/off every 52 weeks -> P2 cannot show a benefit at this SNR | partial duplicate of Cursor's frozen unfit forecast prototype (483dc402; its 2025-26 file includes the E1-development slice) | owner decision pending`
+`OUTCOMES_READ = none`

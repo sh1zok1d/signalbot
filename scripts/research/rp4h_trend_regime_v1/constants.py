@@ -34,7 +34,7 @@ ROUTE_NONE = "TREND_REGIME_MODULATION_NOT_DETECTED"
 
 # ---- pins
 DESIGN_SHA256 = "c1343df4a7399e9c5cb7bab475605c7b2b8feaa289bbbee953df47c8cc2d94d1"
-DESIGN_COMMIT = "PENDING"
-EXPECTED_N = None
-EXPECTED_WEEKS = None
-TS_TERCILE_EDGES = None    # frozen from the outcome-blind preflight (state quantiles only)
+DESIGN_COMMIT = "175c95e2"
+EXPECTED_N = 175_292
+EXPECTED_WEEKS = 262
+TS_TERCILE_EDGES = [0.36032530929162965, 0.8528621530723187]    # frozen from the outcome-blind preflight
