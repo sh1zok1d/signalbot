@@ -3832,7 +3832,9 @@
   },
   {
    "col": "CROSS_VENUE",
-   "counts": {},
+   "counts": {
+    "BLOCKED_DATA": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -3840,16 +3842,18 @@
    "revisit": [],
    "row": "DERIVATIVES.funding_basis",
    "row_name": "Funding, premium and basis",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "BLOCKED_DATA",
+   "units": [
+    "FUNDING-TAIL-RISK-CROSS-VENUE-V1"
+   ],
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 2,
     "saturation": 1,
-    "total": 7
+    "total": 5
    }
   },
   {
@@ -10194,7 +10198,7 @@
  "COUNTS": {
   "cells": 436,
   "cells_by_state": {
-   "BLOCKED_DATA": 3,
+   "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
    "CANDIDATE_UNTESTED": 3,
    "CLOSED_ON_SURFACE": 16,
@@ -10204,11 +10208,11 @@
    "INFORMATIONALLY_WEAK": 9,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 350
+   "OPEN_FRONTIER": 349
   },
-  "units": 216,
+  "units": 217,
   "units_by_state": {
-   "BLOCKED_DATA": 20,
+   "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
@@ -12531,19 +12535,6 @@
     "owner_priority": 0,
     "product_relevance": 2,
     "saturation": 2,
-    "total": 7
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
-   "row": "DERIVATIVES.funding_basis",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 2,
-    "saturation": 1,
     "total": 7
    }
   },
@@ -15586,7 +15577,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "091b030852339e31c2e81d07345b37b0ee02ea861dc84c0b9a9121a33fdf9680",
+ "SOURCES_DIGEST": "09c1df5436650896efdaf303204c2cf039772cc40eacad3ac22b561a75ef74ba",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16874,6 +16865,14 @@
        "VOLATILITY_STATE.range_forecast"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "FUNDING-TAIL-RISK-CROSS-VENUE-V1 open-time census only, 2026-10-09: SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c rechecked, 476254 bars, 23714 missing slots left missing; high, low, and close not used; Bybit funding not acquired; outcome not read; not a confirmation and not a rerun of FUNDING-STATE-HISTORICAL-STRUCTURE-V1",
+      "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "DERIVATIVES.funding_basis"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY",
@@ -18716,6 +18715,32 @@
    "verdict": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "what_tested": "Generator V0 pipeline only: novelty ALLOW, feasibility PASS, red team REJECT; red team failed checks: CONFOUNDING_ADDRESSED. No market outcomes were tested.",
    "why_closed": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the METHOD_CONFOUNDING_CONTROL_INADEQUATE blocker unresolved."
+  },
+  {
+   "col": "CROSS_VENUE",
+   "datasets": [
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY"
+   ],
+   "function": "Feasibility of a same-venue funding history beside the stored perpetual price file. No score.",
+   "id": "FUNDING-TAIL-RISK-CROSS-VENUE-V1",
+   "mechanism": "Same-venue settled funding extremity and later direction-neutral path stress. The funding series was not obtained, so no outcome was read.",
+   "note": "BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE. Funding rows 0. Outcome not read. Parent verdict unchanged. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "feasibility 2026-10-09; Bybit settled funding not acquired; price open-time census only; outcome not read",
+   "practical_bar": "No magnitude floor. The child was not scored, so no route from an effect size was applied.",
+   "program": "FUNDING_STATE_V1",
+   "records": [
+    "docs/research/FUNDING_TAIL_RISK_CROSS_VENUE_V1_FEASIBILITY.md",
+    "docs/research/FUNDING_TAIL_RISK_CROSS_VENUE_V1_FEASIBILITY.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A later unit needs a pinned official settled-funding snapshot for Bybit linear BTCUSDT, checksummed, ending at or before 2024-12-31, joined only to Bybit price. Not a rerun of the Binance parent. Not premium. Not open interest. Not 2025/2026.",
+   "row": "DERIVATIVES.funding_basis",
+   "source": "ATLAS_UNITS_V1",
+   "state": "BLOCKED_DATA",
+   "title": "FUNDING_TAIL_RISK_CROSS_VENUE_V1",
+   "units_n": "funding rows acquired 0; price bars 476254 on the pinned file; analysis N not formed",
+   "verdict": "BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE (2026-10-09). Official funding history returned HTTP 403 on both documented hosts. The public file archive has no funding directory. Premium was not substituted. Parent label INCREMENTAL_ASSOCIATION_UNCERTAIN is unchanged. Outcome not read."
   },
   {
    "col": "POSITIONING",

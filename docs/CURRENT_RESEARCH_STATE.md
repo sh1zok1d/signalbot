@@ -1,3 +1,14 @@
+## FUNDING_TAIL_RISK_CROSS_VENUE_V1 — blocked before any Bybit outcome — 2026-10-09
+
+`STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE | outcome_read = false | parent verdict unchanged`
+`PARENT = FUNDING_STATE_HISTORICAL_STRUCTURE_V1 | LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN | not reread | tail shape is not a confirmed effect`
+`PRICE = LEVEL_CROSS_VENUE_PERP_5M_V0 bybit_btcusdt_linear_5m.csv.gz | SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c | opens 2020-03-31T21:00:00Z through 2024-12-31T20:55:00Z | bars 476254 | missing slots 23714 | high/low/close not used`
+`FUNDING = GET /v5/market/funding/history not acquired | api.bybit.com and api.bytick.com HTTP 403 | public.bybit.com has no funding directory | premium not substituted | rows 0`
+`NOT OPENED = Bybit outcome, Binance rerun, 2025/2026, E1, premium, open interest, product`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Feasibility: `docs/research/FUNDING_TAIL_RISK_CROSS_VENUE_V1_FEASIBILITY.md`.
+
 ## FUNDING_STATE_HISTORICAL_STRUCTURE_V1 — one historical characterization — 2026-10-09
 
 `MODE = RETROSPECTIVE_HISTORICAL_STRUCTURE / AVAILABILITY_LIMITED | outcome_read = true | evidence tier unchanged | not a confirmation`

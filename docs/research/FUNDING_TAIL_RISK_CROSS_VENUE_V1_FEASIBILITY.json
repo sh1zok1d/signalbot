@@ -1,0 +1,34 @@
+{
+  "bybit_funding_rows_acquired": 0,
+  "bybit_price_bars": 476254,
+  "bybit_price_first_open": "2020-03-31T21:00:00Z",
+  "bybit_price_last_open": "2024-12-31T20:55:00Z",
+  "bybit_price_missing_slots": 23714,
+  "bybit_price_sha256": "f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+  "e1_touched": false,
+  "funding_endpoint": "GET /v5/market/funding/history",
+  "funding_hosts_http_status": {
+    "api.bybit.com": 403,
+    "api.bytick.com": 403
+  },
+  "objects_2025_2026_used": false,
+  "oi_opened": false,
+  "outcome_read": false,
+  "parent_rerun": false,
+  "parent_unit": "FUNDING_STATE_HISTORICAL_STRUCTURE_V1",
+  "parent_verdict_unchanged": "INCREMENTAL_ASSOCIATION_UNCERTAIN",
+  "premium_scored": false,
+  "price_high_low_close_used": false,
+  "product_change": false,
+  "product_integration_candidate": false,
+  "public_archive_root": [
+    "kline_for_metatrader4/",
+    "premium_index/",
+    "spot_index/",
+    "trading/",
+    "spot/"
+  ],
+  "public_archive_has_funding_directory": false,
+  "status": "BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE",
+  "unit": "FUNDING_TAIL_RISK_CROSS_VENUE_V1"
+}
