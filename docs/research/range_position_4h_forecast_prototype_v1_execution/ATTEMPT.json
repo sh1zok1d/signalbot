@@ -1,0 +1,7 @@
+{
+  "evidence_class": "RETROSPECTIVE_FORECAST_PROTOTYPE",
+  "owner_go": true,
+  "started_before_model_results": true,
+  "status": "STARTED",
+  "unit": "RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1"
+}
