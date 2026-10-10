@@ -8921,3 +8921,9 @@ NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variable
 `CENSUS (outcome-blind; reproduced byte for byte) = BITMEX 113,210 / 171 weeks and BINANCE_2020_2024 162,084 / 242 identical to Cursor's A1 | BINANCE_2025_2026 59,657 / 90 (A1 60,999 / 92) | total 334,951 / 503 | SUPPORT 54b82c61, FOLDS d03f1b90, ADAPTER efd7b8a8`
 `RUNTIME = Python 3.11 / numpy 2.1.3 / pandas 2.2.3 (requirements pins, CI); fold-clock guard refuses pandas 3`
 `MODEL_FIT = false | OWNER_GO = false | OUTCOMES_READ = none`
+
+## 2026-10-10 — Track B owner decision: trend-exhaustion candidate recorded; ADAPTIVE_OCCUPANCY_TIMESCALE_V1 opened (preflight only)
+
+`TRACKS = Track B (research) continues | Cursor's RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 (and its A2 port, frozen at 60b6209b, OWNER_GO False) belongs to Track A: not executed, not given a go, not modified, its outcome not used in Track B`
+`CANDIDATE = RP4H_TREND_EXHAUSTION_INTERACTION_V1 | DISCOVERY_CANDIDATE_FROM_SIGN_REVERSED_PRIMARY_HYPOTHESIS | docs/research/RP4H_TREND_EXHAUSTION_INTERACTION_V1_CANDIDATE.md | post-outcome hypothesis from RP4H_TREND_REGIME_MODULATION_V1 (NOT_DETECTED stays final) | CORE 2020-24 exposed for it; needs a fresh surface and its own design; not designed, not run`
+`NEXT_UNIT = ADAPTIVE_OCCUPANCY_TIMESCALE_V1 (past-only timescale-selection algorithm for occupancy; fixed OCC_4H stays HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE) | preflight only, then owner GO`
