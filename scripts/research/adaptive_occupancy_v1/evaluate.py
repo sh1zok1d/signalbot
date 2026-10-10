@@ -36,7 +36,7 @@ PACKAGES = [Path(__file__).resolve().parent] + [ROOT / "scripts/research" / p fo
 MODELS = ("CLIM", "B1", "STATIC_OCC4", "ADAPTIVE", "MM_NO_OCC")
 PRIMARY = [("ADAPTIVE", "B1"), ("ADAPTIVE", "STATIC_OCC4")]
 DIAG = [("STATIC_OCC4", "B1"), ("B1", "CLIM"), ("ADAPTIVE", "CLIM"), ("ADAPTIVE", "MM_NO_OCC")]
-PIN_KEYS = ("DESIGN_SHA256", "DESIGN_COMMIT", "EXPECTED_ROWS", "EXPECTED_OUTER_BLOCKS", "FOLD_MANIFEST_SHA256",
+PIN_KEYS = ("OWNER_STATUS", "DESIGN_SHA256", "DESIGN_COMMIT", "EXPECTED_ROWS", "EXPECTED_OUTER_BLOCKS", "FOLD_MANIFEST_SHA256",
             "SELECTOR_MANIFEST_SHA256", "DESIGN_JSON_SHA256", "EXPECTED_FEATURE_SHA256", "EVALUATOR_DIGEST")
 SHARED = ("RIDGE", "CLIP_Z", "IRLS_MAX_ITER", "IRLS_TOL", "P_CLIP", "BOOT_DRAWS", "BOOT_LO", "BOOT_HI", "RELIABILITY_BINS")
 FEATURE_COLS = ("close_ms", "era", "venue", "bar", "rp", "ret4", "rv4", "ret1h", "ret15") + tuple(
@@ -336,6 +336,8 @@ def adaptation_vs_static(d: dict) -> str:
 
 
 def run() -> dict:
+    if K.OWNER_STATUS:
+        raise SystemExit(f"OWNER_CLOSED: {K.OWNER_STATUS}")
     refuse_if_scored()
     assert_frozen()
     rows = load_all()

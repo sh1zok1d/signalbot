@@ -632,8 +632,13 @@
    "frontier_value": 4,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 6,
+   "prior_signature_count": 7,
    "prior_signatures": [
+    {
+     "function": "Adaptive occupancy timescale selector",
+     "id": "ADAPTIVE-OCCUPANCY-TIMESCALE-V1",
+     "mechanism": "Whether a past-only choice of how far back to measure where the price spent time improves a next-hour direction probability."
+    },
     {
      "function": "Unconditional 24h close-path characterization",
      "id": "D3",
@@ -7775,7 +7780,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "69e6f00ced558419cf866d18034f398779c39f5d2e02599d7cb25b73b5bcc471",
+ "SOURCES_DIGEST": "ddef5a38a06d88f2b1852b331e409281c808b984686a400cf012ab234f9de433",
  "SURFACES": [
   {
    "also_cols": [

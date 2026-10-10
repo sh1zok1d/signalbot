@@ -979,6 +979,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
+    "CLOSED_BEFORE_START": 1,
     "CLOSED_ON_SURFACE": 3,
     "NO_STRUCTURE": 1
    },
@@ -991,6 +992,7 @@
    "row_name": "Path shape, wicks and jump clustering",
    "state": "NO_STRUCTURE",
    "units": [
+    "ADAPTIVE-OCCUPANCY-TIMESCALE-V1",
     "D3",
     "DIRECTIONAL-STATE-SEARCH-V2",
     "GV0R01-C003",
@@ -10195,13 +10197,13 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 213,
+  "units": 214,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
-   "CLOSED_BEFORE_START": 1,
+   "CLOSED_BEFORE_START": 2,
    "CLOSED_ON_SURFACE": 36,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
@@ -15599,7 +15601,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "69e6f00ced558419cf866d18034f398779c39f5d2e02599d7cb25b73b5bcc471",
+ "SOURCES_DIGEST": "ddef5a38a06d88f2b1852b331e409281c808b984686a400cf012ab234f9de433",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -22674,6 +22676,39 @@
    "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1234 feature-complete unresolved; primary resolved N=1059 (BREAK 439, REJECT 620); 238 weeks",
    "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_SPOT_PERP_REACTION. Baseline END_POSITION_X is +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059) with the cross-perp control at +9.08 pp (95% +5.17..+12.84). That control is not in the FDR family. SP1 +32.97 pp (95% -12.36..+76.94, q=0.228) is not separated from the cross-perp move (pre-outcome correlation 0.998). SP2 +2.29 pp (95% -0.30..+5.12, q=0.228). SP3 -1.29 pp (95% -4.04..+1.57, q=0.385). No feature passes. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run. The level row and the spot kline surface were read for this post-touch question. This is not a confirmation of the cross-venue unit, not a reopen of SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, or basis_dislocation, and not a reopen of MARKET-06. No product change. No lead-lag, 30-minute, or confirmation unit was started."
+  },
+  {
+   "blind_function": "Adaptive occupancy timescale selector",
+   "blind_mechanism": "Whether a past-only choice of how far back to measure where the price spent time improves a next-hour direction probability.",
+   "col": "CANDLES",
+   "datasets": [
+    "D2_BITMEX_PRE2020_XBTUSD",
+    "CORE_BTC_BINANCE_V0",
+    "BINANCE_UM_KLINES_5M_PRODUCT"
+   ],
+   "exposure": "None (no market outcome read; DIRECTION counters not incremented).",
+   "forbidden": "running this design; reading its outer metrics; treating its synthetic results as a market result",
+   "function": "Nested walk-forward hard selector (lowest inner Brier over 24 weeks) of OCC_1H..12H or NO_OCC and memory 26/52/104 weeks, ridge logistic on B1 + one OCC_L.",
+   "id": "ADAPTIVE-OCCUPANCY-TIMESCALE-V1",
+   "mechanism": "The useful occupancy (time-in-box) timescale for the next 1h direction may move through time; a past-only selector of one lookback and one memory per block would follow it.",
+   "note": "Owner decision 2026-10-10. Static OCC_4H status HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE is unchanged.",
+   "period": "designed for BitMEX 2016-19, CORE 2020-24 and Binance 2025-26 (RP4H Unit B canonical surface); 111 outer 28-day blocks, 294,493 outer rows; nothing run",
+   "practical_bar": "No magnitude floor (as designed).",
+   "program": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1",
+   "records": [
+    "docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_DESIGN.md",
+    "docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_PREFLIGHT.json",
+    "docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_CLOSURE.md",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "Not as designed. The replacement is a new unit, MULTISCALE_ADAPTIVE_OCCUPANCY_V2, with its own synthetic adequacy gate and owner go.",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_BEFORE_START",
+   "title": "Hard-selection adaptive occupancy timescale forecast (never run)",
+   "units_n": "one primary pair (ADAPTIVE - B1 dBrier); 24 candidates (8 configurations x 3 memories) per block",
+   "verdict": "DESIGN_INFORMATIONALLY_INSUFFICIENT / OUTCOME_NOT_READ. Outcome-free synthetic power: ADAPTIVE worse than B1 in NULL, CONSTANT_OCC_4H and SWITCHING_OCC_2H_8H at beta 0.03 (+1.5e-4, +8.7e-5, +1.2e-4); an expanding-memory option and beta 0.06 did not rescue SWITCHING. A real null could not separate no adaptive occupancy information from an incapable selector.",
+   "why_closed": "CLOSED_BEFORE_START by owner decision 2026-10-10 (DO NOT RUN): a design failure, not a market result. Design frozen (SHA d33f32b7, commit bb5c35ef; pins 7df10edc); no real outcome read; no attempt journal; no surface consumed."
   },
   {
    "blocker": null,

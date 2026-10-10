@@ -8935,3 +8935,10 @@ NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variable
 `SYNTHETIC POWER (outcome-free, beta 0.03) = ADAPTIVE - B1: NULL +1.5e-4, CONSTANT_OCC_4H +8.7e-5, SWITCHING_OCC_2H_8H +1.2e-4, all WORSE | option EXPANDING memory: WORSE / NONE / NONE | beta 0.06: CONSTANT SUPPORTED but worse than STATIC_OCC4, SWITCHING NONE -> the adaptation gain cannot be shown at this SNR; pre-registered rule: a real NONE/WORSE says nothing about the market's timescale`
 `EXPOSURE_IF_RUN = 26 DIRECTION cells per surface (24 candidates + 2 expanding systems) on BitMEX, CORE and Binance 2025-26 | all DISCOVERY_REUSABLE for this question | motivation outcome-inspired (OCC_4H BitMEX supported, 2025-26 not replicated); owner override of the ended OCC line for this exact question only`
 `WINDOWS_CONSUMED = none (no real outcome read) | OWNER_GO = pending`
+
+## 2026-10-10 — ADAPTIVE_OCCUPANCY_TIMESCALE_V1 closed before start (owner: DO NOT RUN); MULTISCALE_ADAPTIVE_OCCUPANCY_V2 opened (synthetic design work only)
+
+`OWNER = DO NOT RUN ADAPTIVE_OCCUPANCY_TIMESCALE_V1 | status DESIGN_INFORMATIONALLY_INSUFFICIENT / OUTCOME_NOT_READ | a design failure, not a market result: the hard selector lost to B1 even in SWITCHING_OCC_2H_8H, and beta 0.06 did not rescue it, so a real null could not separate "no adaptive occupancy information" from "incapable selector"`
+`PRESERVED = design SHA d33f32b7 (commit bb5c35ef, pins 7df10edc), design JSON, manifests, exposure record, preflight with synthetic power | run --go now refuses (OWNER_CLOSED) | closure docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_CLOSURE.md | atlas ADAPTIVE-OCCUPANCY-TIMESCALE-V1 = CLOSED_BEFORE_START`
+`WINDOWS_CONSUMED = none | DIRECTION exposure counters NOT incremented (the 78 cells were conditional on a run that will not happen) | no attempt journal exists`
+`NEXT = MULTISCALE_ADAPTIVE_OCCUPANCY_V2 (new algorithmic object: one regularized logistic on B1 + all seven OCC_L; adaptation through retraining and memory, not lookback picking) | design iteration on synthetic outcomes only, then a design + synthetic adequacy report; no market outcome`

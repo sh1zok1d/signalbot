@@ -4365,3 +4365,31 @@ units:
     - scripts/research/rp4h_trend_regime_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     note: 'Adaptation candidate 1 of the owner decision 2026-10-09. Same anchors as DIRECTIONAL-STATE-SEARCH-V2.'
+  - id: ADAPTIVE-OCCUPANCY-TIMESCALE-V1
+    title: Hard-selection adaptive occupancy timescale forecast (never run)
+    program: ADAPTIVE_OCCUPANCY_TIMESCALE_V1
+    row: PRICE_STRUCTURE.path_shape
+    col: CANDLES
+    state: CLOSED_BEFORE_START
+    datasets:
+    - D2_BITMEX_PRE2020_XBTUSD
+    - CORE_BTC_BINANCE_V0
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    period: 'designed for BitMEX 2016-19, CORE 2020-24 and Binance 2025-26 (RP4H Unit B canonical surface); 111 outer 28-day blocks, 294,493 outer rows; nothing run'
+    units_n: 'one primary pair (ADAPTIVE - B1 dBrier); 24 candidates (8 configurations x 3 memories) per block'
+    practical_bar: 'No magnitude floor (as designed).'
+    mechanism: 'The useful occupancy (time-in-box) timescale for the next 1h direction may move through time; a past-only selector of one lookback and one memory per block would follow it.'
+    function: 'Nested walk-forward hard selector (lowest inner Brier over 24 weeks) of OCC_1H..12H or NO_OCC and memory 26/52/104 weeks, ridge logistic on B1 + one OCC_L.'
+    blind_mechanism: 'Whether a past-only choice of how far back to measure where the price spent time improves a next-hour direction probability.'
+    blind_function: 'Adaptive occupancy timescale selector'
+    verdict: 'DESIGN_INFORMATIONALLY_INSUFFICIENT / OUTCOME_NOT_READ. Outcome-free synthetic power: ADAPTIVE worse than B1 in NULL, CONSTANT_OCC_4H and SWITCHING_OCC_2H_8H at beta 0.03 (+1.5e-4, +8.7e-5, +1.2e-4); an expanding-memory option and beta 0.06 did not rescue SWITCHING. A real null could not separate no adaptive occupancy information from an incapable selector.'
+    why_closed: 'CLOSED_BEFORE_START by owner decision 2026-10-10 (DO NOT RUN): a design failure, not a market result. Design frozen (SHA d33f32b7, commit bb5c35ef; pins 7df10edc); no real outcome read; no attempt journal; no surface consumed.'
+    reopen: 'Not as designed. The replacement is a new unit, MULTISCALE_ADAPTIVE_OCCUPANCY_V2, with its own synthetic adequacy gate and owner go.'
+    forbidden: 'running this design; reading its outer metrics; treating its synthetic results as a market result'
+    exposure: 'None (no market outcome read; DIRECTION counters not incremented).'
+    records:
+    - docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_DESIGN.md
+    - docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_PREFLIGHT.json
+    - docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_CLOSURE.md
+    - docs/RESEARCH_LEDGER.md
+    note: 'Owner decision 2026-10-10. Static OCC_4H status HISTORICALLY_REPLICATED_BUT_NOT_MODERNLY_STABLE is unchanged.'

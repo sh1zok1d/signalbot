@@ -222,7 +222,15 @@ def test_adaptation_qualifier():
     assert E.adaptation_vs_static(_d(0, -1, 1)) == "ADAPTIVE_NOT_DISTINGUISHED_FROM_STATIC_OCC4"
 
 
+def test_owner_closed_design_never_runs(monkeypatch):
+    assert K.OWNER_STATUS == "DESIGN_INFORMATIONALLY_INSUFFICIENT / OUTCOME_NOT_READ"
+    monkeypatch.setattr("sys.argv", ["evaluate", "run", "--go"])
+    with pytest.raises(SystemExit, match="OWNER_CLOSED"):
+        E.main()
+
+
 def test_run_refuses(monkeypatch, tmp_path):
+    monkeypatch.setattr(K, "OWNER_STATUS", "")
     monkeypatch.setattr("sys.argv", ["evaluate", "run"])
     with pytest.raises(SystemExit, match="needs --go"):
         E.main()
