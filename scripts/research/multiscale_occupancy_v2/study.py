@@ -4,6 +4,8 @@
     python -m scripts.research.multiscale_occupancy_v2.study stage2 STAGE1.json OUT.json   # fresh seeds
     python -m scripts.research.multiscale_occupancy_v2.study validate STAGE1.json OUT.json # exact IRLS spot check
                                                                                            # and coefficient paths
+    python -m scripts.research.multiscale_occupancy_v2.study calibrate OUT.json   # paired kappa (beta -> partial rho)
+    python -m scripts.research.multiscale_occupancy_v2.study v1repro OUT.json     # surrogate vs the exact V1 preflight
 Real features, real schedule, synthetic outcomes. No market outcome is read."""
 from __future__ import annotations
 
@@ -221,6 +223,66 @@ def exact_check(spec: EN.Spec, n_reps: int = 2, level: float = 2.0) -> list:
     return out
 
 
+def calibrate(n_draws: int = 16, beta: float = 0.03) -> dict:
+    """Paired calibration: partial Spearman(OCC_L, R | B1 ranks) with and without beta * g_L on the same noise draw,
+    for the active scale within its active periods (OCC_4H: all rows; OCC_2H: even periods; OCC_8H: odd periods)."""
+    from scripts.research.rp4h_bitmex_temporal_v1.parent import partial_rank
+    rows = load_features()
+    X = EN.raw_matrix(rows)
+    sig = dgp.residual_signals(rows, X)
+    ctrl = [rows[c] for c in ("rp", "ret4", "rv4", "ret1h", "ret15")]
+    odd = dgp.periods(rows, dgp.PERIOD_WEEKS) % 2 == 1
+    masks = {4: np.ones(odd.size, dtype=bool), 2: ~odd, 8: odd}
+    diffs = {h: [] for h in masks}
+    for r in range(n_draws):
+        nz = dgp.noise(rows, np.random.default_rng(np.random.SeedSequence([999, 1, 0, r])))
+        for h, m in masks.items():
+            cm = [c[m] for c in ctrl]
+            x = rows[f"OCC_{h}H"][m]
+            diffs[h].append(partial_rank(nz[m] + beta * sig[h][m], x, cm)["rho"] - partial_rank(nz[m], x, cm)["rho"])
+    return {"beta": beta, "draws": n_draws,
+            "kappa": {str(h): float(np.mean(v)) / beta for h, v in diffs.items()},
+            "kappa_se": {str(h): float(np.std(v, ddof=1) / np.sqrt(len(v))) / beta for h, v in diffs.items()},
+            "frozen": {str(h): K.KAPPA[h] for h in K.KAPPA}}
+
+
+def v1_reproduction() -> dict:
+    """The surrogate V1 selector on the exact V1 preflight synthetic outcomes (adaptive_occupancy_v1.synthetic_y,
+    seeds 4242-4244, beta 0.03 on the raw standardized OCC) against the exact V1 preflight record."""
+    from pathlib import Path
+    from scripts.research.adaptive_occupancy_v1 import constants as K1
+    rows = load_features()
+    g = EN.build_geometry(rows, K.EWMA_HALF_LIFE_WEEKS)
+    cols = []
+    for k, (_name, on, off) in enumerate(K1.SYN_SCENARIOS):
+        rng = np.random.default_rng(K1.SYN_SEED + k)
+        r = np.empty(rows["close_ms"].size)
+        for era in range(3):
+            m = rows["era"] == era
+            bars = rows["bar"][m]
+            e = rng.standard_normal(int(bars.max()) + 14)
+            cs = np.concatenate([[0.0], np.cumsum(e)])
+            r[m] = (cs[bars + 13] - cs[bars + 1]) / np.sqrt(12.0)
+        if on is not None:
+            period = ((rows["close_ms"] - rows["close_ms"][0]) // (K1.SYN_SWITCH_WEEKS * K1.WEEK_MS)) % 2
+            z = lambda c: (rows[c] - rows[c].mean()) / rows[c].std()
+            r = r + K1.SYN_BETA * np.where(period == 0, z(on), z(off))
+        cols.append((r > 0).astype(np.float64))
+    acc = EN.evaluate_batch(g, np.column_stack(cols), [], with_v1=True)["acc"]
+    C = EN.boot_counts(g.week_ids.size, K.BOOT_DRAWS, K.BOOT_SEED)
+    cnt = EN.week_counts(g)
+    root = Path(__file__).resolve().parents[3]
+    pre = json.load(open(root / "docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_PREFLIGHT.json"))["synthetic_power"]
+    out = []
+    for k, p in enumerate(pre):
+        for pair, (a, b) in (("adaptive_minus_b1", ("V1", "B1")), ("static_occ4_minus_b1", ("STATIC_OCC4", "B1"))):
+            bp = EN.boot_pair(C, cnt, acc.brier[a][:, [k]], acc.brier[b][:, [k]])
+            out.append({"scenario": p["scenario"], "pair": pair,
+                        "surrogate": [float(bp["point"][0]), float(bp["lo"][0]), float(bp["hi"][0])],
+                        "exact": [p[pair]["point"], p[pair]["lo"], p[pair]["hi"]]})
+    return {"pairs": out}
+
+
 def main() -> None:
     step = sys.argv[1]
     if step == "stage1":
@@ -248,8 +310,14 @@ def main() -> None:
         out = {"exact_check": exact_check(spec), "coefficient_paths_2x": coefficient_paths(spec),
                "coefficient_paths_1x": coefficient_paths(spec, level=1.0)}
         path = sys.argv[3]
+    elif step == "calibrate":
+        out = calibrate()
+        path = sys.argv[2]
+    elif step == "v1repro":
+        out = v1_reproduction()
+        path = sys.argv[2]
     else:
-        raise SystemExit("step: stage1 | stage2 | validate")
+        raise SystemExit("step: stage1 | stage2 | validate | calibrate | v1repro")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1, sort_keys=True, default=lambda o: o.tolist() if hasattr(o, "tolist") else str(o))
 

@@ -8942,3 +8942,12 @@ NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variable
 `PRESERVED = design SHA d33f32b7 (commit bb5c35ef, pins 7df10edc), design JSON, manifests, exposure record, preflight with synthetic power | run --go now refuses (OWNER_CLOSED) | closure docs/research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_CLOSURE.md | atlas ADAPTIVE-OCCUPANCY-TIMESCALE-V1 = CLOSED_BEFORE_START`
 `WINDOWS_CONSUMED = none | DIRECTION exposure counters NOT incremented (the 78 cells were conditional on a run that will not happen) | no attempt journal exists`
 `NEXT = MULTISCALE_ADAPTIVE_OCCUPANCY_V2 (new algorithmic object: one regularized logistic on B1 + all seven OCC_L; adaptation through retraining and memory, not lookback picking) | design iteration on synthetic outcomes only, then a design + synthetic adequacy report; no market outcome`
+
+## 2026-10-10 — MULTISCALE_ADAPTIVE_OCCUPANCY_V2: design and synthetic adequacy (no market outcome) -> DESIGN_STILL_INFORMATIONALLY_INSUFFICIENT
+
+`PROTOCOL = docs/research/MULTISCALE_ADAPTIVE_OCCUPANCY_V2_SYNTHETIC_ADEQUACY_PROTOCOL.md, frozen at 6e1bc6a4 before the Monte Carlo summary (one exploratory timing batch disclosed; nothing changed after it)`
+`GRID = JOINT / OFFSET x TRAIL_52 / TRAIL_104 / EWMA_26 x ridge_occ 1 / 1e3 / 1e4 (18 selectable; EXPANDING as reference) | worlds NULL, NULL_DRIFT, CONSTANT_OCC_4H, SWITCHING_OCC_2H_8H, OCC_OFF_ON | ladder 0.5-3x rho_obs 0.011 (OCC_4H partial | B1, BitMEX), kappa 4H 0.8485 / 2H 0.9193 / 8H 0.8733 | stage 1 950 draws, stage 2 1,900 fresh draws`
+`ENGINE = vectorized one-step-Newton surrogate; reproduces the exact V1 preflight to <= 1e-6 in dBrier and the exact IRLS of the selected V2 to ~5e-9`
+`SELECTED = JOINT / TRAIL_104 / ridge 1e4 | stage 2: C1 false support 0 / 0 PASS; C2 PASS; C3 gain over V1 +0.06 (2x support) / +0.12 (1x beat) FAIL; C4 P(SUPPORT) at 2x CONSTANT 0.55, SWITCHING 0.06 FAIL; C5 OFF_ON 2x mean dBrier +1.2e-5 FAIL -> DESIGN_STILL_INFORMATIONALLY_INSUFFICIENT | Clark-West option also fails (C3 beat, C5)`
+`KEY = trailing-memory adaptation costs ~+2e-5 Brier vs the same model on an expanding window in every world, SWITCHING included; weights do not move between regimes (104 w averages two 52 w regimes; shorter windows too noisy) | MDE80: V2 CONSTANT 2.6x, SWITCHING > 3x; at 1x no architecture exceeds P(SUPPORT) 0.18 on the dBrier route`
+`WINDOWS_CONSUMED = none | MARKET OUTCOMES READ = none | DIRECTION exposure unchanged | no preflight, no market evaluator | owner decision pending`

@@ -115,7 +115,8 @@ class Geometry:
         return k
 
 
-def build_geometry(rows: dict, ewma_weeks: int, memories=(26, 52, 104)) -> Geometry:
+def build_geometry(rows: dict, ewma_weeks: int, memories=None) -> Geometry:
+    memories = tuple(sorted(set(K1.MEMORIES_WEEKS) | {52, 104})) if memories is None else memories
     X = raw_matrix(rows)
     t = rows["close_ms"].astype(np.int64)
     sched = WF1.schedule(rows)
