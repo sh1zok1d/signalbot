@@ -1,0 +1,39 @@
+{
+ "unit": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1",
+ "recorded": "2026-10-10",
+ "status": "DESIGN_FROZEN_NOT_RUN",
+ "outcomes_read_by_this_unit": "none (preflight is outcome-blind; synthetic outcomes only)",
+ "surface_class_for_this_question": {
+  "BITMEX_XBTUSD_2016_2019": "DISCOVERY_REUSABLE",
+  "CORE_BINANCE_UM_BTCUSDT_2020_2024": "DISCOVERY_REUSABLE",
+  "BINANCE_UM_BTCUSDT_2025_2026_UNIT_B": "DISCOVERY_REUSABLE"
+ },
+ "prior_reads": {
+  "OCC_4H_given_B1_or_B0_to_R_1H": {
+   "BITMEX_XBTUSD_2016_2019": "OCC_MEAN_4H_TEMPORAL_REPLICATION_V1 (PRIMARY | B1 +0.0110 [+0.0021, +0.0199])",
+   "CORE_BINANCE_UM_BTCUSDT_2020_2024": "DIRECTIONAL_STATE_SEARCH_V2 (| B0 +0.0202 [+0.0130, +0.0277]; | B1 not computed)",
+   "BINANCE_UM_BTCUSDT_2025_2026_UNIT_B": "OCC_MEAN_4H_MODERN_TEMPORAL_REPLICATION_V1 (PRIMARY | B1 -0.0017 [-0.0162, +0.0119])"
+  },
+  "OCC_L_for_L_not_4": "never read on any surface",
+  "B1_quantities_to_R_1H": "read on all three (Unit A, Unit B, Cursor twins, atlas, DSS V2, Bybit same-period read, OCC units)",
+  "out_of_sample_brier_or_logloss_of_a_model_on_these_features_at_1h": "none recorded",
+  "adjacent": ["OCC_THIRDS_4H (DSS V2, CORE)", "close_pos_4h, frac_near_*, midpoint_slope_4h (pre-impulse atlas, CORE)"]
+ },
+ "motivation": "outcome-inspired: formed after OCC_4H was supported on BitMEX and not replicated on Binance 2025-26",
+ "owner_override": "the OCC line was ended by owner rule; the owner's 2026-10-10 order for this unit overrides it for this exact question only; the static OCC_4H status is not reopened",
+ "exposure_added_when_run": {
+  "target": "DIRECTION",
+  "family": "PRICE_STRUCTURE",
+  "cells_per_surface": 26,
+  "cells_rule": "24 candidates (8 configurations x 3 memories) + 2 expanding logistic systems (B1, STATIC_OCC_4H)",
+  "surfaces": ["BITMEX_XBTUSD_2016_2019", "CORE_BINANCE_UM_BTCUSDT_2020_2024", "BINANCE_UM_BTCUSDT_2025_2026_UNIT_B"],
+  "cells_total": 78,
+  "search_penalty": "adaptive search; confirms nothing by itself (research rules section 4)"
+ },
+ "protected": {
+  "E1_RUN_001_holdout": "[2026-08-16T00:00Z, 2026-08-25T17:20Z) never requested",
+  "E1_development_slice": "[2026-08-02, 2026-08-16) never requested",
+  "not_read": ["spot", "other venues", "other symbols", "OI", "other features", "other horizons", "PnL", "fees"]
+ },
+ "track_a_overlap": "Cursor's RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 / A2 port (60b6209b, OWNER_GO false) scores RP4H logistic vs climatology on BitMEX and Binance 2025-26; this unit's B1 - CLIM diagnostic is close; neither track uses the other's outcome"
+}

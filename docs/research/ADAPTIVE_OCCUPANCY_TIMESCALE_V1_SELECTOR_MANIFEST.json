@@ -1,0 +1,115 @@
+{
+ "block_days": 28,
+ "candidates": [
+  {
+   "config": "NO_OCC",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_1H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_2H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_3H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_4H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_6H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_8H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "OCC_12H",
+   "memory_weeks": 26
+  },
+  {
+   "config": "NO_OCC",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_1H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_2H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_3H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_4H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_6H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_8H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "OCC_12H",
+   "memory_weeks": 52
+  },
+  {
+   "config": "NO_OCC",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_1H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_2H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_3H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_4H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_6H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_8H",
+   "memory_weeks": 104
+  },
+  {
+   "config": "OCC_12H",
+   "memory_weeks": 104
+  }
+ ],
+ "frozen_for_block": true,
+ "inner_blocks": 6,
+ "memory_eligibility": "S - inner window - M weeks >= the venue's first anchor",
+ "n_candidates": 24,
+ "objective": "pooled inner Brier",
+ "outer_outcomes_used": false,
+ "tie_break": [
+  "log loss within TIE_TOL",
+  "NO_OCC first",
+  "longer memory",
+  "shorter lookback"
+ ],
+ "tie_tol": 1e-09,
+ "unit": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1"
+}

@@ -1,0 +1,125 @@
+{
+ "constants": {
+  "BAR_MS": 300000,
+  "BLOCK_DAYS": 28,
+  "BOOT_DRAWS": 2000,
+  "BOOT_HI": 0.975,
+  "BOOT_LO": 0.025,
+  "BOOT_SEED": 20261124,
+  "CLAIM_CEILING": "HISTORICAL_ONLY",
+  "CLIP_Z": 5.0,
+  "CONFIGS": [
+   "NO_OCC",
+   "OCC_1H",
+   "OCC_2H",
+   "OCC_3H",
+   "OCC_4H",
+   "OCC_6H",
+   "OCC_8H",
+   "OCC_12H"
+  ],
+  "DAY_MS": 86400000,
+  "DIAG_ERAS": [
+   [
+    "2016-2019",
+    2016,
+    2019
+   ],
+   [
+    "2020-2022",
+    2020,
+    2022
+   ],
+   [
+    "2023-2024",
+    2023,
+    2024
+   ],
+   [
+    "2025-2026",
+    2025,
+    2026
+   ]
+  ],
+  "ERAS": [
+   "BITMEX_XBTUSD_2016_2019",
+   "BINANCE_UM_2020_2024",
+   "BINANCE_UM_2025_2026"
+  ],
+  "ERA_VENUE": [
+   0,
+   1,
+   1
+  ],
+  "EVIDENCE_CLASS": "RETROSPECTIVE_ADAPTIVE_FORECAST_PROTOTYPE / HISTORICAL_ONLY",
+  "HOUR_MS": 3600000,
+  "INNER_BLOCKS": 6,
+  "IRLS_MAX_ITER": 50,
+  "IRLS_TOL": 1e-10,
+  "LOOKBACK_HOURS": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   8,
+   12
+  ],
+  "MEMORIES_WEEKS": [
+   26,
+   52,
+   104
+  ],
+  "MIN_VALID_DRAWS": 1900,
+  "NO_OCC": "NO_OCC",
+  "PRODUCT_INTEGRATION_CANDIDATE": false,
+  "P_CLIP": 1e-06,
+  "RELIABILITY_BINS": 10,
+  "RIDGE": 1.0,
+  "ROUTE_INVALID": "ADAPTIVE_OCC_IMPLEMENTATION_INVALID",
+  "ROUTE_NONE": "ADAPTIVE_OCC_NO_INCREMENTAL_SKILL",
+  "ROUTE_SUPPORTED": "ADAPTIVE_OCC_FORECAST_SKILL_SUPPORTED",
+  "ROUTE_UNCERTAIN": "ADAPTIVE_OCC_FORECAST_SKILL_UNCERTAIN",
+  "ROUTE_WORSE": "ADAPTIVE_OCC_WORSE_THAN_BASELINE",
+  "STATIC_OCC": "OCC_4H",
+  "SYN_BETA": 0.03,
+  "SYN_SCENARIOS": [
+   [
+    "NULL",
+    null,
+    null
+   ],
+   [
+    "CONSTANT_OCC_4H",
+    "OCC_4H",
+    "OCC_4H"
+   ],
+   [
+    "SWITCHING_OCC_2H_8H",
+    "OCC_2H",
+    "OCC_8H"
+   ]
+  ],
+  "SYN_SEED": 4242,
+  "SYN_SWITCH_WEEKS": 52,
+  "TIE_TOL": 1e-09,
+  "UNIT": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1",
+  "VENUES": {
+   "0": "BITMEX_XBTUSD",
+   "1": "BINANCE_USDM_BTCUSDT"
+  },
+  "WEEK_MS": 604800000
+ },
+ "features_b1": [
+  "RP4H - 0.5",
+  "RET_4H / RV_4H",
+  "RET_1H / RV_4H",
+  "RET_15M / RV_4H",
+  "log RV_4H"
+ ],
+ "model": "ridge logistic (Newton-IRLS, L2 1.0 on standardized slopes, not the intercept; 50 iterations; tol 1e-10; standardization and clip +-5 fitted on training rows) imported from adaptive_b1_forecast_v1.model",
+ "occ_feature": "OCC_L - 0.5 (one lookback per model)",
+ "target": "Y = 1{R_1H > 0}",
+ "unit": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1",
+ "venue_policy": "two venues (BitMEX; Binance USD-M 2020-26); no window or target crosses a series boundary; training never mixes venues; Binance 2025-26 trains on Binance 2020-24 plus earlier 2025-26 rows"
+}

@@ -1,0 +1,1743 @@
+{
+ "block_days": 28,
+ "folds": [
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1479081600000,
+    1493596800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1496016000000,
+   "outer_start_ms": 1493596800000,
+   "train_end_ms": 1493596800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1481500800000,
+    1496016000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1498435200000,
+   "outer_start_ms": 1496016000000,
+   "train_end_ms": 1496016000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1483920000000,
+    1498435200000
+   ],
+   "n_outer_rows": 2672,
+   "outer_end_ms": 1500854400000,
+   "outer_start_ms": 1498435200000,
+   "train_end_ms": 1498435200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1486339200000,
+    1500854400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1503273600000,
+   "outer_start_ms": 1500854400000,
+   "train_end_ms": 1500854400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1488758400000,
+    1503273600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1505692800000,
+   "outer_start_ms": 1503273600000,
+   "train_end_ms": 1503273600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1491177600000,
+    1505692800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1508112000000,
+   "outer_start_ms": 1505692800000,
+   "train_end_ms": 1505692800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1493596800000,
+    1508112000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1510531200000,
+   "outer_start_ms": 1508112000000,
+   "train_end_ms": 1508112000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1496016000000,
+    1510531200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1512950400000,
+   "outer_start_ms": 1510531200000,
+   "train_end_ms": 1510531200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1498435200000,
+    1512950400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1515369600000,
+   "outer_start_ms": 1512950400000,
+   "train_end_ms": 1512950400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1500854400000,
+    1515369600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1517788800000,
+   "outer_start_ms": 1515369600000,
+   "train_end_ms": 1515369600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1503273600000,
+    1517788800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1520208000000,
+   "outer_start_ms": 1517788800000,
+   "train_end_ms": 1517788800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1505692800000,
+    1520208000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1522627200000,
+   "outer_start_ms": 1520208000000,
+   "train_end_ms": 1520208000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1508112000000,
+    1522627200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1525046400000,
+   "outer_start_ms": 1522627200000,
+   "train_end_ms": 1522627200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1510531200000,
+    1525046400000
+   ],
+   "n_outer_rows": 2686,
+   "outer_end_ms": 1527465600000,
+   "outer_start_ms": 1525046400000,
+   "train_end_ms": 1525046400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1512950400000,
+    1527465600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1529884800000,
+   "outer_start_ms": 1527465600000,
+   "train_end_ms": 1527465600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1515369600000,
+    1529884800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1532304000000,
+   "outer_start_ms": 1529884800000,
+   "train_end_ms": 1529884800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1517788800000,
+    1532304000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1534723200000,
+   "outer_start_ms": 1532304000000,
+   "train_end_ms": 1532304000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1520208000000,
+    1534723200000
+   ],
+   "n_outer_rows": 2687,
+   "outer_end_ms": 1537142400000,
+   "outer_start_ms": 1534723200000,
+   "train_end_ms": 1534723200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1522627200000,
+    1537142400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1539561600000,
+   "outer_start_ms": 1537142400000,
+   "train_end_ms": 1537142400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1525046400000,
+    1539561600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1541980800000,
+   "outer_start_ms": 1539561600000,
+   "train_end_ms": 1539561600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1527465600000,
+    1541980800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1544400000000,
+   "outer_start_ms": 1541980800000,
+   "train_end_ms": 1541980800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1529884800000,
+    1544400000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1546819200000,
+   "outer_start_ms": 1544400000000,
+   "train_end_ms": 1544400000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1532304000000,
+    1546819200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1549238400000,
+   "outer_start_ms": 1546819200000,
+   "train_end_ms": 1546819200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1534723200000,
+    1549238400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1551657600000,
+   "outer_start_ms": 1549238400000,
+   "train_end_ms": 1549238400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1537142400000,
+    1551657600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1554076800000,
+   "outer_start_ms": 1551657600000,
+   "train_end_ms": 1551657600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1539561600000,
+    1554076800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1556496000000,
+   "outer_start_ms": 1554076800000,
+   "train_end_ms": 1554076800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1541980800000,
+    1556496000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1558915200000,
+   "outer_start_ms": 1556496000000,
+   "train_end_ms": 1556496000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1544400000000,
+    1558915200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1561334400000,
+   "outer_start_ms": 1558915200000,
+   "train_end_ms": 1558915200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1546819200000,
+    1561334400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1563753600000,
+   "outer_start_ms": 1561334400000,
+   "train_end_ms": 1561334400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1549238400000,
+    1563753600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1566172800000,
+   "outer_start_ms": 1563753600000,
+   "train_end_ms": 1563753600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1551657600000,
+    1566172800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1568592000000,
+   "outer_start_ms": 1566172800000,
+   "train_end_ms": 1566172800000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1554076800000,
+    1568592000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1571011200000,
+   "outer_start_ms": 1568592000000,
+   "train_end_ms": 1568592000000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1556496000000,
+    1571011200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1573430400000,
+   "outer_start_ms": 1571011200000,
+   "train_end_ms": 1571011200000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1558915200000,
+    1573430400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1575849600000,
+   "outer_start_ms": 1573430400000,
+   "train_end_ms": 1573430400000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1561334400000,
+    1575849600000
+   ],
+   "n_outer_rows": 2205,
+   "outer_end_ms": 1578268800000,
+   "outer_start_ms": 1575849600000,
+   "train_end_ms": 1575849600000,
+   "venue": "BITMEX_XBTUSD"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1593993600000,
+    1608508800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1610928000000,
+   "outer_start_ms": 1608508800000,
+   "train_end_ms": 1608508800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1596412800000,
+    1610928000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1613347200000,
+   "outer_start_ms": 1610928000000,
+   "train_end_ms": 1610928000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1598832000000,
+    1613347200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1615766400000,
+   "outer_start_ms": 1613347200000,
+   "train_end_ms": 1613347200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1601251200000,
+    1615766400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1618185600000,
+   "outer_start_ms": 1615766400000,
+   "train_end_ms": 1615766400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1603670400000,
+    1618185600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1620604800000,
+   "outer_start_ms": 1618185600000,
+   "train_end_ms": 1618185600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1606089600000,
+    1620604800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1623024000000,
+   "outer_start_ms": 1620604800000,
+   "train_end_ms": 1620604800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26
+   ],
+   "inner_interval_ms": [
+    1608508800000,
+    1623024000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1625443200000,
+   "outer_start_ms": 1623024000000,
+   "train_end_ms": 1623024000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1610928000000,
+    1625443200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1627862400000,
+   "outer_start_ms": 1625443200000,
+   "train_end_ms": 1625443200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1613347200000,
+    1627862400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1630281600000,
+   "outer_start_ms": 1627862400000,
+   "train_end_ms": 1627862400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1615766400000,
+    1630281600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1632700800000,
+   "outer_start_ms": 1630281600000,
+   "train_end_ms": 1630281600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1618185600000,
+    1632700800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1635120000000,
+   "outer_start_ms": 1632700800000,
+   "train_end_ms": 1632700800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1620604800000,
+    1635120000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1637539200000,
+   "outer_start_ms": 1635120000000,
+   "train_end_ms": 1635120000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1623024000000,
+    1637539200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1639958400000,
+   "outer_start_ms": 1637539200000,
+   "train_end_ms": 1637539200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1625443200000,
+    1639958400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1642377600000,
+   "outer_start_ms": 1639958400000,
+   "train_end_ms": 1639958400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1627862400000,
+    1642377600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1644796800000,
+   "outer_start_ms": 1642377600000,
+   "train_end_ms": 1642377600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1630281600000,
+    1644796800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1647216000000,
+   "outer_start_ms": 1644796800000,
+   "train_end_ms": 1644796800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1632700800000,
+    1647216000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1649635200000,
+   "outer_start_ms": 1647216000000,
+   "train_end_ms": 1647216000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1635120000000,
+    1649635200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1652054400000,
+   "outer_start_ms": 1649635200000,
+   "train_end_ms": 1649635200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1637539200000,
+    1652054400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1654473600000,
+   "outer_start_ms": 1652054400000,
+   "train_end_ms": 1652054400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52
+   ],
+   "inner_interval_ms": [
+    1639958400000,
+    1654473600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1656892800000,
+   "outer_start_ms": 1654473600000,
+   "train_end_ms": 1654473600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1642377600000,
+    1656892800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1659312000000,
+   "outer_start_ms": 1656892800000,
+   "train_end_ms": 1656892800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1644796800000,
+    1659312000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1661731200000,
+   "outer_start_ms": 1659312000000,
+   "train_end_ms": 1659312000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1647216000000,
+    1661731200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1664150400000,
+   "outer_start_ms": 1661731200000,
+   "train_end_ms": 1661731200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1649635200000,
+    1664150400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1666569600000,
+   "outer_start_ms": 1664150400000,
+   "train_end_ms": 1664150400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1652054400000,
+    1666569600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1668988800000,
+   "outer_start_ms": 1666569600000,
+   "train_end_ms": 1666569600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1654473600000,
+    1668988800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1671408000000,
+   "outer_start_ms": 1668988800000,
+   "train_end_ms": 1668988800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1656892800000,
+    1671408000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1673827200000,
+   "outer_start_ms": 1671408000000,
+   "train_end_ms": 1671408000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1659312000000,
+    1673827200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1676246400000,
+   "outer_start_ms": 1673827200000,
+   "train_end_ms": 1673827200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1661731200000,
+    1676246400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1678665600000,
+   "outer_start_ms": 1676246400000,
+   "train_end_ms": 1676246400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1664150400000,
+    1678665600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1681084800000,
+   "outer_start_ms": 1678665600000,
+   "train_end_ms": 1678665600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1666569600000,
+    1681084800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1683504000000,
+   "outer_start_ms": 1681084800000,
+   "train_end_ms": 1681084800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1668988800000,
+    1683504000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1685923200000,
+   "outer_start_ms": 1683504000000,
+   "train_end_ms": 1683504000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1671408000000,
+    1685923200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1688342400000,
+   "outer_start_ms": 1685923200000,
+   "train_end_ms": 1685923200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1673827200000,
+    1688342400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1690761600000,
+   "outer_start_ms": 1688342400000,
+   "train_end_ms": 1688342400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1676246400000,
+    1690761600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1693180800000,
+   "outer_start_ms": 1690761600000,
+   "train_end_ms": 1690761600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1678665600000,
+    1693180800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1695600000000,
+   "outer_start_ms": 1693180800000,
+   "train_end_ms": 1693180800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1681084800000,
+    1695600000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1698019200000,
+   "outer_start_ms": 1695600000000,
+   "train_end_ms": 1695600000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1683504000000,
+    1698019200000
+   ],
+   "n_outer_rows": 2685,
+   "outer_end_ms": 1700438400000,
+   "outer_start_ms": 1698019200000,
+   "train_end_ms": 1698019200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1685923200000,
+    1700438400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1702857600000,
+   "outer_start_ms": 1700438400000,
+   "train_end_ms": 1700438400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1688342400000,
+    1702857600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1705276800000,
+   "outer_start_ms": 1702857600000,
+   "train_end_ms": 1702857600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1690761600000,
+    1705276800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1707696000000,
+   "outer_start_ms": 1705276800000,
+   "train_end_ms": 1705276800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1693180800000,
+    1707696000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1710115200000,
+   "outer_start_ms": 1707696000000,
+   "train_end_ms": 1707696000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1695600000000,
+    1710115200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1712534400000,
+   "outer_start_ms": 1710115200000,
+   "train_end_ms": 1710115200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1698019200000,
+    1712534400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1714953600000,
+   "outer_start_ms": 1712534400000,
+   "train_end_ms": 1712534400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1700438400000,
+    1714953600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1717372800000,
+   "outer_start_ms": 1714953600000,
+   "train_end_ms": 1714953600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1702857600000,
+    1717372800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1719792000000,
+   "outer_start_ms": 1717372800000,
+   "train_end_ms": 1717372800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1705276800000,
+    1719792000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1722211200000,
+   "outer_start_ms": 1719792000000,
+   "train_end_ms": 1719792000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1707696000000,
+    1722211200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1724630400000,
+   "outer_start_ms": 1722211200000,
+   "train_end_ms": 1722211200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1710115200000,
+    1724630400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1727049600000,
+   "outer_start_ms": 1724630400000,
+   "train_end_ms": 1724630400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1712534400000,
+    1727049600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1729468800000,
+   "outer_start_ms": 1727049600000,
+   "train_end_ms": 1727049600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1714953600000,
+    1729468800000
+   ],
+   "n_outer_rows": 2687,
+   "outer_end_ms": 1731888000000,
+   "outer_start_ms": 1729468800000,
+   "train_end_ms": 1729468800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1717372800000,
+    1731888000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1734307200000,
+   "outer_start_ms": 1731888000000,
+   "train_end_ms": 1731888000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1719792000000,
+    1734307200000
+   ],
+   "n_outer_rows": 2637,
+   "outer_end_ms": 1736726400000,
+   "outer_start_ms": 1734307200000,
+   "train_end_ms": 1734307200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1722211200000,
+    1736726400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1739145600000,
+   "outer_start_ms": 1736726400000,
+   "train_end_ms": 1736726400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1724630400000,
+    1739145600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1741564800000,
+   "outer_start_ms": 1739145600000,
+   "train_end_ms": 1739145600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1727049600000,
+    1741564800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1743984000000,
+   "outer_start_ms": 1741564800000,
+   "train_end_ms": 1741564800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1729468800000,
+    1743984000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1746403200000,
+   "outer_start_ms": 1743984000000,
+   "train_end_ms": 1743984000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1731888000000,
+    1746403200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1748822400000,
+   "outer_start_ms": 1746403200000,
+   "train_end_ms": 1746403200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1734307200000,
+    1748822400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1751241600000,
+   "outer_start_ms": 1748822400000,
+   "train_end_ms": 1748822400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1736726400000,
+    1751241600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1753660800000,
+   "outer_start_ms": 1751241600000,
+   "train_end_ms": 1751241600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1739145600000,
+    1753660800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1756080000000,
+   "outer_start_ms": 1753660800000,
+   "train_end_ms": 1753660800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1741564800000,
+    1756080000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1758499200000,
+   "outer_start_ms": 1756080000000,
+   "train_end_ms": 1756080000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1743984000000,
+    1758499200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1760918400000,
+   "outer_start_ms": 1758499200000,
+   "train_end_ms": 1758499200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1746403200000,
+    1760918400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1763337600000,
+   "outer_start_ms": 1760918400000,
+   "train_end_ms": 1760918400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1748822400000,
+    1763337600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1765756800000,
+   "outer_start_ms": 1763337600000,
+   "train_end_ms": 1763337600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1751241600000,
+    1765756800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1768176000000,
+   "outer_start_ms": 1765756800000,
+   "train_end_ms": 1765756800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1753660800000,
+    1768176000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1770595200000,
+   "outer_start_ms": 1768176000000,
+   "train_end_ms": 1768176000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1756080000000,
+    1770595200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1773014400000,
+   "outer_start_ms": 1770595200000,
+   "train_end_ms": 1770595200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1758499200000,
+    1773014400000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1775433600000,
+   "outer_start_ms": 1773014400000,
+   "train_end_ms": 1773014400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1760918400000,
+    1775433600000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1777852800000,
+   "outer_start_ms": 1775433600000,
+   "train_end_ms": 1775433600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1763337600000,
+    1777852800000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1780272000000,
+   "outer_start_ms": 1777852800000,
+   "train_end_ms": 1777852800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1765756800000,
+    1780272000000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1782691200000,
+   "outer_start_ms": 1780272000000,
+   "train_end_ms": 1780272000000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1768176000000,
+    1782691200000
+   ],
+   "n_outer_rows": 2688,
+   "outer_end_ms": 1785110400000,
+   "outer_start_ms": 1782691200000,
+   "train_end_ms": 1782691200000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1770595200000,
+    1785110400000
+   ],
+   "n_outer_rows": 573,
+   "outer_end_ms": 1787529600000,
+   "outer_start_ms": 1785110400000,
+   "train_end_ms": 1785110400000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1773014400000,
+    1787529600000
+   ],
+   "n_outer_rows": 2448,
+   "outer_end_ms": 1789948800000,
+   "outer_start_ms": 1787529600000,
+   "train_end_ms": 1787529600000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  },
+  {
+   "eligible_memories": [
+    26,
+    52,
+    104
+   ],
+   "inner_interval_ms": [
+    1775433600000,
+    1789948800000
+   ],
+   "n_outer_rows": 1725,
+   "outer_end_ms": 1792368000000,
+   "outer_start_ms": 1789948800000,
+   "train_end_ms": 1789948800000,
+   "venue": "BINANCE_USDM_BTCUSDT"
+  }
+ ],
+ "inner_blocks": 6,
+ "unit": "ADAPTIVE_OCCUPANCY_TIMESCALE_V1",
+ "venues": {
+  "BINANCE_USDM_BTCUSDT": {
+   "first_anchor_ms": 1577880000000,
+   "first_outer_ms": 1608508800000,
+   "n_grid_blocks": 82,
+   "n_outer_blocks": 76
+  },
+  "BITMEX_XBTUSD": {
+   "first_anchor_ms": 1463184000000,
+   "first_outer_ms": 1493596800000,
+   "n_grid_blocks": 41,
+   "n_outer_blocks": 35
+  }
+ }
+}

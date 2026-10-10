@@ -734,6 +734,7 @@ When adding documentation:
 - `research/RP4H_TREND_REGIME_MODULATION_V1.md` / `.json` (**RESULT, one-shot 2026-10-09: TREND_REGIME_MODULATION_NOT_DETECTED; delta -0.0132 [-0.0320, +0.0046]; rerun refused**).
 - `research/ADAPTIVE_B1_FORECAST_V1_DESIGN.md` (**DRAFT, not frozen: adaptive-memory B1 forecast; synthetic power check shows the adaptation contrast has no power; superseded in order by option (b)**).
 - `research/RP4H_TREND_EXHAUSTION_INTERACTION_V1_CANDIDATE.md` (**future candidate only, 2026-10-10: post-outcome sign-reversed hypothesis; not designed, not run**).
+- `research/ADAPTIVE_OCCUPANCY_TIMESCALE_V1_DESIGN.md` (**DESIGN FROZEN 2026-10-10, not run: past-only occupancy-timescale selection, venue-isolated nested walk-forward; synthetic power shows no power for an adaptation gain; owner GO pending**) with `..._DESIGN.json`, `..._FOLD_MANIFEST.json`, `..._SELECTOR_MANIFEST.json`, `..._EXPOSURE_RECORD.json` and `..._PREFLIGHT.json`.
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.
