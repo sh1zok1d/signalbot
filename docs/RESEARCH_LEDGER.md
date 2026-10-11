@@ -8999,6 +8999,66 @@ OUTCOME_READ = yes; LABEL = INCREMENTAL_ASSOCIATION_UNCERTAIN; CONFIRMATION = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
 
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 pre-fit repair, fit not run
+
+**Mode.** Engineering repair of the market adapter. `market_fit = false`. `OWNER_GO = false`. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7` and amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf` are unchanged. `model.py` is unchanged. No market probability or market metric was computed.
+- **Clock.** Segment membership uses the 5m open. A bar with `open < surface_end` and `close == surface_end` stays in the segment. The next open is refused. Feature eligibility is unchanged.
+- **Result.** A persisted report keeps the primary payload, the hourly diagnostic, stored probabilities, hashes, and provenance flags. Metrics can be recomputed from the stored probabilities. NumPy values are written as JSON numbers.
+- **One shot.** `ATTEMPT.json` is created with `O_EXCL` before `evaluate_frame`. A second start returns `REFUSING_RERUN`. A primary `FORECAST_IMPLEMENTATION_INVALID` is written and hourly does not run. The market entry still exits `AWAITING_OWNER_GO` before that claim.
+- **Manifest.** SHA256 `3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`.
+
+```
+WINDOWS_CONSUMED = none; synthetic fixtures only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = STOP / AWAITING_OWNER_FIT_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 market adapter ready, fit not run
+
+**Mode.** Engineering preparation of the pinned market adapter. `market_fit = false`. `OWNER_GO = false`. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7` and amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf` are unchanged. No market probability, coefficient, Brier score, log loss, AUROC, or bootstrap was computed.
+- **Adapter.** BitMEX 2016–2019, Binance 2020–2024 (`CORE_BTC_BINANCE_V0`, snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`), and Binance 2025–2026 are connected through the existing loaders, `features()`, and the prototype eligibility mask. Training sources stay on the frozen map. The 2025 block does not train on BitMEX. Grids are not stitched. The August hole is not filled.
+- **Guard.** `main`, `run_market`, `load_pinned_grids`, and `execute_pinned_market_fit` exit `AWAITING_OWNER_GO` before a price read, a feature build, or a scorer call. Provenance flags become true only after that future load and score. The evidence class of a future result is `RETROSPECTIVE_FORECAST_PROTOTYPE`.
+- **Coverage pin.** Primary test rows and weeks: BitMEX `113210` / `171`, Binance 2020–2024 `162084` / `242`, Binance 2025–2026 `60999` / `92`, total `336293` / `505`. A mismatch is `FORECAST_IMPLEMENTATION_INVALID`. The pin matches the amended census. It was not recomputed from a new price read.
+- **Manifest.** `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_ADAPTER.json`. SHA256 `62a7ef5bd8f74e0c6ba70fa9bbdb5deb5f012752aff73317e199d64249be6f70`.
+
+```
+WINDOWS_CONSUMED = none; the adapter was not executed on market prices
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = MARKET_ADAPTER_READY_AWAITING_OWNER_FIT_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 amendment A1, model not fit
+
+**Mode.** Pre-outcome repair of the training clock. `model_fit = false`. `OWNER_GO = false`. The original design file is unchanged. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`. Design commit `483dc4028f3baa0ed5c4ef4d382639926f249937`.
+- **Reason.** `R_1H(T)` is known at `T + 1h`. The frozen census admitted every `T < block_start`, including Sunday 23:15, 23:30, and 23:45.
+- **Rule.** `T + HORIZON * BAR_MS <= block_start`, with `HORIZON = 12` and `BAR_MS = 300000`. The predicate runs inside the training-matrix builder. Sunday 23:00 stays in. The next three quarter-hours stay out.
+- **Census.** Labeled rows unchanged: BitMEX `125983`, Binance 2020–2024 `175309`, Binance 2025–2026 `60999`. Primary test rows and test weeks unchanged. Hourly training counts unchanged. First 15-minute training counts: BitMEX `12773` to `12770`, Binance 2020–2024 `13225` to `13222`, Binance 2025–2026 `175120` to `175117`. Training weeks unchanged. The largest drop on a block is 3 rows.
+- **Proof.** 1086 blocks with a training row satisfy `max(train_label_available_at) <= block_start`. Violations: 0. The 2025 block that starts `2024-12-30` has its latest training label available at that same Monday 00:00.
+- **Evaluator.** The walk-forward scorer admits each training row before the scaler, the climatology, the baseline, and the candidate. Primary 15m assigns the route. Hourly is a diagnostic and does not assign a route. Both cadences were checked on the timestamps the scorer fit: Sunday 23:00 is in the Monday block, the next three quarter-hours are out, flipping those three labels leaves that block unchanged, flipping 23:00 changes its climatology, train and test timestamps do not overlap, later blocks keep the earlier training rows, and the 2025 block does not train on BitMEX. `main` exits `AWAITING_OWNER_GO` before any price load. Market probabilities, coefficients, and losses were not computed.
+- **Hashes.** Amendment SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf`. Support SHA256 `f63f7f970e8689a1b0f6290984278eab4a907f75efdea5d72f91c3d5ac7a2ebd`. Folds SHA256 `798ee69e4bd6b7effd1c586c810214b76624a5aedf1bef986b884499dfca2ee2`. Pre-A1 support SHA256 `8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`. Pre-A1 folds SHA256 `ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`.
+
+```
+WINDOWS_CONSUMED = none beyond the already consumed price paths; the census recounted labeled anchors and weeks only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = AMENDMENT_A1_PRE_GO
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
+## 2026-10-09 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 design frozen, model not fit
+
+**Mode.** Outcome-blind freeze of one retrospective forecast prototype. `model_fit = false`. Evidence class `RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`. Claim ceiling `RETROSPECTIVE_FORECAST_PROTOTYPE`. The object status at opening is `CROSS_VENUE_AND_MULTI_EPOCH_REPLICATED_DIRECTIONAL_STATE / HISTORICAL_ONLY`. The three surfaces were already read for this feature. This is not a pristine holdout.
+- **Question.** Does frozen `RANGE_POSITION_4H` improve a walk-forward probability of the next-hour direction beyond `RET_4H`, `RV_4H`, `RET_1H`, and `RET_15M`.
+- **Target.** `Y = 1` when `R_1H > 0` and `Y = 0` when `R_1H < 0`. Exact zeros are excluded. Rule `ZERO_RETURN_EXCLUDED`.
+- **Segments.** BitMEX 2016–2019, feature rows `127303`, exact zeros dropped `1320`, labeled `125983`. Binance 2020–2024 from `CORE_BTC_BINANCE_V0`, feature rows `175372`, zeros `63`, labeled `175309`. Binance 2025–2026, feature rows `61016`, zeros `17`, labeled `60999`. Grids are not stitched. No venue dummy. E1 objects were not requested.
+- **Folds.** Expanding ISO week. Training timestamps are strictly before Monday 00:00Z. Floors are 1000 labeled rows and 20 ISO weeks. Primary 15-minute test rows: BitMEX `113210` over 171 weeks, Binance 2020–2024 `162084` over 242 weeks, Binance 2025–2026 `60999` over 92 weeks. The week of `2024-12-30` is split by segment. Its 189 late-2024 anchors are not training rows for the 2025 block that shares that Monday.
+- **Model, not fit.** Unpenalized logistic Newton. No `C`. Scaler moments come from the training block only. Raw probabilities. Bootstrap seed `20261120` is reserved and was not used. Design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`. Support SHA256 `8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`. Folds SHA256 `ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`.
+- **Not computed.** Brier score, log loss, AUROC, calibration, coefficients, probability shifts. The evaluator exits `AWAITING_OWNER_GO`. `PRODUCT_INTEGRATION_CANDIDATE = NO`.
+
+```
+WINDOWS_CONSUMED = none beyond the already consumed price paths; the census counted labeled anchors and weeks only
+OUTCOME_READ = no; MODEL_FIT = no; STATUS = DESIGN_AND_SUPPORT_FROZEN
+E1_OBJECTS_REQUESTED = no; PRODUCT_CHANGE = none
+```
+
 ## 2026-10-09 — RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 one Binance read
 
 **Mode.** One official read of the frozen design. `outcome_read = true`. Evidence class `MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION`. Claim ceiling `HISTORICAL_ONLY`. The surface had already been opened for other product questions. This relation had not. It is not a pristine holdout. Design commit `ba2f9a2177f3869742dd72446340c8af223c061e`. Design SHA256 `9c510da7adff58996cc83f1c72c8ffd30f998161c5ad1aa665af27aa017b8370`. Support SHA256 `84d603c9e5bc6c840b3d788df4f7b0f3f31acb454406a290a63f36c4c86851ab`. Evaluator digest `51d8aa6beccaa89dab428df9688268f84a2199311f985c84fd76fac90e2fb19b`. A second read returns `REFUSING_RERUN`.
@@ -9192,3 +9252,19 @@ WINDOWS_CONSUMED = none; BYBIT price file open times exposed only, outcome not c
 OUTCOME_READ = no; STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE; PARENT_RERUN = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
+
+---
+
+## 2026-10-11 — Track A RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 one-shot retrospective completion
+
+**Recorded status:** `TRACK_A_RETROSPECTIVE_COMPLETED`. **Frozen primary route:** `FORECAST_INCREMENTAL_SKILL_SUPPORTED`. **Evidence ceiling:** `RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`. This records the owner's accepted execution report and does not constitute independent prospective confirmation.
+
+- **Execution identity:** frozen protocol HEAD `a7b0805e58831e317c1218c18da0ac4aa519bf90`; journal-only commit `6c2442339725df33878a3b2ec00bd24333943811`; design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`; Amendment A1 SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf`; adapter manifest SHA256 `3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`.
+- **Consumed surfaces:** pinned BitMEX BTC 2016-2019 (113210 primary test rows, 171 weeks), Binance BTC 2020-2024 (162084, 242), Binance BTC 2025-2026 (60999, 92), total **336293 primary 15m test rows / 505 weeks**. These surfaces had already been exposed for related feature research; this is not pristine out-of-sample evidence. The protected E1 objects were not requested in the execution report.
+- **Target:** direction of next-hour BTC return (zero returns excluded), not four-hour target hit. Frozen baseline four return/volatility features; candidate adds `RANGE_POSITION_4H`.
+- **Reported primary pooled losses:** climatology Brier `0.24988472964491926`, baseline `0.2490027049432768`, candidate `0.24829742777334432`; baseline log loss `0.6911961209670421`, candidate `0.6897352501959951`. Delta Brier `-0.0007052771699324889`, 95% ISO-week bootstrap `[-0.000851325113300367, -0.0005618923306177034]`. Delta log loss `-0.0014608707710469515`, interval `[-0.0017613684401983464, -0.0011682859747064681]`. Candidate calibration slope `0.8875918381535289`; valid bootstrap `2000/2000`. Candidate AUROC `0.5462332304679509` versus baseline `0.5410266516177141`.
+- **Size/stability:** relative reduction 0.283% Brier and 0.211% log loss. Segment delta Brier BitMEX `-0.0011091065609365458`, Binance 2020-2024 `-0.000635641038596535`, Binance 2025-2026 `-0.00014083147993593226`. Calendar year 2025 reverses sign (`+0.0002063054680645493`); large historical samples do not imply a large actionable predictive advantage. Hourly was `diagnostic_only`, no route.
+- **One-shot journal:** `docs/research/range_position_4h_forecast_prototype_v1_execution/ATTEMPT.json` and `RESULT.json` (66.11 MB per execution report). One execution was consumed; any rerun is `REFUSING_RERUN`. Original experiment design, Amendment A1, model, scorer and thresholds were not changed. Reported read-only metric recomputation had zero discrepancy; not independently replayed when appending this entry.
+- **Decision:** close Track A retrospective experiment as statistically supported *within its predeclared route*, with small practical value, no prospective validation and **no product integration, no retraining, no recalibration, no merge/deploy authorization**. Target-hit forecasting remains a different, unvalidated task. Any successor discovery must follow its own authority, exposure record and owner decision.
+
+`OUTCOME_READ = yes | MARKET_FIT = one-shot consumed | E1_PROTECTED_OBJECTS = not requested (reported) | PRODUCT_CHANGE = none | RERUN = prohibited`

@@ -1,3 +1,74 @@
+## 2026-10-11 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 retrospective result recorded / one-shot consumed
+
+`STATUS = TRACK_A_RETROSPECTIVE_COMPLETED | PRIMARY_ROUTE = FORECAST_INCREMENTAL_SKILL_SUPPORTED | EVIDENCE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`
+`EXECUTION_CODE_HEAD = a7b0805e58831e317c1218c18da0ac4aa519bf90 | JOURNAL_COMMIT = 6c2442339725df33878a3b2ec00bd24333943811`
+`ONE_SHOT = consumed | ATTEMPT.json = STARTED | RESULT.json = persisted (66.11 MB reported) | RERUN = REFUSING_RERUN`
+`COVERAGE = 336293 primary 15m test rows / 505 ISO weeks | BITMEX = 113210/171 | BINANCE_2020_2024 = 162084/242 | BINANCE_2025_2026 = 60999/92`
+`PRIMARY = delta Brier -0.0007052771699324889 (95% block-bootstrap [-0.000851325113300367, -0.0005618923306177034]); delta log loss -0.0014608707710469515 (95% [-0.0017613684401983464, -0.0011682859747064681]); calibration slope 0.8875918381535289; valid bootstrap draws 2000/2000`
+`PRACTICAL = relative Brier gain 0.283%, relative log loss gain 0.211%; year 2025 delta Brier positive; modern 2025-2026 incremental gain much weaker than BitMEX`
+`HOURLY = secondary diagnostic completed; no route | PRODUCT_INTEGRATION = NOT AUTHORIZED | PROSPECTIVE = false | LIVE_VALIDATED = false`
+`SCOPE = next-hour BTC directional probability, NOT target-price hit by 4h; future research requires independent authorization; no rerun, retuning, recalibration, deployment, or merge implied`
+
+Canonical immutable execution artifacts (Track A branch): `docs/research/range_position_4h_forecast_prototype_v1_execution/ATTEMPT.json` and `RESULT.json`. The frozen design, Amendment A1, model and evaluator remain unchanged. Metrics transcribed from the completed Cursor execution report; the 66-MB result was not independently recomputed in this documentation-only update. Earlier pre-fit entries below are historical stages, **not the current status**.
+
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-fit repair, fit not run — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | STOP / AWAITING_OWNER_FIT_GO`
+`REPAIR = segment clock is the 5m open | full scorer payload is serialized | one-shot attempt file is claimed before evaluate_frame`
+`RERUN = an existing attempt returns REFUSING_RERUN | a primary FORECAST_IMPLEMENTATION_INVALID stops before hourly`
+`NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
+`ADAPTER SHA256 = 3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf | unchanged`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — market adapter ready, fit not run — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | MARKET_ADAPTER_READY_AWAITING_OWNER_FIT_GO`
+`ADAPTER = three pinned sources wired to evaluate_frame | load and score stay behind the owner go | synthetic contract tests only`
+`COVERAGE PIN = BitMEX 113210 / 171 | Binance 2020-2024 162084 / 242 | Binance 2025-2026 60999 / 92 | total 336293 rows / 505 weeks`
+`NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
+`ADAPTER SHA256 = 62a7ef5bd8f74e0c6ba70fa9bbdb5deb5f012752aff73317e199d64249be6f70`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf | unchanged`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Adapter manifest: `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_ADAPTER.json`.
+
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — amendment A1, model not fit — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES | model_fit = false | OWNER_GO = false`
+`AMENDMENT = A1 label availability | T + 12 * 300000 <= block_start | Sunday 23:00 admitted | Sunday 23:15, 23:30, 23:45 excluded`
+`CENSUS = labeled counts unchanged | 15m test rows 113210 + 162084 + 60999 | test weeks 171, 242, 92 unchanged | hourly train counts unchanged`
+`TRAIN ROWS = BitMEX first block 12773 -> 12770 | Binance 2020-2024 13225 -> 13222 | Binance 2025-2026 175120 -> 175117 | train weeks unchanged | max drop 3`
+`PROOF = 1086 blocks checked | max(train_label_available_at) <= block_start on every block | violations 0`
+`EVALUATOR = walk-forward scorer | primary 15m assigns the route | hourly is diagnostic only | both cadences checked on the rows the scorer fit | market entry exits AWAITING_OWNER_GO`
+`NOT COMPUTED = market probabilities, coefficients, Brier, log loss, AUROC, bootstrap on market rows`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7 | unchanged`
+`AMENDMENT SHA256 = 6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf`
+`SUPPORT SHA256 = f63f7f970e8689a1b0f6290984278eab4a907f75efdea5d72f91c3d5ac7a2ebd`
+`FOLDS SHA256 = 798ee69e4bd6b7effd1c586c810214b76624a5aedf1bef986b884499dfca2ee2`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Amendment: `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_AMENDMENT_A1.md`.
+
+## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — design frozen, model not fit — 2026-10-09
+
+`MODE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES | model_fit = false | claim ceiling RETROSPECTIVE_FORECAST_PROTOTYPE`
+`OBJECT STATUS = CROSS_VENUE_AND_MULTI_EPOCH_REPLICATED_DIRECTIONAL_STATE / HISTORICAL_ONLY`
+`QUESTION = does frozen RANGE_POSITION_4H improve walk-forward P(UP next 1h) beyond RET_4H, RV_4H, RET_1H and RET_15M`
+`TARGET = Y = 1 if R_1H > 0 else 0 | exact zero excluded | rule ZERO_RETURN_EXCLUDED`
+`SEGMENTS = BitMEX 2016-2019 labeled 125983 | Binance 2020-2024 labeled 175309 | Binance 2025-2026 labeled 60999 | grids not stitched | no venue dummy`
+`FOLDS = expanding ISO week | train strictly before Monday 00:00Z | floors 1000 rows and 20 weeks | 15m test rows 113210 + 162084 + 60999`
+`MODEL = unpenalized logistic Newton | no C | training-only mean and population std | raw probabilities`
+`NOT FIT = Brier, log loss, AUROC, coefficients, calibration, bootstrap | evaluator exits AWAITING_OWNER_GO`
+`DESIGN SHA256 = 7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`
+`SUPPORT SHA256 = 8400e2f20abb79ea074ce2ea93614c1675987c7ef55282060b43c9c0e576abc4`
+`FOLDS SHA256 = ec7a94e1f5c24928c756eda5ead050beb4c67da5f233784bb3fe1b98550e1bb5`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Design: `docs/research/RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1_DESIGN.md`.
+
 ## RANGE_POSITION_4H_BINANCE_2025_2026_TEMPORAL_REPLICATION_V1 — one Binance 2025–2026 read — 2026-10-09
 
 `MODE = MODERN_TIME_DISJOINT_HISTORICAL_REPLICATION / QUESTION_FRESH_REPLICATION | outcome_read = true | claim ceiling HISTORICAL_ONLY`
