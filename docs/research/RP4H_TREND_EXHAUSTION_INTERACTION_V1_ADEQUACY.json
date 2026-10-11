@@ -73,6 +73,12 @@
   "max_width_ratio": 1.003266337987218,
   "redo_threshold": 1.1
  },
+ "exposure_audit": {
+  "BINANCE_UM_BTCUSDT_2025_2026": "QUESTION_FRESH (no EXACT/EQUIVALENT; closest ADJACENT: E1 development signed trend gate x range-edge setups inside the excluded 2026-08-02..08-15 slice)",
+  "BITMEX_XBTUSD_2016_2019": "QUESTION_FRESH (no EXACT/EQUIVALENT; ADJACENT: RP4H Unit A and Cursor twin, OCC replication, Cursor forecast prototype, D2 corrected)",
+  "refs_searched": 148,
+  "track_a_note": "Cursor forecast prototype executed on its branch (6c244233, owner_go true); additive RP4H, no interaction; not opened here"
+ },
  "gate": {
   "market_interaction_outcome_read": false,
   "pooled_informational": [
@@ -558,7 +564,7 @@
  "market_interaction_outcome_read": false,
  "protocol_commit": "cf75f2c7",
  "stage": "EXACT_PARITY + EXPOSURE_AUDIT + OUTCOME_FREE_ADEQUACY_GATE (no market interaction outcome)",
- "surface_rule_if_both_fresh": {
+ "surface_rule": {
   "reason": "neither surface is adequately powered (and fresh) at 1x the discovery magnitude",
   "selected": null,
   "verdict": "TREND_EXHAUSTION_REPLICATION_INFORMATIONALLY_INSUFFICIENT"

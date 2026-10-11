@@ -23,7 +23,36 @@
 
 ## 2. Exposure audit (read-only; current branch and all remote branches)
 
-**Pending:** the read-only audit of the current branch and all remote branches is still running and will be added before the report goes to the owner. The verdict does not depend on it: no surface is adequately powered.
+**Method:** a read-only grep and record audit. Nothing was computed.
+- **Refs:** 148 (every remote ref: 132 `origin/*` including 51 Cursor branches, plus 13 `pr/*`, the local `pr383` and `pr387`, and HEAD), and the commit messages of `--all`.
+- **Patterns:** RP4H and range-position names (incl. stochastic, %K, Williams, Donchian, close location) crossed with trend-strength names (TS_24H, \|RET_24H\|, efficiency, variance ratio, ADX, trend regime or tercile, exhaustion, strong or preceding move, chop, Hurst).
+
+**BitMEX XBTUSD 2016–19: QUESTION_FRESH.** No EXACT or EQUIVALENT read.
+
+| prior read | relation | class |
+|---|---|---|
+| RP4H Unit A; Cursor's BitMEX twin (`027948e2`) | RP4H → R_1H (raw, \| B0, \| local path), quintiles, years, halves; no trend split ("no … trend subset") | ADJACENT (subgroup source) |
+| OCC_MEAN_4H replication | OCC \| B0/B1 | ADJACENT |
+| Cursor's RP4H forecast prototype (`6c244233`, 2026-10-10; Track A) | additive logistic P(UP 1h) on RET_4H, RV_4H, RET_1H, RET_15M plus RP4H; no interaction, no trend strength | ADJACENT |
+| D2 corrected replication | RV_24H > P90 × sign(RET_24H) → 24h aligned MAE; no position | ADJACENT / unrelated |
+| D7, #357/#368 resolution, LEVEL_VOLATILITY_TRANSITION; DH1/DH2 (never reached replication); DH3 V3 (Binance spot 2017–19, retests; TREND24 signed, a nuisance on CORE) | — | NONE |
+
+**Binance USD-M BTCUSDT 2025–26: QUESTION_FRESH.** No EXACT or EQUIVALENT read.
+
+| prior read | relation | class |
+|---|---|---|
+| RP4H Unit B; Cursor's 2025–26 twin (`7b55fff4`; its file includes the E1-development slice) | RP4H partials, years 2025 and 2026 | ADJACENT (subgroup source) |
+| OCC_MEAN_4H modern replication | OCC \| B0/B1 | ADJACENT |
+| Cursor's forecast prototype (`6c244233`; Track A) | additive logistic, as above; its 2025–26 file includes the E1-development slice | ADJACENT |
+| **E1-RUN-001 development** (2026-08-02 … 08-15) | **signed** strong-4h-regime gate × retracement from the 12h trend-leg extreme (TREND_PULLBACK); a context gate rejecting range-edge breakouts against a strong opposite 4h regime (CB/FB); direction-aligned outcome at 15m–4h; N 26–1,071 | **ADJACENT (the closest)**: signed rather than unsigned, not the 4h range; **inside the slice Unit B already excludes** |
+| DIVERGENCE_FULL_HISTORY_RESEARCH_V0 (six symbols, to 2026-08-11) | selling exhaustion or divergence at swing lows in support; 22 features vs ±1R at 48h/96h; signed, bullish, episode-conditioned; no RP4H | ADJACENT (owner-closed exhaustion line) |
+| P3_CONFIRMATION_V1; product analogue statistics; LEVEL_RACE and level statistics | no range position × trend strength | ADJACENT / unrelated |
+
+**Notes:**
+- **Borderline:** the E1 TP/CB/FB setups are the only read crossing a trend gate with range-edge position against direction. If the owner counts them as equivalent, the E1-development slice stays excluded, as on the Unit B surface.
+- **Same period:** Binance spot 2017–19 covers the same years as BitMEX 2016–19 (protocol §3: not both).
+- **Limits:** the audit is grep- and record-based. Uncommitted reads cannot be ruled out; the records show none for this interaction.
+- **Track A (reported for the owner, not acted on):** Cursor's RANGE_POSITION_4H forecast prototype was executed on its branch, with `owner_go: true` (commit `6c244233`, 2026-10-10). This branch's records still describe it as frozen and unrun in a few places (e.g. ADAPTIVE_B1_FORECAST_V1_DESIGN §9). Its RESULT.json stores row-level outcomes for BitMEX and its 2025–26 file. **The interaction was not computed there,** so the classes above stand. Under the owner's Track A separation, Track A records were not edited and its outcome was not opened here.
 
 ## 3. Support (outcome-free)
 
@@ -121,7 +150,7 @@ Homoskedastic sensitivity:
 
 → **`TREND_EXHAUSTION_REPLICATION_INFORMATIONALLY_INSUFFICIENT`. No market outcome is read. STOP.**
 
-Freshness would not change this verdict (§2).
+Both surfaces are question-fresh (§2), so freshness does not change the verdict.
 
 ## 7. Routes frozen for any later run (protocol §8)
 
