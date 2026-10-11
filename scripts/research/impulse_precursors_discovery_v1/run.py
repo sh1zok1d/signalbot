@@ -29,8 +29,9 @@ def _sha256(path: Path) -> str:
 def _snapshot_ids() -> list[str]:
     ids = []
     for line in (ROOT / K.MANIFEST).read_text().splitlines():
-        if line.startswith("snapshot_id:"):
-            ids.append(line.split(":", 1)[1].strip().strip("'\""))
+        stripped = line.strip()
+        if stripped.startswith("snapshot_id:"):
+            ids.append(stripped.split(":", 1)[1].strip().strip("'\""))
     return ids
 
 

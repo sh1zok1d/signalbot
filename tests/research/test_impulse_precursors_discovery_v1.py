@@ -26,6 +26,11 @@ def _series(n: int, seed: int = 7) -> dict:
     return {"open_ms": open_ms, "high": high, "low": low, "close": close, "quote": quote}
 
 
+def test_manifest_snapshot_lines_match_the_pin():
+    from scripts.research.impulse_precursors_discovery_v1.run import _snapshot_ids
+    assert _snapshot_ids() == [K.CORE_SNAPSHOT, K.CORE_SNAPSHOT]
+
+
 def test_design_hash_and_search_counts_are_pinned():
     from hashlib import sha256
     from pathlib import Path
