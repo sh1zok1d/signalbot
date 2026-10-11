@@ -1,0 +1,10 @@
+{
+  "unit": "IMPULSE_PRECURSORS_DISCOVERY_V1",
+  "status": "PREFLIGHT_REJECTED_BEFORE_PRICES",
+  "prices_loaded": false,
+  "frame_built": false,
+  "model_fit": false,
+  "reason": "ImplementationInvalid: SNAPSHOT_MISMATCH",
+  "cause": "The snapshot reader required a line to start at column zero. materialization_identity.snapshot_id is indented, so only one of the two pinned ids was seen. No price file was opened and no outcome was computed.",
+  "continuation": "The reader now accepts indented snapshot_id lines and still requires both values to equal the pinned snapshot. This file is the archived preflight. It is not a market result."
+}
