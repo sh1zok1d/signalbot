@@ -1,3 +1,16 @@
+## 2026-10-11 — RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 retrospective result recorded / one-shot consumed
+
+`STATUS = TRACK_A_RETROSPECTIVE_COMPLETED | PRIMARY_ROUTE = FORECAST_INCREMENTAL_SKILL_SUPPORTED | EVIDENCE = RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`
+`EXECUTION_CODE_HEAD = a7b0805e58831e317c1218c18da0ac4aa519bf90 | JOURNAL_COMMIT = 6c2442339725df33878a3b2ec00bd24333943811`
+`ONE_SHOT = consumed | ATTEMPT.json = STARTED | RESULT.json = persisted (66.11 MB reported) | RERUN = REFUSING_RERUN`
+`COVERAGE = 336293 primary 15m test rows / 505 ISO weeks | BITMEX = 113210/171 | BINANCE_2020_2024 = 162084/242 | BINANCE_2025_2026 = 60999/92`
+`PRIMARY = delta Brier -0.0007052771699324889 (95% block-bootstrap [-0.000851325113300367, -0.0005618923306177034]); delta log loss -0.0014608707710469515 (95% [-0.0017613684401983464, -0.0011682859747064681]); calibration slope 0.8875918381535289; valid bootstrap draws 2000/2000`
+`PRACTICAL = relative Brier gain 0.283%, relative log loss gain 0.211%; year 2025 delta Brier positive; modern 2025-2026 incremental gain much weaker than BitMEX`
+`HOURLY = secondary diagnostic completed; no route | PRODUCT_INTEGRATION = NOT AUTHORIZED | PROSPECTIVE = false | LIVE_VALIDATED = false`
+`SCOPE = next-hour BTC directional probability, NOT target-price hit by 4h; future research requires independent authorization; no rerun, retuning, recalibration, deployment, or merge implied`
+
+Canonical immutable execution artifacts (Track A branch): `docs/research/range_position_4h_forecast_prototype_v1_execution/ATTEMPT.json` and `RESULT.json`. The frozen design, Amendment A1, model and evaluator remain unchanged. Metrics transcribed from the completed Cursor execution report; the 66-MB result was not independently recomputed in this documentation-only update. Earlier pre-fit entries below are historical stages, **not the current status**.
+
 ## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-fit repair, fit not run — 2026-10-09
 
 `MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | STOP / AWAITING_OWNER_FIT_GO`
