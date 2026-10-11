@@ -9252,3 +9252,19 @@ WINDOWS_CONSUMED = none; BYBIT price file open times exposed only, outcome not c
 OUTCOME_READ = no; STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE; PARENT_RERUN = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
+
+---
+
+## 2026-10-11 — Track A RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 one-shot retrospective completion
+
+**Recorded status:** `TRACK_A_RETROSPECTIVE_COMPLETED`. **Frozen primary route:** `FORECAST_INCREMENTAL_SKILL_SUPPORTED`. **Evidence ceiling:** `RETROSPECTIVE_FORECAST_PROTOTYPE / ALREADY_CONSUMED_SURFACES`. This records the owner's accepted execution report and does not constitute independent prospective confirmation.
+
+- **Execution identity:** frozen protocol HEAD `a7b0805e58831e317c1218c18da0ac4aa519bf90`; journal-only commit `6c2442339725df33878a3b2ec00bd24333943811`; design SHA256 `7a04ddb59bf752299d3566065f57d29ec7f81a685aa1a10ca62b40535ca143d7`; Amendment A1 SHA256 `6d0d93d34d031351fc363623247bab30ab02232b6f08fb46343a3ece46019ddf`; adapter manifest SHA256 `3e5306104d183dbb474d7d7ab46e0b1e2a2370adc291aa3be7e35febba6a4f52`.
+- **Consumed surfaces:** pinned BitMEX BTC 2016-2019 (113210 primary test rows, 171 weeks), Binance BTC 2020-2024 (162084, 242), Binance BTC 2025-2026 (60999, 92), total **336293 primary 15m test rows / 505 weeks**. These surfaces had already been exposed for related feature research; this is not pristine out-of-sample evidence. The protected E1 objects were not requested in the execution report.
+- **Target:** direction of next-hour BTC return (zero returns excluded), not four-hour target hit. Frozen baseline four return/volatility features; candidate adds `RANGE_POSITION_4H`.
+- **Reported primary pooled losses:** climatology Brier `0.24988472964491926`, baseline `0.2490027049432768`, candidate `0.24829742777334432`; baseline log loss `0.6911961209670421`, candidate `0.6897352501959951`. Delta Brier `-0.0007052771699324889`, 95% ISO-week bootstrap `[-0.000851325113300367, -0.0005618923306177034]`. Delta log loss `-0.0014608707710469515`, interval `[-0.0017613684401983464, -0.0011682859747064681]`. Candidate calibration slope `0.8875918381535289`; valid bootstrap `2000/2000`. Candidate AUROC `0.5462332304679509` versus baseline `0.5410266516177141`.
+- **Size/stability:** relative reduction 0.283% Brier and 0.211% log loss. Segment delta Brier BitMEX `-0.0011091065609365458`, Binance 2020-2024 `-0.000635641038596535`, Binance 2025-2026 `-0.00014083147993593226`. Calendar year 2025 reverses sign (`+0.0002063054680645493`); large historical samples do not imply a large actionable predictive advantage. Hourly was `diagnostic_only`, no route.
+- **One-shot journal:** `docs/research/range_position_4h_forecast_prototype_v1_execution/ATTEMPT.json` and `RESULT.json` (66.11 MB per execution report). One execution was consumed; any rerun is `REFUSING_RERUN`. Original experiment design, Amendment A1, model, scorer and thresholds were not changed. Reported read-only metric recomputation had zero discrepancy; not independently replayed when appending this entry.
+- **Decision:** close Track A retrospective experiment as statistically supported *within its predeclared route*, with small practical value, no prospective validation and **no product integration, no retraining, no recalibration, no merge/deploy authorization**. Target-hit forecasting remains a different, unvalidated task. Any successor discovery must follow its own authority, exposure record and owner decision.
+
+`OUTCOME_READ = yes | MARKET_FIT = one-shot consumed | E1_PROTECTED_OBJECTS = not requested (reported) | PRODUCT_CHANGE = none | RERUN = prohibited`
