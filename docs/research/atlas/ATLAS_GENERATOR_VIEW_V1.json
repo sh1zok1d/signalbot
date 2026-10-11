@@ -91,7 +91,7 @@
    "frontier_value": 6,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 7,
+   "prior_signature_count": 8,
    "prior_signatures": [
     {
      "function": "Morphology components after impulse (F1)",
@@ -107,6 +107,11 @@
      "function": "Signed continuation after extreme impulse windows",
      "id": "H03",
      "mechanism": "Extreme impulse -> continuation vs exhaustion"
+    },
+    {
+     "function": "Impulse precursors before a 4h barrier hit",
+     "id": "IMPULSE-PRECURSORS-DISCOVERY-V1",
+     "mechanism": "A past-only state at T against the occurrence of a unique volatility-scaled barrier hit in the next 4 hours. Not the path after an impulse. Not a signed-return scan."
     },
     {
      "function": "Pre-impulse directional state atlas",
@@ -7811,7 +7816,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "50f14d712e305999dec630fd783bf3b8032a0ba7c0a23bc3657df9baa806ca5e",
+ "SOURCES_DIGEST": "3d8f4c384325eef23c165264da22c030eb1e55255116b41d98c64a4637302c7d",
  "SURFACES": [
   {
    "also_cols": [

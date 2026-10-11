@@ -187,7 +187,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 1,
-    "CLOSED_ON_SURFACE": 5,
+    "CLOSED_ON_SURFACE": 6,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -202,6 +202,7 @@
     "B2-03",
     "DH1-X6",
     "H03",
+    "IMPULSE-PRECURSORS-DISCOVERY-V1",
     "PRE-IMPULSE-STATE-ATLAS-V1",
     "RANGE-POSITION-4H-BINANCE-2025-2026-TEMPORAL-REPLICATION-V1",
     "RANGE-POSITION-4H-BITMEX-TEMPORAL-REPLICATION-V1",
@@ -10216,14 +10217,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 349
   },
-  "units": 222,
+  "units": 223,
   "units_by_state": {
    "BLOCKED_DATA": 21,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 2,
-   "CLOSED_ON_SURFACE": 41,
+   "CLOSED_ON_SURFACE": 42,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
@@ -15583,7 +15584,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "50f14d712e305999dec630fd783bf3b8032a0ba7c0a23bc3657df9baa806ca5e",
+ "SOURCES_DIGEST": "3d8f4c384325eef23c165264da22c030eb1e55255116b41d98c64a4637302c7d",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15919,6 +15920,14 @@
      {
       "note": "PRE-IMPULSE-STATE-ATLAS-V1 one bounded discovery scan of past-only path states against later signed return, 2026-10-09T13:38:33Z; further use of the already exposed window; not a confirmation; no bar open at or after 2025-01-01; no E1; open interest not read",
       "period": "2020-01-01T08:15Z..2024-12-31T23:45Z",
+      "rows": [
+       "PRICE_STRUCTURE.impulse"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "IMPULSE-PRECURSORS-DISCOVERY-V1 one discovery pass of past-only state against a later 4h volatility-scaled barrier hit, 2026-10-11; further use of the already exposed window; route PRECURSOR_DISCOVERY_PROMISING; not a confirmation; not a reopen of H03 or of the signed-return scan; no bar open at or after 2025-01-01; no E1; open interest, funding, and the book were not read",
+      "period": "2020-01-01T00:00Z..2024-12-31T23:55Z",
       "rows": [
        "PRICE_STRUCTURE.impulse"
       ],
@@ -21870,6 +21879,36 @@
    "verdict": "H03_REJECTED_SPECIFIC_CLAIM",
    "what_tested": "45 WxqxH cells, both continuation and exhaustion readings",
    "why_closed": "Nearby extreme-impulse / path-morphology -> directional continuation cards have high novelty burden"
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "a second exploratory pass; choosing another K after this read; treating PROMISING as a confirmed edge or a live probability; using the range-position forecast prototype as confirmation; rewriting H03 or the signed-return atlas; opening 2025/2026, E1, open interest, funding, or the book; a product line",
+   "function": "Fifteen-minute decisions. Trailing 24h realized volatility sets symmetric barriers at K=1.5. Walk-forward logistic comparison of frequency, geometry, volatility, and 20 frozen columns. Full cell ledger.",
+   "id": "IMPULSE-PRECURSORS-DISCOVERY-V1",
+   "mechanism": "A past-only state at T against the occurrence of a unique volatility-scaled barrier hit in the next 4 hours. Not the path after an impulse. Not a signed-return scan.",
+   "note": "ONE DISCOVERY PASS. Route PRECURSOR_DISCOVERY_PROMISING. Claim ceiling DISCOVERY_ONLY. Exposed history. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "period": "one discovery pass 2026-10-11; T on the 15m grid through 2024-12-31; kept N 175261; scored N 162110; 242 ISO weeks; episodes 5846",
+   "practical_bar": "No magnitude floor. The route is the sign of both loss deltas, both week-block upper bounds, the calibration slope, and both era blocks.",
+   "program": "IMPULSE_PRECURSORS_DISCOVERY_V1",
+   "records": [
+    "docs/research/IMPULSE_PRECURSORS_DISCOVERY_V1_DESIGN.md",
+    "docs/research/IMPULSE_PRECURSORS_DISCOVERY_V1.md",
+    "docs/research/impulse_precursors_discovery_v1_execution/RESULT.json",
+    "docs/research/impulse_precursors_discovery_v1_execution/PREFLIGHT_REJECTED.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A successor needs its own frozen design. The recorded name ret_1h_z|lt_-1 is not that design. Not a rerun. Not a new threshold search. Not a product change.",
+   "row": "PRICE_STRUCTURE.impulse",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "Impulse precursors before a 4h barrier hit",
+   "units_n": "70 stored state cells, 2 diagnostic barrier multipliers, 1 candidate-versus-B1 comparison; 73 material cells",
+   "verdict": "PRECURSOR_DISCOVERY_PROMISING (2026-10-11). Candidate minus B1 Brier about -0.00981, log loss about -0.0255, both week-block intervals below zero. Same sign in 2020-2022 and in 2023-2024. Claim ceiling DISCOVERY_ONLY. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "The one allowed exploratory pass on this exposed window was completed. A second pass is refused. K was not changed after the read."
   },
   {
    "col": "CANDLES",

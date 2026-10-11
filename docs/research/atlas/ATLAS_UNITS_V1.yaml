@@ -4616,3 +4616,28 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'ONE BINANCE READ. Route RANGE_POSITION_MODERN_TEMPORAL_REPLICATION_SUPPORTED. Historical only. E1 objects not requested. Not a pristine holdout. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+  - id: IMPULSE-PRECURSORS-DISCOVERY-V1
+    title: Impulse precursors before a 4h barrier hit
+    program: IMPULSE_PRECURSORS_DISCOVERY_V1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'one discovery pass 2026-10-11; T on the 15m grid through 2024-12-31; kept N 175261; scored N 162110; 242 ISO weeks; episodes 5846'
+    units_n: '70 stored state cells, 2 diagnostic barrier multipliers, 1 candidate-versus-B1 comparison; 73 material cells'
+    practical_bar: 'No magnitude floor. The route is the sign of both loss deltas, both week-block upper bounds, the calibration slope, and both era blocks.'
+    mechanism: 'A past-only state at T against the occurrence of a unique volatility-scaled barrier hit in the next 4 hours. Not the path after an impulse. Not a signed-return scan.'
+    function: 'Fifteen-minute decisions. Trailing 24h realized volatility sets symmetric barriers at K=1.5. Walk-forward logistic comparison of frequency, geometry, volatility, and 20 frozen columns. Full cell ledger.'
+    verdict: 'PRECURSOR_DISCOVERY_PROMISING (2026-10-11). Candidate minus B1 Brier about -0.00981, log loss about -0.0255, both week-block intervals below zero. Same sign in 2020-2022 and in 2023-2024. Claim ceiling DISCOVERY_ONLY. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'The one allowed exploratory pass on this exposed window was completed. A second pass is refused. K was not changed after the read.'
+    forbidden: 'a second exploratory pass; choosing another K after this read; treating PROMISING as a confirmed edge or a live probability; using the range-position forecast prototype as confirmation; rewriting H03 or the signed-return atlas; opening 2025/2026, E1, open interest, funding, or the book; a product line'
+    reopen: 'A successor needs its own frozen design. The recorded name ret_1h_z|lt_-1 is not that design. Not a rerun. Not a new threshold search. Not a product change.'
+    records:
+    - docs/research/IMPULSE_PRECURSORS_DISCOVERY_V1_DESIGN.md
+    - docs/research/IMPULSE_PRECURSORS_DISCOVERY_V1.md
+    - docs/research/impulse_precursors_discovery_v1_execution/RESULT.json
+    - docs/research/impulse_precursors_discovery_v1_execution/PREFLIGHT_REJECTED.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'ONE DISCOVERY PASS. Route PRECURSOR_DISCOVERY_PROMISING. Claim ceiling DISCOVERY_ONLY. Exposed history. Rerun REFUSING_RERUN. PRODUCT_INTEGRATION_CANDIDATE = NO.'

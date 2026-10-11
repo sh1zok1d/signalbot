@@ -9252,3 +9252,22 @@ WINDOWS_CONSUMED = none; BYBIT price file open times exposed only, outcome not c
 OUTCOME_READ = no; STATUS = BLOCKED_BY_CROSS_VENUE_FUNDING_PROVENANCE; PARENT_RERUN = no
 OBJECTS_2025_2026_USED = none; E1 = not touched; PREMIUM = not scored; OI = not opened; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-11 — IMPULSE_PRECURSORS_DISCOVERY_V1 one discovery pass
+
+**Mode.** One exploratory pass after an outcome-blind design. `outcome_read = true`. Evidence class `DISCOVERY / EXPOSED_HISTORY`. Claim ceiling `DISCOVERY_ONLY`. Route `PRECURSOR_DISCOVERY_PROMISING`. Design SHA256 `ac1f4a8e046078fcab62fb3b97dfc095de6b90c42787ad96229cb481fec44a79`. A second pass returns `REFUSING_RERUN`.
+- **Question.** Does a state known at `T` forecast a unique volatility-scaled barrier hit during `(T, T+4h]` better than the training frequency and a logistic on trailing 24h realized volatility?
+- **Surface.** `CORE_BTC_BINANCE_V0`, snapshot `717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415`. Decisions on the 15-minute grid, `T < 2025-01-01` and `T+4h <= 2025-01-01`. No 2025/2026 bar. No E1 object. No second venue.
+- **Preflight.** The first journal claim stopped before any price read because an indented snapshot line was skipped. Archived in `PREFLIGHT_REJECTED.json`. The corrected reader still requires both manifest snapshot lines to equal the pin. The price-backed pass ran once.
+- **Sample.** Clock rows `175280`. Kept `175261`. Ambiguous `15`. Scored `162110`. Folds `242`. Kept impulse rate `0.2618323528908314`. Geometric probability `0.26721521438310525`. Distinct episodes `5846` (up `2812`, down `3034`). Nested share of raw positive rows `0.8726056353374447`.
+- **Comparison.** Brier B0 `0.19435944443891975`, B1 `0.19193111525941603`, candidate `0.18212248995632146`. Delta Brier `-0.009808625303094565`, interval `[-0.01123806638240841, -0.008445818777423383]`. Delta log loss `-0.025495277980302267`, interval `[-0.028970542245865125, -0.022223715664192394]`. Draws `2000/2000`. Recompute disagreement `0`.
+- **Blocks.** 2020–2022 delta Brier `-0.006011884117970989`. 2023–2024 delta Brier `-0.0147849176501971`. The later block is the same exposed surface, not a pristine confirmation. All five scored years are negative.
+- **Search.** 70 state cells stored. 56 intervals exclude zero. 13 cover zero. One joint is below the cell floor. The recorded successor name is `ret_1h_z|lt_-1`. It is not a started unit. Compression cells have lower hit rates. Range location in the bulk does not separate.
+- **Not used.** Taker imbalance, despite full coverage on the loaded bars. Open interest, funding, and the book. Diagnostic `K` of 1.0 and 2.0 are counts only.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. Not a live probability. Not a trade call. H03 and the signed-return atlas are not rewritten. The range-position forecast prototype is not confirmation.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 further use for PRICE_STRUCTURE.impulse, barrier occurrence rather than signed return
+OUTCOME_READ = yes; ROUTE = PRECURSOR_DISCOVERY_PROMISING; CLAIM_CEILING = DISCOVERY_ONLY; CONFIRMATION = no
+OBJECTS_2025_2026_USED = none; E1 = not touched; OI = not opened; FUNDING = not opened; BOOK = not opened; PRODUCT_CHANGE = none
+```

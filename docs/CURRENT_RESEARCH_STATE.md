@@ -1,3 +1,20 @@
+## IMPULSE_PRECURSORS_DISCOVERY_V1 — one discovery pass — 2026-10-11
+
+`MODE = DISCOVERY | outcome_read = true | ROUTE = PRECURSOR_DISCOVERY_PROMISING | claim ceiling DISCOVERY_ONLY`
+`EVIDENCE_CLASS = DISCOVERY / EXPOSED_HISTORY | REOPEN_KEY = NEW_MECHANISM | RERUN = REFUSING_RERUN`
+`QUESTION = state at T -> unique barrier hit during (T, T+4h] at K=1.5 trailing 24h realized volatility`
+`SAMPLE = CORE_BTC_BINANCE_V0 | kept 175261 | scored 162110 | folds 242 | episodes 5846 | ambiguous 15`
+`RATE = kept 0.2618323528908314 | scored 0.263950404046635 | geometric 0.26721521438310525`
+`LOSSES = Brier B0 0.19435944443891975 | B1 0.19193111525941603 | candidate 0.18212248995632146 | delta -0.009808625303094565 | interval [-0.01123806638240841, -0.008445818777423383]`
+`LOG LOSS = B1 0.5709410619199643 | candidate 0.545445783939662 | delta -0.025495277980302267 | interval [-0.028970542245865125, -0.022223715664192394]`
+`BLOCKS = 2020-2022 delta Brier -0.006011884117970989 | 2023-2024 delta Brier -0.0147849176501971 | same exposed surface, not a confirmation`
+`SUCCESSOR NAME = ret_1h_z|lt_-1 | recorded only | not started`
+`NOT = H03 rewrite | pre-impulse signed-return rerun | Track A confirmation | live probability | product line | 2025/2026 | E1 | OI | funding | book`
+`DESIGN SHA256 = ac1f4a8e046078fcab62fb3b97dfc095de6b90c42787ad96229cb481fec44a79`
+`PRODUCT_INTEGRATION_CANDIDATE = NO`
+
+Result: `docs/research/IMPULSE_PRECURSORS_DISCOVERY_V1.md`.
+
 ## RANGE_POSITION_4H_FORECAST_PROTOTYPE_V1 — pre-fit repair, fit not run — 2026-10-09
 
 `MODE = RETROSPECTIVE_FORECAST_PROTOTYPE | market_fit = false | OWNER_GO = false | STOP / AWAITING_OWNER_FIT_GO`
