@@ -35,3 +35,12 @@ After that outcome a new, opposite hypothesis was formed:
   - The RP4H level is read on all of them, so none is pristine.
 - **Nothing is fixed now:** no trend threshold, tercile cut, lookback, signed form or horizon. The regime variable TS_24H and its CORE terciles are recorded facts of the closed unit, not frozen choices for this candidate.
 - **Execution needs a separate owner decision.**
+
+## Adequacy gate (2026-10-11, owner decision; no market interaction outcome read)
+
+- **Protocol:** `RP4H_TREND_EXHAUSTION_INTERACTION_V1_ADEQUACY_PROTOCOL.md` (commit `cf75f2c7`). Exact Unit-1 parity: primary interaction_b0; TS_24H via `spa_family`.
+- **Result:** `RP4H_TREND_EXHAUSTION_INTERACTION_V1_ADEQUACY.md` / `.json` → **`TREND_EXHAUSTION_REPLICATION_INFORMATIONALLY_INSUFFICIENT`**.
+- **P(SUPPORTED) at 1× the discovery magnitude:**
+  - BitMEX 2016–19: 0.77 (homoskedastic 0.67); MDE80 1.07×;
+  - Binance 2025–26: 0.44; MDE80 1.65×.
+- **Status unchanged:** `DISCOVERY_CANDIDATE_FROM_SIGN_REVERSED_PRIMARY_HYPOTHESIS`. No replication under the frozen rule.

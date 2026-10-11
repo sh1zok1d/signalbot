@@ -1,0 +1,567 @@
+{
+ "bootstrap_validation": {
+  "checks": [
+   {
+    "canonical": [
+     -0.02794012077423365,
+     -0.009895182384464291,
+     0.004577951436913765
+    ],
+    "fast": [
+     -0.027877343558972045,
+     -0.009749234562064621,
+     0.004582163684166118
+    ],
+    "point_fast": -0.018765033843843558,
+    "point_unit1": -0.01876503384384356,
+    "rep": 0,
+    "surface": "BITMEX_XBTUSD_2016_2019",
+    "width_ratio": 0.9954120638202114
+   },
+   {
+    "canonical": [
+     -0.02767455955689033,
+     -0.007218579507981353,
+     0.00513655779372074
+    ],
+    "fast": [
+     -0.02767749897812598,
+     -0.007288117540343115,
+     0.0051282673016203
+    ],
+    "point_fast": -0.017093321635379837,
+    "point_unit1": -0.01709332163537984,
+    "rep": 1,
+    "surface": "BITMEX_XBTUSD_2016_2019",
+    "width_ratio": 1.003266337987218
+   },
+   {
+    "canonical": [
+     -0.030169453565413527,
+     -0.0005944173912196594,
+     0.007441038808016494
+    ],
+    "fast": [
+     -0.030151125948935712,
+     -0.0006605869009719703,
+     0.007411616734245632
+    ],
+    "point_fast": -0.01545369567346962,
+    "point_unit1": -0.015453695673469612,
+    "rep": 0,
+    "surface": "BINANCE_UM_BTCUSDT_2025_2026",
+    "width_ratio": 1.0028652282717756
+   },
+   {
+    "canonical": [
+     -0.026241996785188026,
+     0.0001416458822976517,
+     0.006794055825814684
+    ],
+    "fast": [
+     -0.02637758247539131,
+     0.0003246491567577221,
+     0.006807230239795836
+    ],
+    "point_fast": -0.012635617263435183,
+    "point_unit1": -0.012635617263435183,
+    "rep": 1,
+    "surface": "BINANCE_UM_BTCUSDT_2025_2026",
+    "width_ratio": 0.9880688262669485
+   }
+  ],
+  "max_width_ratio": 1.003266337987218,
+  "redo_threshold": 1.1
+ },
+ "gate": {
+  "market_interaction_outcome_read": false,
+  "pooled_informational": [
+   {
+    "level": 0.0,
+    "mean_se": 0.003991512582523823,
+    "p_correct_sign": 0.635,
+    "p_opposes": 0.025,
+    "p_supported": 0.0625
+   },
+   {
+    "level": 0.5,
+    "mean_se": 0.003994531839853136,
+    "p_correct_sign": 0.9525,
+    "p_opposes": 0.0,
+    "p_supported": 0.45
+   },
+   {
+    "level": 1.0,
+    "mean_se": 0.004013512956108668,
+    "p_correct_sign": 1.0,
+    "p_opposes": 0.0,
+    "p_supported": 0.9025
+   },
+   {
+    "level": 1.5,
+    "mean_se": 0.004007611723867383,
+    "p_correct_sign": 1.0,
+    "p_opposes": 0.0,
+    "p_supported": 1.0
+   },
+   {
+    "level": 2.0,
+    "mean_se": 0.003992015045571742,
+    "p_correct_sign": 1.0,
+    "p_opposes": 0.0,
+    "p_supported": 1.0
+   },
+   {
+    "level": 3.0,
+    "mean_se": 0.004003812640751422,
+    "p_correct_sign": 1.0,
+    "p_opposes": 0.0,
+    "p_supported": 1.0
+   }
+  ],
+  "seconds": 356.8,
+  "stage": "EXACT_PARITY + EXPOSURE_AUDIT + OUTCOME_FREE_ADEQUACY_GATE (no market interaction outcome)",
+  "surfaces": {
+   "BINANCE_UM_BTCUSDT_2025_2026": {
+    "adequacy": {
+     "adequate": false,
+     "null_control_primary": true,
+     "null_control_sensitivity": true,
+     "power_1x_primary": 0.44,
+     "power_1x_sensitivity": 0.44
+    },
+    "calibration": {
+     "HETERO": {
+      "beta_main": -0.03271931513382531,
+      "kappa_int": 0.9400233504484359,
+      "kappa_int_se": 0.0013094965469249386,
+      "kappa_main": 0.9168896071723067,
+      "kappa_main_se": 0.0021935806885568033
+     },
+     "HOMO": {
+      "beta_main": -0.030711157988341897,
+      "kappa_int": 0.9767203804677321,
+      "kappa_int_se": 0.0013733595824352348,
+      "kappa_main": 0.9768436609061808,
+      "kappa_main_se": 0.0013468717290019085
+     }
+    },
+    "curve": [
+     {
+      "beta_int": -0.0,
+      "ci_width_q": {
+       "0.05": 0.024464514655729575,
+       "0.5": 0.027946848912827178,
+       "0.95": 0.03151226341685194
+      },
+      "level": 0.0,
+      "main_effect_check_mean": -0.03066911818723117,
+      "mean_point": -0.0011105917212929591,
+      "mean_se": 0.0071302953743110475,
+      "p_correct_sign": 0.565,
+      "p_invalid": 0.0,
+      "p_not": 0.4225,
+      "p_opposes": 0.0125,
+      "p_supported": 0.05,
+      "p_uncertain": 0.515,
+      "reps": 400,
+      "sd_point": 0.0072093336700531745
+     },
+     {
+      "beta_int": -0.006313493179401729,
+      "ci_width_q": {
+       "0.05": 0.024524520112650966,
+       "0.5": 0.0277586438592239,
+       "0.95": 0.03157262615557067
+      },
+      "level": 0.5,
+      "main_effect_check_mean": -0.02923713133341025,
+      "mean_point": -0.006368136259803827,
+      "mean_se": 0.007116028094746898,
+      "p_correct_sign": 0.795,
+      "p_invalid": 0.0,
+      "p_not": 0.205,
+      "p_opposes": 0.0,
+      "p_supported": 0.1625,
+      "p_uncertain": 0.6325,
+      "reps": 400,
+      "sd_point": 0.007292455267398455
+     },
+     {
+      "beta_int": -0.012626986358803457,
+      "ci_width_q": {
+       "0.05": 0.024204591591430225,
+       "0.5": 0.027962344877206835,
+       "0.95": 0.031941255454116066
+      },
+      "level": 1.0,
+      "main_effect_check_mean": -0.03089669151258664,
+      "mean_point": -0.01278739396160397,
+      "mean_se": 0.007169379081642113,
+      "p_correct_sign": 0.965,
+      "p_invalid": 0.0,
+      "p_not": 0.035,
+      "p_opposes": 0.0,
+      "p_supported": 0.44,
+      "p_uncertain": 0.525,
+      "reps": 400,
+      "sd_point": 0.007140995399711402
+     },
+     {
+      "beta_int": -0.018940479538205185,
+      "ci_width_q": {
+       "0.05": 0.024563022742023946,
+       "0.5": 0.027828163050271533,
+       "0.95": 0.031804477092106855
+      },
+      "level": 1.5,
+      "main_effect_check_mean": -0.02994758324136325,
+      "mean_point": -0.01893470822879585,
+      "mean_se": 0.007144750033056407,
+      "p_correct_sign": 0.9875,
+      "p_invalid": 0.0,
+      "p_not": 0.0125,
+      "p_opposes": 0.0,
+      "p_supported": 0.74,
+      "p_uncertain": 0.2475,
+      "reps": 400,
+      "sd_point": 0.007409979415986945
+     },
+     {
+      "beta_int": -0.025253972717606914,
+      "ci_width_q": {
+       "0.05": 0.0242694665390758,
+       "0.5": 0.0281376456656587,
+       "0.95": 0.0316792441632763
+      },
+      "level": 2.0,
+      "main_effect_check_mean": -0.02986697210613443,
+      "mean_point": -0.0247842298801048,
+      "mean_se": 0.0071413068663113395,
+      "p_correct_sign": 1.0,
+      "p_invalid": 0.0,
+      "p_not": 0.0,
+      "p_opposes": 0.0,
+      "p_supported": 0.9375,
+      "p_uncertain": 0.0625,
+      "reps": 400,
+      "sd_point": 0.006861264593858543
+     },
+     {
+      "beta_int": -0.03788095907641037,
+      "ci_width_q": {
+       "0.05": 0.02460085045402118,
+       "0.5": 0.028132411081718888,
+       "0.95": 0.03198548897839413
+      },
+      "level": 3.0,
+      "main_effect_check_mean": -0.03295117991701229,
+      "mean_point": -0.03651310884240654,
+      "mean_se": 0.007170843648501535,
+      "p_correct_sign": 1.0,
+      "p_invalid": 0.0,
+      "p_not": 0.0,
+      "p_opposes": 0.0,
+      "p_supported": 1.0,
+      "p_uncertain": 0.0,
+      "reps": 400,
+      "sd_point": 0.007240381772008786
+     }
+    ],
+    "mde80_primary": 1.6518987341772153,
+    "sensitivity_homoskedastic": [
+     {
+      "beta_int": -0.0,
+      "ci_width_q": {
+       "0.05": 0.024635082248311898,
+       "0.5": 0.027710182407262113,
+       "0.95": 0.03098111751325216
+      },
+      "level": 0.0,
+      "main_effect_check_mean": -0.03018092381226109,
+      "mean_point": 8.25734383047701e-06,
+      "mean_se": 0.00708659031695233,
+      "p_correct_sign": 0.475,
+      "p_invalid": 0.0,
+      "p_not": 0.5,
+      "p_opposes": 0.025,
+      "p_supported": 0.015,
+      "p_uncertain": 0.46,
+      "reps": 200,
+      "sd_point": 0.007180572264352409
+     },
+     {
+      "beta_int": -0.01215256921063219,
+      "ci_width_q": {
+       "0.05": 0.024340602446170506,
+       "0.5": 0.027653105037196438,
+       "0.95": 0.03163592774868819
+      },
+      "level": 1.0,
+      "main_effect_check_mean": -0.030377895808569363,
+      "mean_point": -0.01252150783322284,
+      "mean_se": 0.007108154347912239,
+      "p_correct_sign": 0.955,
+      "p_invalid": 0.0,
+      "p_not": 0.04,
+      "p_opposes": 0.005,
+      "p_supported": 0.44,
+      "p_uncertain": 0.515,
+      "reps": 200,
+      "sd_point": 0.007553907905100169
+     }
+    ],
+    "support": {
+     "anchors": 59512,
+     "anchors_before_ts": 59672,
+     "by_year": {
+      "2025": 34943,
+      "2026": 24569
+     },
+     "dropped_ts_undefined": 160,
+     "first": "2025-01-02 00:15:00+00:00",
+     "iso_weeks": 90,
+     "last": "2026-10-08 23:00:00+00:00",
+     "share_by_unit1_tercile": [
+      0.3072153515257427,
+      0.34441793251781155,
+      0.34836671595644575
+     ],
+     "ts_quantiles": [
+      0.11443361101159423,
+      0.28956022071441617,
+      0.6166799384484298,
+      1.0398748851353286,
+      1.485118548781446
+     ]
+    }
+   },
+   "BITMEX_XBTUSD_2016_2019": {
+    "adequacy": {
+     "adequate": false,
+     "null_control_primary": false,
+     "null_control_sensitivity": true,
+     "power_1x_primary": 0.7725,
+     "power_1x_sensitivity": 0.67
+    },
+    "calibration": {
+     "HETERO": {
+      "beta_main": -0.03564660409866376,
+      "kappa_int": 0.904378555949263,
+      "kappa_int_se": 0.0013623125517758668,
+      "kappa_main": 0.8415948940596159,
+      "kappa_main_se": 0.0016832671022222415
+     },
+     "HOMO": {
+      "beta_main": -0.0307022910736219,
+      "kappa_int": 0.9759389493023078,
+      "kappa_int_se": 0.001013968200240121,
+      "kappa_main": 0.9771257763162411,
+      "kappa_main_se": 0.001067536618074495
+     }
+    },
+    "curve": [
+     {
+      "beta_int": -0.0,
+      "ci_width_q": {
+       "0.05": 0.01704971902868745,
+       "0.5": 0.018892962243714312,
+       "0.95": 0.020850993261960674
+      },
+      "level": 0.0,
+      "main_effect_check_mean": -0.030495701989392048,
+      "mean_point": -0.0016023529044018432,
+      "mean_se": 0.004840043386213686,
+      "p_correct_sign": 0.62,
+      "p_invalid": 0.0,
+      "p_not": 0.3675,
+      "p_opposes": 0.0125,
+      "p_supported": 0.0575,
+      "p_uncertain": 0.5625,
+      "reps": 400,
+      "sd_point": 0.004950212722328047
+     },
+     {
+      "beta_int": -0.006562330533484602,
+      "ci_width_q": {
+       "0.05": 0.01716101596580941,
+       "0.5": 0.018935628968780028,
+       "0.95": 0.021012430791843287
+      },
+      "level": 0.5,
+      "main_effect_check_mean": -0.029840452894283217,
+      "mean_point": -0.007378401715797529,
+      "mean_se": 0.004848662848468151,
+      "p_correct_sign": 0.93,
+      "p_invalid": 0.0,
+      "p_not": 0.07,
+      "p_opposes": 0.0,
+      "p_supported": 0.3175,
+      "p_uncertain": 0.6125,
+      "reps": 400,
+      "sd_point": 0.004901805671106436
+     },
+     {
+      "beta_int": -0.013124661066969204,
+      "ci_width_q": {
+       "0.05": 0.017292808010004466,
+       "0.5": 0.018983332139435982,
+       "0.95": 0.020983744797439932
+      },
+      "level": 1.0,
+      "main_effect_check_mean": -0.029228746293510306,
+      "mean_point": -0.013120012425723198,
+      "mean_se": 0.0048668295108947705,
+      "p_correct_sign": 0.9975,
+      "p_invalid": 0.0,
+      "p_not": 0.0025,
+      "p_opposes": 0.0,
+      "p_supported": 0.7725,
+      "p_uncertain": 0.225,
+      "reps": 400,
+      "sd_point": 0.004600231357673693
+     },
+     {
+      "beta_int": -0.019686991600453806,
+      "ci_width_q": {
+       "0.05": 0.017212824143684476,
+       "0.5": 0.019042243767484774,
+       "0.95": 0.0209455494843974
+      },
+      "level": 1.5,
+      "main_effect_check_mean": -0.030871633148703812,
+      "mean_point": -0.019289481416267396,
+      "mean_se": 0.004862216844466892,
+      "p_correct_sign": 1.0,
+      "p_invalid": 0.0,
+      "p_not": 0.0,
+      "p_opposes": 0.0,
+      "p_supported": 0.9675,
+      "p_uncertain": 0.0325,
+      "reps": 400,
+      "sd_point": 0.004950101265670518
+     },
+     {
+      "beta_int": -0.026249322133938408,
+      "ci_width_q": {
+       "0.05": 0.017208835079944296,
+       "0.5": 0.01880197170622893,
+       "0.95": 0.020781949342221447
+      },
+      "level": 2.0,
+      "main_effect_check_mean": -0.03153854546478356,
+      "mean_point": -0.02521326418531278,
+      "mean_se": 0.004836941709244893,
+      "p_correct_sign": 1.0,
+      "p_invalid": 0.0,
+      "p_not": 0.0,
+      "p_opposes": 0.0,
+      "p_supported": 1.0,
+      "p_uncertain": 0.0,
+      "reps": 400,
+      "sd_point": 0.004710451455046609
+     },
+     {
+      "beta_int": -0.03937398320090761,
+      "ci_width_q": {
+       "0.05": 0.0170094122247885,
+       "0.5": 0.018992995726977942,
+       "0.95": 0.02098644557368213
+      },
+      "level": 3.0,
+      "main_effect_check_mean": -0.031406538253771,
+      "mean_point": -0.03734525426759492,
+      "mean_se": 0.004849412907898238,
+      "p_correct_sign": 1.0,
+      "p_invalid": 0.0,
+      "p_not": 0.0,
+      "p_opposes": 0.0,
+      "p_supported": 1.0,
+      "p_uncertain": 0.0,
+      "reps": 400,
+      "sd_point": 0.004853233776671725
+     }
+    ],
+    "mde80_primary": 1.0705128205128207,
+    "sensitivity_homoskedastic": [
+     {
+      "beta_int": -0.0,
+      "ci_width_q": {
+       "0.05": 0.017382706033287846,
+       "0.5": 0.01892868753966636,
+       "0.95": 0.02062416024215267
+      },
+      "level": 0.0,
+      "main_effect_check_mean": -0.030868681029936663,
+      "mean_point": -0.00018520086015745907,
+      "mean_se": 0.004845681573695328,
+      "p_correct_sign": 0.52,
+      "p_invalid": 0.0,
+      "p_not": 0.445,
+      "p_opposes": 0.035,
+      "p_supported": 0.015,
+      "p_uncertain": 0.505,
+      "reps": 200,
+      "sd_point": 0.005082487620904056
+     },
+     {
+      "beta_int": -0.012162299733558807,
+      "ci_width_q": {
+       "0.05": 0.017047357180027953,
+       "0.5": 0.019053917744485123,
+       "0.95": 0.02095685157450917
+      },
+      "level": 1.0,
+      "main_effect_check_mean": -0.0303769974542413,
+      "mean_point": -0.01137603044384481,
+      "mean_se": 0.004865546621934014,
+      "p_correct_sign": 0.98,
+      "p_invalid": 0.0,
+      "p_not": 0.02,
+      "p_opposes": 0.0,
+      "p_supported": 0.67,
+      "p_uncertain": 0.31,
+      "reps": 200,
+      "sd_point": 0.0050680844911892495
+     }
+    ],
+    "support": {
+     "anchors": 127143,
+     "anchors_before_ts": 127303,
+     "by_year": {
+      "2016": 22028,
+      "2017": 35038,
+      "2018": 35040,
+      "2019": 35037
+     },
+     "dropped_ts_undefined": 160,
+     "first": "2016-05-14 12:00:00+00:00",
+     "iso_weeks": 191,
+     "last": "2019-12-31 23:00:00+00:00",
+     "share_by_unit1_tercile": [
+      0.3156681846424892,
+      0.3435895015848297,
+      0.34074231377268116
+     ],
+     "ts_quantiles": [
+      0.1043864638656669,
+      0.27785356860042276,
+      0.6037538765539151,
+      1.024485368597562,
+      1.4303902483375923
+     ]
+    }
+   }
+  },
+  "unit": "RP4H_TREND_EXHAUSTION_INTERACTION_V1"
+ },
+ "market_interaction_outcome_read": false,
+ "protocol_commit": "cf75f2c7",
+ "stage": "EXACT_PARITY + EXPOSURE_AUDIT + OUTCOME_FREE_ADEQUACY_GATE (no market interaction outcome)",
+ "surface_rule_if_both_fresh": {
+  "reason": "neither surface is adequately powered (and fresh) at 1x the discovery magnitude",
+  "selected": null,
+  "verdict": "TREND_EXHAUSTION_REPLICATION_INFORMATIONALLY_INSUFFICIENT"
+ },
+ "unit": "RP4H_TREND_EXHAUSTION_INTERACTION_V1"
+}
