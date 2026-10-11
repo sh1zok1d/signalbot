@@ -632,7 +632,7 @@
    "frontier_value": 4,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 7,
+   "prior_signature_count": 8,
    "prior_signatures": [
     {
      "function": "Adaptive occupancy timescale selector",
@@ -658,6 +658,11 @@
      "function": "Measure whether the BTC perpetual volatility cascade is irreversible in time, beyond what symmetric GARCH generates.",
      "id": "GV0R01-C025",
      "mechanism": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade"
+    },
+    {
+     "function": "Multiscale adaptive occupancy forecast",
+     "id": "MULTISCALE-ADAPTIVE-OCCUPANCY-V2",
+     "mechanism": "Whether re-weighting several measures of where the price spent time, using only the past, improves a next-hour direction probability when the useful horizon shifts."
     },
     {
      "function": "Path occupancy modern temporal (omitted)",
@@ -7780,7 +7785,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "ddef5a38a06d88f2b1852b331e409281c808b984686a400cf012ab234f9de433",
+ "SOURCES_DIGEST": "69d5e19551c731d54b7d5f542fbfa851004f589eaaf6670d0176864ab687f1bd",
  "SURFACES": [
   {
    "also_cols": [

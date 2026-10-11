@@ -981,6 +981,7 @@
     "BLOCKED_METHOD": 2,
     "CLOSED_BEFORE_START": 1,
     "CLOSED_ON_SURFACE": 3,
+    "INFORMATIONALLY_WEAK": 1,
     "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
@@ -997,6 +998,7 @@
     "DIRECTIONAL-STATE-SEARCH-V2",
     "GV0R01-C003",
     "GV0R01-C025",
+    "MULTISCALE-ADAPTIVE-OCCUPANCY-V2",
     "OCC-MEAN-4H-MODERN-TEMPORAL-REPLICATION-V1",
     "OCC-MEAN-4H-TEMPORAL-REPLICATION-V1"
    ],
@@ -10197,7 +10199,7 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 214,
+  "units": 215,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
@@ -10208,7 +10210,7 @@
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
-   "INFORMATIONALLY_WEAK": 25,
+   "INFORMATIONALLY_WEAK": 26,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 32
   }
@@ -15601,7 +15603,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "ddef5a38a06d88f2b1852b331e409281c808b984686a400cf012ab234f9de433",
+ "SOURCES_DIGEST": "69d5e19551c731d54b7d5f542fbfa851004f589eaaf6670d0176864ab687f1bd",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -22834,6 +22836,40 @@
    "verdict": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "what_tested": "Generator V0 pipeline only: novelty ALLOW, feasibility PASS, red team REJECT; red team failed checks: CAUSALITY, CONFOUNDING_ADDRESSED. No market outcomes were tested.",
    "why_closed": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING blocker unresolved."
+  },
+  {
+   "blind_function": "Multiscale adaptive occupancy forecast",
+   "blind_mechanism": "Whether re-weighting several measures of where the price spent time, using only the past, improves a next-hour direction probability when the useful horizon shifts.",
+   "col": "CANDLES",
+   "datasets": [
+    "D2_BITMEX_PRE2020_XBTUSD",
+    "CORE_BTC_BINANCE_V0",
+    "BINANCE_UM_KLINES_5M_PRODUCT"
+   ],
+   "exposure": "None (no market outcome read; counters not incremented).",
+   "forbidden": "running V2 on market outcomes; static multiscale OCC, the Clark-West variant, new OCC lookbacks, spot OCC or an occupancy V3 without an owner reopen",
+   "function": "Ridge logistic on B1 + OCC_1H..12H (JOINT or OFFSET), memory TRAIL_52 / TRAIL_104 / EWMA_26, ridge_occ 1 / 1e3 / 1e4; selected JOINT / TRAIL_104 / 1e4.",
+   "id": "MULTISCALE-ADAPTIVE-OCCUPANCY-V2",
+   "mechanism": "The useful occupancy timescale for the next 1h direction may change through time; a low-variance multiscale model that re-weights all seven OCC scales by retraining would follow it.",
+   "note": "Successor of ADAPTIVE-OCCUPANCY-TIMESCALE-V1 (CLOSED_BEFORE_START). Program closure 2026-10-11.",
+   "period": "designed for the V1 schedule (BitMEX 2016-19, CORE 2020-24, Binance 2025-26 Unit B surface; 111 outer 28-day blocks, 294,493 outer rows); synthetic outcomes only",
+   "practical_bar": "Adequacy criterion C1-C5 frozen before the Monte Carlo (protocol 6e1bc6a4): power >= 0.80 at 2x the observed OCC_4H partial (0.011) in SWITCHING and CONSTANT, null false support <= 0.05, gain over V1.",
+   "program": "MULTISCALE_ADAPTIVE_OCCUPANCY_V2",
+   "records": [
+    "docs/research/MULTISCALE_ADAPTIVE_OCCUPANCY_V2_DESIGN.md",
+    "docs/research/MULTISCALE_ADAPTIVE_OCCUPANCY_V2_SYNTHETIC_ADEQUACY_PROTOCOL.md",
+    "docs/research/MULTISCALE_ADAPTIVE_OCCUPANCY_V2_SYNTHETIC_ADEQUACY.json",
+    "docs/research/ADAPTIVE_OCCUPANCY_PROGRAM_CLOSURE.md",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "A new owner decision with a new reason (substantially more data, a new independent observable, or a materially stronger signal family).",
+   "row": "PRICE_STRUCTURE.path_shape",
+   "source": "ATLAS_UNITS_V1",
+   "state": "INFORMATIONALLY_WEAK",
+   "title": "Multiscale ridge occupancy forecast with past-only adaptation (never run on market outcomes)",
+   "units_n": "one primary pair (V2 - B1 dBrier); 18 selectable architectures in an outcome-free synthetic study (2,850 Monte Carlo draws)",
+   "verdict": "DESIGN_STILL_INFORMATIONALLY_INSUFFICIENT (synthetic only). Null false support 0; P(SUPPORT) at 2x: CONSTANT 0.55, SWITCHING 0.06; MDE80 2.6x (CONSTANT), > 3x (SWITCHING); at 1x every architecture <= 0.18; trailing-memory adaptation costs ~2e-5 Brier vs its expanding twin in every world.",
+   "why_closed": "Owner decision 2026-10-11: not run on market outcomes; adaptive occupancy program closed as INFORMATIONALLY_WEAK_ON_AVAILABLE_SURFACES / OUTCOME_NOT_READ. Not OCC = 0, not adaptation impossible, not an edge refuted."
   },
   {
    "blind_function": "Path occupancy modern temporal replication",

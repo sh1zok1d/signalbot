@@ -8951,3 +8951,10 @@ NOT_READ = BitMEX, Bybit, Binance 2025/2026, signed trend, other regime variable
 `SELECTED = JOINT / TRAIL_104 / ridge 1e4 | stage 2: C1 false support 0 / 0 PASS; C2 PASS; C3 gain over V1 +0.06 (2x support) / +0.12 (1x beat) FAIL; C4 P(SUPPORT) at 2x CONSTANT 0.55, SWITCHING 0.06 FAIL; C5 OFF_ON 2x mean dBrier +1.2e-5 FAIL -> DESIGN_STILL_INFORMATIONALLY_INSUFFICIENT | Clark-West option also fails (C3 beat, C5)`
 `KEY = trailing-memory adaptation costs ~+2e-5 Brier vs the same model on an expanding window in every world, SWITCHING included; weights do not move between regimes (104 w averages two 52 w regimes; shorter windows too noisy) | MDE80: V2 CONSTANT 2.6x, SWITCHING > 3x; at 1x no architecture exceeds P(SUPPORT) 0.18 on the dBrier route`
 `WINDOWS_CONSUMED = none | MARKET OUTCOMES READ = none | DIRECTION exposure unchanged | no preflight, no market evaluator | owner decision pending`
+
+## 2026-10-11 — Adaptive occupancy program closed (owner): INFORMATIONALLY_WEAK_ON_AVAILABLE_SURFACES / OUTCOME_NOT_READ
+
+`OWNER = MULTISCALE_ADAPTIVE_OCCUPANCY_V2 not run on market outcomes; program closed | meaning: at rho ~0.011 and the available history, the past-only adaptive procedures cannot tell a weak adaptive edge from none | NOT: OCC = 0, adaptation impossible, edge refuted`
+`PRESERVED = V1 DESIGN_INFORMATIONALLY_INSUFFICIENT (d33f32b7 / bb5c35ef / 7df10edc), V2 DESIGN_STILL_INFORMATIONALLY_INSUFFICIENT (protocol 6e1bc6a4, report 045cbb1c), MDE tables, Monte Carlo record, no real outer outcome read | closure docs/research/ADAPTIVE_OCCUPANCY_PROGRAM_CLOSURE.md | atlas MULTISCALE-ADAPTIVE-OCCUPANCY-V2 = INFORMATIONALLY_WEAK`
+`WINDOWS_CONSUMED = none | exposure counters NOT incremented for V1/V2 | not opened: static multiscale OCC, Clark-West, new OCC lookbacks, spot OCC, occupancy V3 | reopen only by owner with a new reason`
+`NEXT = RP4H_TREND_EXHAUSTION_INTERACTION_V1 (S1 skipped: SPA_24H / UPFRAC_24H already read for R_1H in DSS V2)`
