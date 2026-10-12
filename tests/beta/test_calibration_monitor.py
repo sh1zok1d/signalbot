@@ -384,16 +384,32 @@ def test_journal_adapter_uses_digest_snapshot_and_drops_the_subject():
     assert fallback["snapshot_id"] == "9"
 
 
+def _sql_executable(sql: str) -> str:
+    lines = []
+    for line in sql.splitlines():
+        if "--" in line:
+            line = line.split("--", 1)[0]
+        lines.append(line)
+    return " ".join(" ".join(lines).lower().split())
+
+
 def test_replay_export_rejects_prices_and_stays_read_only():
     from scripts.beta.replay_calibration_monitor_v2 import (
         READ_ONLY_EXPORT_SQL, forbidden_keys, load_jsonl, summary,
     )
 
-    folded = " ".join(READ_ONLY_EXPORT_SQL.lower().split())
+    folded = _sql_executable(READ_ONLY_EXPORT_SQL)
     assert folded.startswith("select ")
     for verb in ("insert ", "update ", "delete ", "truncate ", "alter ", "drop "):
         assert verb not in folded
-    assert "subject" not in folded
+    for banned in ("subject", "subject_key", "'high'", "'low'", "'close'", "price"):
+        assert banned not in folded
+    assert "realized -" not in folded
+    assert "coverage" in folded
+    assert "eval_rule_digest" in folded
+    assert "eval_rule_id" in folded
+    assert "outcome_revision" in folded
+    assert "order by x.revision desc" in folded
     assert "beta_claims" in folded
     clean = json_line = (
         '{"claim_class":"L3_DISTANCE_TOUCH_4H","as_of":"2024-01-01T00:01:00+00:00",'

@@ -4,7 +4,7 @@
 
 `docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md` remains the rule for what users read. V1 (`beta.claims.touch_wording`, health component `touch_live_cal`) is unchanged. This monitor is a pure function of an immutable claim journal. Nothing here writes production, clears a sticky flag, or refits a model. `beta/health.py` and the notifier do not call it.
 
-Code: `beta/calibration_monitor.py`. Tests: `tests/beta/test_calibration_monitor.py`. Shared-path check: `scripts/beta/compare_calibration_monitor_v1.py`, result `docs/BETA_CALIBRATION_MONITOR_V2_COMPARISON.json`. Offline replay: `scripts/beta/replay_calibration_monitor_v2.py`.
+Code: `beta/calibration_monitor.py`. Tests: `tests/beta/test_calibration_monitor.py`, `tests/beta/test_calibration_journal_export.py`. Shared-path check: `scripts/beta/compare_calibration_monitor_v1.py`, result `docs/BETA_CALIBRATION_MONITOR_V2_COMPARISON.json`. Read-only export: `scripts/beta/export_calibration_journal_v2.sh` and `scripts/beta/export_calibration_journal_v2.sql`. Offline replay: `scripts/beta/replay_calibration_monitor_v2.py`.
 
 `variants_tried_for_thresholds = 0`. The thresholds below were not moved after the shared-path check, and they were not fit to the October 2026 alerts.
 
@@ -49,6 +49,20 @@ Ville's inequality applies to that one non-negative supermartingale per book. Si
 
 Suspicion and confirmation are nested thresholds on the same process, so the 10% confirm bound is not added on top of the 30% suspect bound. Both also require the practical gate of 5 pp, the channel's own e-value at least 20, agreeing direction, and the day floor (10 days to suspect, 20 to confirm). There is no second bootstrap look.
 
+## When the 10% bound applies
+
+`E_CONFIRM = 60` is `6 / 0.10`. When the conditions below hold, Ville's inequality plus a union bound says that the probability of any of the six books ever reaching 60 is at most 10%, at any time. The books may share a price path. The union bound does not need them to be independent.
+
+The bound applies to a scored step only when all of the following are true:
+
+1. Each scored residual has conditional mean 0 at the claim's issue time, given the information the probability was allowed to use.
+2. The stakes λ stay the four values fixed above. They are not chosen after seeing the journal.
+3. A step is added only after every earlier step in that book has resolved, and whether a claim is an anchor depends only on its timestamps.
+4. The six books and the four channels are the ones named above. A channel with no claims stays at 1. Dropping it after seeing the data would be optional stopping.
+5. A row is left out for coverage or status in the same way for a hit and for a miss.
+
+The 10% figure does not apply to the suspect bar. That union bound is 30%, on the same process, and is not added to the 10%. It does not apply to which channel is named. The 5 pp gate is not a second test: it can only make a false confirmation rarer than 10%. It does not apply to the wording users currently read. It does not apply when the chance of clearing the coverage rule depends on the price path. That case is in the next section.
+
 ## States
 
 | State | Rule |
@@ -67,13 +81,17 @@ A channel is named on the episode only when its own evidence meets the gate. The
 
 `TOUCH_V1` / `NEITHER_V1` mark a hit `COMPLETE` even when coverage is below 0.9, and mark a non-hit `NO_DATA` in that same partial window. Scoring the hit and dropping the miss pushes the touch rate up and the neither rate down.
 
-The monitor treats coverage below 0.9 as unfinished for both outcomes. Coverage is the full-window fraction stored at the horizon, not a truncation at the first touch (`fetch_due_claims` waits until `horizon_end`). Conditional on coverage ≥ 0.9, a gap that does not depend on the path leaves a calibrated subset. If coverage is absent, the monitor does not invent it and will score a `COMPLETE` row. Production outcomes store coverage. More than 20% unfinished is `INCOMPLETE_DATA` rather than a model verdict.
+The monitor treats coverage below 0.9 as unfinished for both outcomes. Coverage is the full-window fraction stored at the horizon, not a truncation at the first touch (`fetch_due_claims` waits until `horizon_end`). If coverage is absent, the monitor does not invent it and will score a `COMPLETE` row. Production outcomes store coverage. The export keeps `realized.coverage` when the outcome stored it.
+
+If the chance of coverage ≥ 0.9 does not depend on the price path, the claims that remain are still a calibrated subset of the full-window procedure, and the 10% bound applies to that subset.
+
+If that chance does depend on the path — minutes missing more often on a touch than on a quiet window, for example — the scored rows can have a residual whose mean is not 0 even when every issued probability was right for the full window. The 10% bound does not cover that subset. The 20% unfinished gate does not restore the bound. It only refuses a calibration verdict when the hole is large: at least 10 rows and more than 20% unfinished. A smaller price-dependent hole can still pass the gate and still bias the e-process.
 
 ## Journal adapter
 
 `observations_from_claim_rows` reads claim class, `as_of`, `horizon_end`, probability, `stats_digest` / `stats_pk`, `eval_rule_digest`, `eval_rule_id`, `rule_version`, outcome status, and `realized.touched` / `realized.neither` / `realized.coverage`. It does not copy `subject` or prices. Classes other than `L3_LEVEL_TOUCH_*`, `L3_DISTANCE_TOUCH_*` and `L3_NEITHER_*` are ignored. Level and distance touches share the touch book.
 
-The census role cannot `SELECT` `beta_claims` or `beta_claim_outcomes`. `scripts/beta/replay_calibration_monitor_v2.py` does not open a database and does not read `BETA_DSN`. It refuses an export that contains subject, price, high, low, close, or credential fields. The operator query is in that script: `SELECT` only, latest outcome revision, price keys removed from `realized`.
+The census role cannot `SELECT` `beta_claims` or `beta_claim_outcomes`. The export does not grant it anything. `scripts/beta/export_calibration_journal_v2.sh` runs `scripts/beta/export_calibration_journal_v2.sql` through the existing Docker PostgreSQL as the table owner already configured for that container, with `default_transaction_read_only`. The SQL is one `SELECT`. It whitelists fields, keeps coverage, `eval_rule_id`, `eval_rule_digest` and the latest `outcome_revision`, and does not select subject or price keys. `scripts/beta/replay_calibration_monitor_v2.py` reads that JSONL. It does not open a database and does not read `BETA_DSN`. It refuses a file that still contains subject, price, high, low, close, or credential fields.
 
 ## Owner notices
 
@@ -109,7 +127,7 @@ Power, 3 paths, predeclared shifts, 70 days (recovery run 90 days). Not the Octo
 - Neither shifted by 10 pp, touch left calibrated: neither 1h and 4h confirmed; every touch book stayed in noise.
 - 36 days of a 10 pp touch shift, then a null path: touch 1h and 4h ended `RECOVERED` on 3/3 paths. The episode remains.
 
-Unit tests cover the anchor chain, a claim issued before the previous anchor resolves, partial-coverage hits, the journal adapter, and the once-per-day shadow notice. `python3 -m pytest -q tests/beta/test_calibration_monitor.py`: 22 passed.
+Unit tests cover the anchor chain, a claim issued before the previous anchor resolves, partial-coverage hits, the journal adapter, and the once-per-day shadow notice (`tests/beta/test_calibration_monitor.py`). `tests/beta/test_calibration_journal_export.py` checks the export columns against `storage/beta_v0_schema.sql` and, on PostgreSQL, runs SQL → JSONL → adapter → `evaluate`, including a second outcome revision and a read-only session.
 
 ## Safe switch
 
@@ -120,19 +138,45 @@ Unit tests cover the anchor chain, a claim issued before the previous anchor res
 
 ## Residual risks
 
-- The Ville bound is the guarantee. The 36-path simulation does not have the precision to show the joint rate is under 10%: the 95% upper bound on 1/36 is 12.5%. A different path dependence could still expose a filtration mistake the Gaussian terminal barrier does not.
+- The 10% bound is the guarantee only under the conditions in "When the 10% bound applies". The 36-path simulation does not have the precision to show the joint rate is under 10%: the 95% upper bound on 1/36 is 12.5%. A different path dependence could still expose a filtration mistake the Gaussian terminal barrier does not.
+- If missing minutes depend on the price path, the scored subset can be biased and the 10% bound does not apply. The 20% gate only refuses a large hole. It does not repair a smaller one.
 - Twenty-four hour books have one anchor per day. A 10 pp shift was not confirmed in 70 days. That is low power, not a reason to lower the threshold.
 - Empty channels stay at 1 and dilute the mixture. A failure that lives in one channel has to overcome that dilution. The tail and shape checks still confirmed on 1h and 4h.
-- Coverage below 20% that depends on the path can still bias the scored subset. The monitor refuses the mechanical hit/miss asymmetry; it does not model why minutes are missing.
-- A `COMPLETE` row with no coverage field is scored. Production stores coverage. An export that drops the field would undo the censoring rule.
+- A `COMPLETE` row with no coverage field is scored. Production stores coverage. An export that drops the field would undo the censoring rule. The export SQL keeps the field.
 - Recovery can close on a quiet 20-day slice while an older bias is only archived.
 - October's 7 days stay `INSUFFICIENT_DATA` however large the gap. That is the information floor, not a verdict that those probabilities were right.
-- The live journal has not been replayed. The census role cannot read the claim tables. Shadow mode is the replay of an anonymized export, not a verdict already computed on production.
+- The live journal has not been replayed. Shadow mode is the replay of an anonymized export, not a verdict already computed on production. The census role still cannot read the claim tables. The export below uses the existing container's table owner and does not change that grant.
 
-## What a VPS operator does, and does not do
+## What the owner runs
 
-Do not restart services, do not clear `touch_live_cal`, do not edit user text, and do not point the notifier at this module as part of deploying the file.
+Do not restart services, do not clear `touch_live_cal`, do not edit user text, do not grant the census role, and do not point health or the notifier at this module.
 
-To score the live journal, a role that can `SELECT` `beta_claims` and `beta_claim_outcomes` exports the query in `scripts/beta/replay_calibration_monitor_v2.py` to JSONL and runs that script off the host. The census role cannot run that query today. Do not substitute a write-capable DSN. The script refuses subject and price fields.
+One command, on the VPS, as the user that already runs the bot. It fetches the branch of PR #458 (refs only), extracts the two export files into a temporary directory, and runs them. It does not check out `/opt/signalbot`. The session inside the existing container is read-only. The query uses the table owner already configured there, because the census role cannot `SELECT` these tables.
+
+```bash
+bash -c "$(cat <<'BLOCK'
+set -euo pipefail
+exec </dev/null
+cd /opt/signalbot
+WORK=$(mktemp -d /tmp/calmon.XXXXXXXX)
+cleanup() { rm -rf "$WORK"; }
+trap cleanup EXIT
+git -C /opt/signalbot fetch -q origin cursor/calibration-monitor-v2-shadow-08d8
+git -C /opt/signalbot rev-parse -q --verify 'FETCH_HEAD^{commit}' >/dev/null \
+  || { echo "branch cursor/calibration-monitor-v2-shadow-08d8 is not available after fetch"; exit 1; }
+echo "scripts from $(git -C /opt/signalbot rev-parse --short FETCH_HEAD)"
+git -C /opt/signalbot archive FETCH_HEAD \
+    scripts/beta/export_calibration_journal_v2.sql \
+    scripts/beta/export_calibration_journal_v2.sh | tar -x -C "$WORK"
+bash "$WORK/scripts/beta/export_calibration_journal_v2.sh" /tmp/calibration_monitor_v2.jsonl
+BLOCK
+)"
+```
+
+What to send back: the file `/tmp/calibration_monitor_v2.jsonl` (mode 0600) and the printed `rows=… sha256=… path=…` line from the same run, plus the `container`, `db`, `user` and commit lines. That file is the anonymized journal: claim class, timestamps, probability, stats digest, evaluation rule, outcome status, outcome revision, and `touched` / `neither` / `coverage`. It has no subject, no prices, and no user data. Do not send `/opt/signalbot/.env`, a database dump, or any other query.
+
+The diagnosis is `python3 scripts/beta/replay_calibration_monitor_v2.py` on that file, off the VPS. Do not run the monitor inside health or the notifier to produce it.
+
+If the script stops because a line contains a forbidden key, send that error line and do not send the file.
 
 A later recorder, if one is added, writes only `touch_cal_monitor_v2` and pages through `shadow_notifications`.

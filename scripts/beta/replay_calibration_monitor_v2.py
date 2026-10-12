@@ -2,31 +2,10 @@
 
 The census role cannot SELECT ``beta_claims`` or ``beta_claim_outcomes``. This script
 does not open a database connection, does not read ``BETA_DSN``, and does not write
-health rows. An operator who has SELECT runs the query below and saves JSONL with one
-claim per line. Subject, price and credential fields are refused.
-
-.. code-block:: sql
-
-    SELECT c.claim_class,
-           c.as_of,
-           c.horizon_end,
-           c.numbers->>'probability' AS probability,
-           c.stats_digest,
-           c.stats_pk::text AS stats_pk,
-           c.eval_rule_digest,
-           c.eval_rule_id,
-           c.rule_version,
-           o.status,
-           (o.realized - 'high' - 'low' - 'close') AS realized
-    FROM beta_claims c
-    LEFT JOIN LATERAL (
-        SELECT status, realized
-        FROM beta_claim_outcomes x
-        WHERE x.claim_pk = c.claim_pk
-        ORDER BY x.revision DESC
-        LIMIT 1
-    ) o ON TRUE
-    WHERE c.claim_class LIKE 'L3\\_%'
+health rows. The executable export is ``scripts/beta/export_calibration_journal_v2.sh``
+(SQL: ``scripts/beta/export_calibration_journal_v2.sql``). It keeps coverage, the
+evaluation rule and the latest outcome revision, and it does not select subject or
+price fields. This script refuses an export that still contains those keys.
 
 Usage::
 
@@ -44,28 +23,8 @@ if str(_ROOT) not in sys.path:
 
 from beta.calibration_monitor import evaluate, observations_from_claim_rows
 
-READ_ONLY_EXPORT_SQL = """
-SELECT c.claim_class,
-       c.as_of,
-       c.horizon_end,
-       c.numbers->>'probability' AS probability,
-       c.stats_digest,
-       c.stats_pk::text AS stats_pk,
-       c.eval_rule_digest,
-       c.eval_rule_id,
-       c.rule_version,
-       o.status,
-       (o.realized - 'high' - 'low' - 'close') AS realized
-FROM beta_claims c
-LEFT JOIN LATERAL (
-    SELECT status, realized
-    FROM beta_claim_outcomes x
-    WHERE x.claim_pk = c.claim_pk
-    ORDER BY x.revision DESC
-    LIMIT 1
-) o ON TRUE
-WHERE c.claim_class LIKE 'L3\\_%'
-""".strip()
+_EXPORT_SQL_PATH = Path(__file__).with_name("export_calibration_journal_v2.sql")
+READ_ONLY_EXPORT_SQL = _EXPORT_SQL_PATH.read_text(encoding="utf-8").strip()
 
 # Prices, account identifiers and secrets. `level` is not listed: on a claim row it is
 # the ladder name, and the export query does not select it.
