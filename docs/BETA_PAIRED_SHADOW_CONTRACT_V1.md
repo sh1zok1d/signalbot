@@ -17,48 +17,29 @@ Monitor V2 thresholds are unchanged. Each procedure and specification is its own
 | `eval_rule_id` | `TOUCH_V1` or `NEITHER_V1` | The outcome rule. An outcome under another digest is rejected. |
 | `anchor_key` | slot, horizon, family, distance, side, rule | Shared by both procedures. The procedure is not part of the key. |
 
-`spec_digest` for W_L1 is `beta.paired_shadow.V2_SPEC_DIGEST`, the sha256 of:
+`spec_digest` for W_L1 is `beta.paired_shadow.V2_SPEC_DIGEST` = `00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246`.
 
-```json
-{"half_life_days": 365, "level": "L1", "market": "binance_usdm", "procedure_digest": "e573ae5d65894bb7b98831014aa3fd3fb3807aa1badaed89eb6b42f5288cb3b6", "procedure_id": "RANGECAST_V2", "spec_id": "W_L1", "symbol": "BTCUSDT"}
-```
+That is the sha256 of `beta.rangecast_v2.spec()` at commit `16c0916ece165d14a2e0e0d3717fc400ddc2699a`, not a short label. The hashed object is named `RANGECAST_V2_W_L1` and includes the version, level L1, half-life 365.0, horizons, floor, quantile grid, ridge, clip quantiles, season minimum, lookback, range / realized-volatility / activity / move windows, signed inputs (empty at L1), calendar terms, feature list, event kinds, joint levels and anchor stride. Coefficients are not in it. The V1 stream digest is `76867603601d82f3dd450097c7a01dc359add1a737ea4aac7cf97f41e2b5e28e`.
 
-That object hashes to `9a6b61d01e0816a59752e0e2d66c7b56f9fc29de76832c87fe1227b52361a20a`. `shadow_spec_digest()` returns this value. The V1 identity hashes to `30b8e81e339b35c40506698e064e12301645fb2822c18bbaa433136c36b28273`.
-
-**Amendment 1 (2026-10-12, proposed by the forecast track before any shadow issue; owner instruction: the digest covers the procedure, not only its name).** Both identity objects carry `procedure_digest`: the sha256 of every constant of the procedure beyond its coefficients.
-- **W_L1:** `rangecast_v2.shadow_procedure()` (the model math of `rangecast_v2.spec()`, the nightly fit, the serving rules).
-- **V1:** `rangecast_shadow.v1_shadow_procedure()` (the constants of `beta.rangecast` that move a touch or «ни один» chance).
-- The values are pinned in `beta/paired_shadow.py`, so the store imports no model code.
-- `shadow_spec_digest()` and `rangecast_shadow.bind_v1` refuse to issue when the code no longer computes the pinned value. The store itself only rejects a digest change on an anchor it already holds.
-- The earlier digests `13554464…` (V2) and `76867603…` (V1) were never used for a stored issue.
-
-Canonical JSON is `beta.state_tape.sha256_json` (sorted keys). A change of level, half-life, feature set, symbol or market is a new `spec_id` and a new identity object.
+One `spec_id` has one `spec_digest` for every anchor. The first write registers it. A later anchor, including a different hour, is rejected when the digest differs. A change of any constant in `spec()` is a new `spec_id`. A nightly refit keeps `W_L1` and changes `snapshot_id` only. The frozen artifact `RANGECAST_V2_W_L1_MODEL_V1` (file sha256 `2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533`, params digest `095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261`) is the first snapshot.
 
 The production claim journal has no specification column. Monitor V2 reads those rows as procedure `TOUCH_CHANCE_PROCEDURE_V1` and spec `JOURNAL_UNSPECIFIED`. Shadow rows must not use either of those two ids, or they would fall into the user-facing book.
 
-## What Claude implements
+## What Claude provides
 
-Add this to `beta/rangecast_v2.py`. It binds an already fitted model at one issue bar. It does not insert claims.
+`beta.rangecast_shadow.paired_forecast` is the number source. It does not write. This store does not add claim classes and does not insert into `beta_claims`.
 
-```python
-def shadow_spec_digest() -> str:
-    """Return beta.paired_shadow.V2_SPEC_DIGEST."""
+His record labels are mapped on the way in:
 
-def shadow_snapshot_id(model) -> str:
-    """sha256 of the fitted coefficients. A refit changes the result."""
+| Record | Stored |
+|---|---|
+| procedure `TOUCH_CHANCE_PROCEDURE_V1` | `RANGECAST_V1` / spec `RANGECAST_V1` |
+| procedure `TOUCH_CHANCE_PROCEDURE_RCV2_W_L1`, spec `RANGECAST_V2_W_L1` | `RANGECAST_V2` / spec `W_L1` |
+| `spec_digest` | must equal the pin above, or the hour is `MODEL_INVALID` and no probability is stored |
+| `params_digest` | `snapshot_id` |
+| `stats_digest` | V1 `snapshot_id` |
 
-def bind_shadow_model(model, state_by_horizon, *, snapshot_id: str):
-    """Return an object with procedure_id, spec_id, spec_digest, snapshot_id,
-    touch_probability(*, horizon, distance_pct, side) -> float, and
-    neither_probability(*, horizon, distance_up_pct, distance_down_pct) -> float.
-
-    horizon is '1h', '4h' or '24h'. side is +1 or -1.
-    state_by_horizon[horizon] is the state_at dict for that issue bar.
-    Use touch_probability_v2 and neither_prob. Do not write the journal.
-    """
-```
-
-`beta.paired_shadow.plan_issues` is the only caller. It asks every bound model the same distances and the same neither pairs, then stores the returned probabilities. The first stored probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability.
+`plan_shadow_record` is the mapping. `execute_hour` stores it. The first probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability. A horizon whose status is not `OK` stores that status and no probability.
 
 ## Anchors and outcomes
 
@@ -69,11 +50,12 @@ def bind_shadow_model(model, state_by_horizon, *, snapshot_id: str):
 - One outcome is computed by `beta.claims.evaluate` (`TOUCH_V1` / `NEITHER_V1`) and stored on the anchor. Revisions are append-only. The latest revision is the one that is scored. A revision after the first needs a correction note. The stored outcome keeps `touched` or `neither`, coverage and status. High, low, close and the first-touch time are not stored.
 - Coverage below 0.9 is unfinished for a hit and for a miss, same as Monitor V2. Those anchors are not in the paired log loss.
 - Log loss and Brier are means over paired anchors. The reported difference is V2 minus V1 for one specification pair. The default pair is `RANGECAST_V1` against `W_L1`. A second `spec_id` is a separate comparison and is not folded into that pair.
-- The SQL store rejects an insert that keeps `(anchor, procedure, spec)` but changes `spec_digest`. The first probability and snapshot stay. A rerun with the same digest does not add a row.
+- The SQL store rejects a `spec_digest` that differs from the digest already registered for that `(procedure_id, spec_id)`, on this anchor or any other. The first probability and snapshot stay. A rerun with the same digest does not add a row.
+- `scripts/beta/run_paired_shadow_hour.py` prints a dry-run. `--write` exits unless `PAIRED_SHADOW_HOUR_APPROVED=1`. That variable is not set.
 
 ## What stays off
 
-`SHADOW_RECORDING_ENABLED` is false. `record_issues` and `record_outcome` raise unless the caller passes `allow_write=True`. No hourly job passes that flag. The SQL file is not applied on deploy.
+`SHADOW_RECORDING_ENABLED` is false. `record_issues` and `record_outcome` raise unless the caller passes `allow_write=True`. No hourly job passes that flag. The SQL file is not applied on deploy. `execute_hour` writes an outcome only when `score=True` and the horizon has elapsed; until then a 24h book stays unfinished and Monitor V2 reports `INCOMPLETE_DATA` instead of a calibration verdict.
 
 Hidden shadow issues are not `beta_claims` rows and have no `beta_claim_displays` link. They are not user text.
 
@@ -81,5 +63,5 @@ Hidden shadow issues are not `beta_claims` rows and have no `beta_claim_displays
 
 1. Run the read-only production-journal export in `docs/BETA_CALIBRATION_MONITOR_V2.md` and return the JSONL. That scores the journal that already exists. It does not start paired recording.
 2. Allow `storage/beta_paired_shadow_schema.sql` on the production database. Until then the apply script exits without connecting usefully: it requires `PAIRED_SHADOW_SCHEMA_APPROVED=1`.
-3. Allow an hourly caller to pass `allow_write=True`. That caller is not in this tree.
+3. Allow `scripts/beta/run_paired_shadow_hour.py --write` by setting `PAIRED_SHADOW_HOUR_APPROVED=1`. Until then `--write` exits 2. Scoring still needs `execute_hour(..., score=True)` with the bar history; the script stores the issued probabilities and the hour status only.
 4. Keep user wording, `touch_live_cal`, sticky flags and the sharp-move detector on V1.
