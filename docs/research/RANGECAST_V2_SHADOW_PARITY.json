@@ -1,0 +1,83 @@
+{
+ "tolerance_abs": 1e-09,
+ "fold_2024": {
+  "1h": {
+   "hourly_anchors": 300,
+   "five_minute_anchors": 300,
+   "five_minute_offsets_covered": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55
+   ],
+   "max_abs_touch_hourly": 2.2093438190040615e-14,
+   "max_abs_neither_hourly": 1.4876988529977098e-14,
+   "max_abs_touch_5m": 1.8318679906315083e-14,
+   "max_abs_neither_5m": 1.7763568394002505e-14
+  },
+  "4h": {
+   "hourly_anchors": 300,
+   "five_minute_anchors": 300,
+   "five_minute_offsets_covered": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55
+   ],
+   "max_abs_touch_hourly": 3.5860203695392556e-14,
+   "max_abs_neither_hourly": 4.618527782440651e-14,
+   "max_abs_touch_5m": 2.90878432451791e-14,
+   "max_abs_neither_5m": 4.085620730620576e-14
+  },
+  "24h": {
+   "hourly_anchors": 300,
+   "five_minute_anchors": 300,
+   "five_minute_offsets_covered": [
+    0,
+    5,
+    10,
+    15,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    55
+   ],
+   "max_abs_touch_hourly": 2.0095036745715333e-14,
+   "max_abs_neither_hourly": 3.241851231905457e-14,
+   "max_abs_touch_5m": 2.531308496145357e-14,
+   "max_abs_neither_5m": 4.1300296516055823e-14
+  }
+ },
+ "artifact": {
+  "anchors": 120,
+  "horizon_records_checked": 321,
+  "skipped_by_status": {
+   "EVENT_ZONE": 6,
+   "INCOMPLETE_WINDOW": 33
+  },
+  "max_abs_touch": 0.0,
+  "max_abs_neither": 0.0,
+  "note": "adapter output rounded to 6 decimals; compared with the vectorized path rounded the same way"
+ },
+ "passed": true
+}

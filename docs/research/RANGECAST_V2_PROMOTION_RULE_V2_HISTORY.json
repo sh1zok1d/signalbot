@@ -1,0 +1,41 @@
+{
+ "surface": "development folds 2021-2024 (consumed); no 2025-2026 outcome read",
+ "rule": "RANGECAST_V2_PROMOTION_RULE_V2",
+ "weeks": 210,
+ "windows": 100,
+ "look_weeks": 12,
+ "ni_margin": 0.001,
+ "se_inflation": 1.5,
+ "scenarios": {
+  "observed": {
+   "share_primary": 0.84,
+   "share_four_hour_gate": 0.91,
+   "share_primary_and_four_hour_gate": 0.84,
+   "share_with_superiority_evidence": 0.42
+  },
+  "gain_removed": {
+   "share_primary": 0.25,
+   "share_four_hour_gate": 0.42,
+   "share_primary_and_four_hour_gate": 0.25,
+   "share_with_superiority_evidence": 0.02
+  },
+  "v2_worse_by_margin": {
+   "share_primary": 0.05,
+   "share_four_hour_gate": 0.12,
+   "share_primary_and_four_hour_gate": 0.05,
+   "share_with_superiority_evidence": 0.0
+  }
+ },
+ "four_hour_means": {
+  "touch_4h_ll": -0.003466,
+  "touch_4h_br": -0.001188,
+  "neither_4h_ll": -0.009983,
+  "neither_4h_br": -0.00369
+ },
+ "four_hour_weekly_sd": {
+  "touch_4h_ll": 0.004505,
+  "touch_4h_br": 0.001552,
+  "neither_4h_ll": 0.012135,
+  "neither_4h_br": 0.004496
+ }
+}

@@ -26,7 +26,7 @@ Monitor V2 thresholds are unchanged. Each procedure and specification is its own
 
 W_L1's `procedure_digest` is `rangecast_v2.shadow_procedure()`: the math of `spec()`, the nightly fit, and the serving rules. Half-life in the identity is the integer 365. V1's `procedure_digest` is `rangecast_shadow.v1_shadow_procedure()`, read from `beta.rangecast` without changing V1. Coefficients are not in either digest. A nightly refit keeps the same `spec_id` and changes `snapshot_id` only.
 
-The frozen artifact `RANGECAST_V2_W_L1_MODEL_V1` (file sha256 `2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533`, params digest `095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261`) keeps its own math digest `00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246`, which is sha256 of `rangecast_v2.spec()`. That digest loads the artifact. It is not `V2_SPEC_DIGEST` and it is not the stream id.
+The earlier short digests `13554464…` (V2) and `76867603…` (V1) were never used for a stored issue. The frozen artifact `RANGECAST_V2_W_L1_MODEL_V1` (file sha256 `2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533`, params digest `095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261`) keeps its own math digest `00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246`, which is sha256 of `rangecast_v2.spec()`. That digest loads the artifact. It is not `V2_SPEC_DIGEST` and it is not the stream id.
 
 One `spec_id` has one `spec_digest` for every anchor. The first write registers it. A later anchor, including a different hour, is rejected when the digest differs. A change of any constant covered by `procedure_digest` is a new `spec_id`.
 

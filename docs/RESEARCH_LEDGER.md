@@ -8609,3 +8609,56 @@ WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-10-08 (minus E1
 OBJECTS_2025_2026_USED = 49 kline objects (+ 2024-12 warm-up); E1 objects refused; E1 / V3 untouched
 MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HIST; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 development (folds 2021–2024) and one time-disjoint exposed read of 2025–2026; W_L1 selected; not wired
+
+**Unit.** `RANGECAST_V2` (owner go 2026-10-12: the forecast track). Design `1774cfb` before any outcome; development `2d5be72`; read `078fa27`. Records `docs/research/RANGECAST_V2_RESULT.md`, `RANGECAST_V2_DEVELOPMENT.json`, `RANGECAST_V2_READ_2025_2026.json`.
+- **Read.** Binance USD-M BTCUSDT 5m klines 2020-01-01 → 2026-10-11 via the product planner (112 objects, checksum-verified, list digest `17eac792…0e45`); 11 objects overlapping the E1-RUN-001 holdout refused before any request. Touch outcomes of hourly anchors on a 16-point log grid per horizon, both sides; folds 2021–2024 for the whole 8-model menu; 2025-01-01 → 2026-10-11 once, for the selected model and V1 only.
+- **Evidence.** 4h log loss per anchor, V1 0.41402; W_L1 0.41000, −0.0040 (95 % −0.0047..−0.0034), negative in each fold year; L2 and L3 rejected against L1; LightGBM diagnostic +0.0172 against W_L1. Read 2025–2026: −0.0057 (−0.0067..−0.0047) at 4h, −0.0037 at 1h, −0.0072 at 24h.
+- **Not done.** No production change, no journal write, no user-facing probability changed; atlas registration pending (`build_atlas --check` fails on main for an unrelated registry id).
+
+```
+WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2020-01..2024-12 (touch outcomes, model development, further exposure); 2025-01-01..2026-10-11 minus E1 objects (one read, selected model vs V1)
+OBJECTS_2025_2026_USED = kline objects of the product planner; E1 objects refused; E1 / V3 untouched
+MODEL_SELECTED = W_L1 (L1 scale set, recency half-life 365 d); PRODUCT_CHANGE = none
+```
+
+## 2026-10-12 — RANGECAST_V2 shadow readiness: W_L1 frozen, paired adapter, audit on the development folds; promotion rule frozen; shadow not started
+
+**Unit.** `RANGECAST_V2` follow-up (owner go 2026-10-12: prepare the paired shadow). Records `docs/research/RANGECAST_V2_SHADOW_AUDIT.md` / `.json`, `RANGECAST_V2_SHADOW_PARITY.json`, `RANGECAST_V2_W_L1_MODEL_V1.json`; `docs/RANGECAST_V2_SHADOW_CONTRACT_V1.md`, `docs/RANGECAST_V2_SHADOW_PLAN_V1.md`.
+- **Read.** The development folds 2021–2024 again (anchor offsets, tails, «ни один», planning numbers); no new window. One W_L1 fit on the product surface 2020-01-01 → 2026-10-11 for the frozen artifact, no outcome scored. The 2025–2026 read was not repeated; E1 objects never requested.
+- **Not done.** No production change, no journal write, no user-facing probability changed; the shadow needs the journal track's writer and an owner go.
+
+```
+WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for engineering checks)
+OBJECTS_2025_2026_USED = product-planner kline objects for the artifact fit only (no outcome); E1 objects refused; E1 / V3 untouched
+PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V1 frozen before any shadow outcome; PRODUCT_CHANGE = none
+```
+
+## 2026-10-12 — RANGECAST_V2 shadow integrated with the paired shadow store; identity covers the procedure; promotion rule V2; shadow not started
+
+**Unit.** `RANGECAST_V2` follow-up. Owner decision of 2026-10-12: use the journal track's store (`BETA_PAIRED_SHADOW_CONTRACT_V1.md`) and no second shadow-claims system; W_L1 refitted nightly is the evaluated procedure; the promotion rule blocks an observed 4h result against W_L1 and only recommends. Records:
+- `docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md`;
+- `docs/RANGECAST_V2_SHADOW_PLAN_V2.md`;
+- `docs/research/RANGECAST_V2_PROMOTION_RULE_V2_HISTORY.json` (`scripts/research/rangecast_v2/audit.py --rule-v2`);
+- the addendum §5 of `RANGECAST_V2_SHADOW_AUDIT.md`.
+
+Contract V1 and plan V1 are superseded and kept.
+- **Read.** The development folds 2021–2024 again, for the weekly log-loss and Brier series of the rule's history. No new window. No 2025–2026 outcome was read and E1 objects were not requested.
+- **Evidence (rule history, 100 windows of 12 weeks).**
+
+  | Scenario | Primary and 4h gate pass | With superiority |
+  |---|---|---|
+  | Gain as observed | 84 % | 42 % |
+  | No gain | 25 % | 2 % |
+  | V2 worse by the margin | 5 % | 0 % |
+- **Not done.**
+  - No production change, no table, no claim and no user-facing probability changed.
+  - Recording is off. It waits for the owner's go on the store's schema and writer, and on the nightly W_L1 fit.
+  - The journal track has to take Amendment 1, `procedure_digest`, into #459.
+
+```
+WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for the rule's operating characteristics)
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched
+PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V2 fixed before any shadow outcome (V1 superseded unused); PRODUCT_CHANGE = none
+```
