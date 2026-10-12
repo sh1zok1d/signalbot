@@ -354,6 +354,7 @@ def test_journal_adapter_uses_digest_snapshot_and_drops_the_subject():
     assert observation["eval_rule_id"] == "rule-digest-1"
     assert observation["coverage"] == 0.97
     assert observation["procedure_id"] == PROCEDURE_TOUCH_CHANCE
+    assert observation["spec_id"] == "JOURNAL_UNSPECIFIED"
     assert "subject" not in observation
     assert "price" not in observation
     level = _journal_row(claim_class="L3_LEVEL_TOUCH_4H",
@@ -428,6 +429,24 @@ def test_replay_export_rejects_prices_and_stays_read_only():
         raise AssertionError("a subject field must be refused")
     report = evaluate(observations_from_claim_rows(loaded))
     assert summary(report)["shadow_component"] == "touch_cal_monitor_v2"
+
+
+def test_two_procedures_stay_in_separate_books():
+    v1 = _rows(12, probabilities=(0.40,), outcome=0.0)
+    v2 = _rows(12, probabilities=(0.90,), outcome=1.0)
+    for row in v2:
+        row["procedure_id"] = "RANGECAST_V2"
+        row["spec_id"] = "W_L1"
+    report = evaluate(v1 + v2)
+    books = [item for item in report["books"] if item["family"] == "touch" and item["horizon"] == "4h"]
+    assert {(item["procedure_id"], item["spec_id"]) for item in books} == {
+        (PROCEDURE_TOUCH_CHANCE, "JOURNAL_UNSPECIFIED"),
+        ("RANGECAST_V2", "W_L1"),
+    }
+    assert len({item["e_value"] for item in books}) == 2
+    named = observation_from_journal_row(_journal_row(procedure_id="RANGECAST_V2", spec_id="W_L1"))
+    assert named["procedure_id"] == "RANGECAST_V2"
+    assert named["spec_id"] == "W_L1"
 
 
 def test_shadow_notices_fire_on_a_change_and_once_per_day():

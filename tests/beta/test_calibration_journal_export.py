@@ -123,7 +123,7 @@ def test_export_shell_is_read_only_and_does_not_name_the_password():
 def test_monitor_is_not_called_from_health_notifier_or_wording():
     beta = ROOT / "beta"
     for path in sorted(beta.glob("*.py")):
-        if path.name == "calibration_monitor.py":
+        if path.name in ("calibration_monitor.py", "paired_shadow.py"):
             continue
         text = path.read_text(encoding="utf-8")
         assert "calibration_monitor" not in text

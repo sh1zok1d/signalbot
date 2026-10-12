@@ -10,11 +10,12 @@ Code: `beta/calibration_monitor.py`. Tests: `tests/beta/test_calibration_monitor
 
 ## What it scores
 
-One book is a forecast **procedure**, a **family** (`touch` or `neither`), and a **horizon** (`1h`, `4h`, `24h`). Six books are predeclared.
+One book is a forecast **procedure**, a **specification**, a **family** (`touch` or `neither`), and a **horizon** (`1h`, `4h`, `24h`). Each specification has six predeclared books.
 
 - Procedure `TOUCH_CHANCE_PROCEDURE_V1` is the claim classes scored by `TOUCH_V1` / `NEITHER_V1`. It is not a coefficient vector.
 - `snapshot_id` is `stats_digest`, or `stats_pk` when the digest is absent. Snapshot ids are stored and **do not reset** the evidence. A nightly refit can change coefficients and still leave the same procedure.
 - The evaluation identity is `eval_rule_digest` when the journal has one, so two rule versions do not pool. A digest mismatch, or a rule id that does not match the family, is `TECHNICAL_FAULT`.
+- A book is one procedure and one specification. Rows from the production journal carry procedure `TOUCH_CHANCE_PROCEDURE_V1` and spec `JOURNAL_UNSPECIFIED`. A row that names another procedure or spec is a separate book. Adding that book does not move `E_CONFIRM`. The 10% bound stays inside one specification's six books. Two specifications watched at once are two separate 10% families. A statement about any book across both families is not a 10% bound.
 - Monitor version is `CALIBRATION_MONITOR_V2`. Recomputing it does not rewrite claims or outcomes.
 
 The monitor imports no rangecast module.

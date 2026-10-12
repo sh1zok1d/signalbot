@@ -77,6 +77,7 @@ def summary(report: dict) -> dict:
         books.append({
             "family": book["family"],
             "horizon": book["horizon"],
+            "spec_id": book.get("spec_id"),
             "state": book["state"],
             "e_value": book["e_value"],
             "n_claims": book["n_claims"],

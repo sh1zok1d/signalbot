@@ -29,6 +29,11 @@ from typing import Mapping, Optional, Sequence
 
 MONITOR_VERSION = "CALIBRATION_MONITOR_V2"
 PROCEDURE_TOUCH_CHANCE = "TOUCH_CHANCE_PROCEDURE_V1"
+# Rows written before a procedure carried a specification stay in one book. A named
+# spec_id, such as a Rangecast V2 specification, is a separate book. The e-value
+# thresholds are not recomputed when another procedure is added: each specification
+# is its own family of six books.
+JOURNAL_SPEC_ID = "JOURNAL_UNSPECIFIED"
 # V1 health component stays `touch_live_cal`. Shadow output uses another name so a later
 # recorder cannot overwrite the live sticky flags.
 SHADOW_COMPONENT = "touch_cal_monitor_v2"
@@ -436,8 +441,9 @@ def _score_book(items: Sequence[Mapping], horizon: str) -> dict:
 def _prepare(rows: Sequence[Mapping]) -> tuple:
     """Split rows into scored observations and book-level faults.
 
-    A book is one procedure, one family, one horizon. Mixed evaluation rules, an illegal
-    probability, or a horizon window that is not the claimed horizon are technical faults.
+    A book is one procedure, one specification, one family, one horizon. Two forecast
+    procedures never share a book. Mixed evaluation rules, an illegal probability, or a
+    horizon window that is not the claimed horizon are technical faults.
     A partial price window is unfinished for a hit and for a miss alike.
     """
     faults: dict = {}
@@ -452,14 +458,15 @@ def _prepare(rows: Sequence[Mapping]) -> tuple:
 
     for raw in rows:
         procedure = str(raw.get("procedure_id") or PROCEDURE_TOUCH_CHANCE)
+        spec = str(raw.get("spec_id") or JOURNAL_SPEC_ID)
         family = raw.get("family")
         horizon = raw.get("horizon")
         if family not in FAMILIES or horizon not in HORIZONS:
-            key = (procedure, str(family), str(horizon))
+            key = (procedure, spec, str(family), str(horizon))
             bucket(key)
             faults[key].append("FAMILY_OR_HORIZON")
             continue
-        key = (procedure, family, horizon)
+        key = (procedure, spec, family, horizon)
         bucket(key)
         counts[key]["rows"] += 1
         if raw.get("fault_reason"):
@@ -577,13 +584,10 @@ def shadow_notifications(previous: Optional[Mapping], current: Mapping, *, utc_d
     and it does not change `health.owner_alert_repeat_s`.
     """
     previous_books = () if not previous else previous.get("books") or ()
-    previous_state = {
-        (item["procedure_id"], item["family"], item["horizon"]): item["state"]
-        for item in previous_books
-    }
+    previous_state = {_notice_key(item): item["state"] for item in previous_books}
     changes = []
     for book in current.get("books") or ():
-        key = (book["procedure_id"], book["family"], book["horizon"])
+        key = _notice_key(book)
         old = previous_state.get(key)
         new = book["state"]
         if old == new:
@@ -593,8 +597,9 @@ def shadow_notifications(previous: Optional[Mapping], current: Mapping, *, utc_d
         changes.append({
             "kind": "STATE_CHANGED",
             "procedure_id": key[0],
-            "family": key[1],
-            "horizon": key[2],
+            "spec_id": key[1],
+            "family": key[2],
+            "horizon": key[3],
             "from_state": old,
             "to_state": new,
         })
@@ -606,8 +611,8 @@ def shadow_notifications(previous: Optional[Mapping], current: Mapping, *, utc_d
             "kind": "DAILY_SUMMARY",
             "utc_day": utc_day,
             "books": [
-                {"procedure_id": book["procedure_id"], "family": book["family"],
-                 "horizon": book["horizon"], "state": book["state"]}
+                {"procedure_id": book["procedure_id"], "spec_id": book.get("spec_id") or JOURNAL_SPEC_ID,
+                 "family": book["family"], "horizon": book["horizon"], "state": book["state"]}
                 for book in notable
             ],
         }
@@ -620,6 +625,15 @@ def shadow_notifications(previous: Optional[Mapping], current: Mapping, *, utc_d
         "daily_summary": summary,
         "last_summary_day": stored_day,
     }
+
+
+def _notice_key(book: Mapping) -> tuple:
+    return (
+        book["procedure_id"],
+        book.get("spec_id") or JOURNAL_SPEC_ID,
+        book["family"],
+        book["horizon"],
+    )
 
 
 def _mapping(value):
@@ -670,7 +684,8 @@ def observation_from_journal_row(row: Mapping) -> Optional[dict]:
         snapshot = str(row.get("stats_pk"))
     coverage = realized.get("coverage") if realized.get("coverage") is not None else row.get("coverage")
     observation = {
-        "procedure_id": PROCEDURE_TOUCH_CHANCE,
+        "procedure_id": str(row.get("procedure_id") or PROCEDURE_TOUCH_CHANCE),
+        "spec_id": str(row.get("spec_id") or JOURNAL_SPEC_ID),
         "family": family,
         "horizon": horizon,
         "as_of": row.get("as_of"),
@@ -724,7 +739,7 @@ def evaluate(observations: Sequence[Mapping]) -> dict:
     books = []
     keys = sorted(set(ready) | set(faults) | set(incomplete), key=lambda item: tuple(str(part) for part in item))
     for key in keys:
-        procedure, family, horizon = key
+        procedure, spec, family, horizon = key
         items = ready.get(key) or []
         if faults.get(key):
             state = STATE_FAULT
@@ -745,6 +760,7 @@ def evaluate(observations: Sequence[Mapping]) -> dict:
         books.append({
             "monitor_version": MONITOR_VERSION,
             "procedure_id": procedure,
+            "spec_id": spec,
             "family": family,
             "horizon": horizon,
             "state": state,
