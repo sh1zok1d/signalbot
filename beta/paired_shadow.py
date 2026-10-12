@@ -33,24 +33,42 @@ V1_PROCEDURE_ID = "RANGECAST_V1"
 V1_SPEC_ID = "RANGECAST_V1"
 V2_PROCEDURE_ID = "RANGECAST_V2"
 V2_SPEC_ID = "W_L1"
-# Mathematical procedure: beta.rangecast_v2.spec() at 16c0916ece165d14a2e0e0d3717fc400ddc2699a.
-# The object hashed there is named RANGECAST_V2_W_L1. This store keeps the stream id W_L1.
-# Coefficients are not in the digest. A refit changes snapshot_id only.
-V2_MATH_COMMIT = "16c0916ece165d14a2e0e0d3717fc400ddc2699a"
+# Amendment 1 of BETA_PAIRED_SHADOW_CONTRACT_V1, as specified by
+# docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md. procedure_digest is the sha256 of every
+# constant of the procedure beyond its coefficients. This store imports no model code.
+# The binders refuse to issue when the code no longer computes these objects.
+# Coefficients are not identity. A refit changes snapshot_id only.
 V2_RECORD_SPEC_ID = "RANGECAST_V2_W_L1"
 V2_RECORD_PROCEDURE_ID = "TOUCH_CHANCE_PROCEDURE_RCV2_W_L1"
 V1_RECORD_PROCEDURE_ID = "TOUCH_CHANCE_PROCEDURE_V1"
-V2_SPEC_DIGEST = "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
-V2_ARTIFACT_ID = "RANGECAST_V2_W_L1_MODEL_V1"
-V2_ARTIFACT_SHA256 = "2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533"
-V2_PARAMS_DIGEST = "095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261"
+V2_PROCEDURE_DIGEST = "e573ae5d65894bb7b98831014aa3fd3fb3807aa1badaed89eb6b42f5288cb3b6"
+V1_PROCEDURE_DIGEST = "4aef58b31d70164e15486cd71b9468349fc517935deb6262d8035bf2881873f7"
+V2_SPEC_IDENTITY = {
+    "procedure_id": V2_PROCEDURE_ID,
+    "spec_id": V2_SPEC_ID,
+    "level": "L1",
+    "half_life_days": 365,
+    "symbol": PRIMARY_SYMBOL,
+    "market": "binance_usdm",
+    "procedure_digest": V2_PROCEDURE_DIGEST,
+}
 V1_SPEC_IDENTITY = {
     "procedure_id": V1_PROCEDURE_ID,
     "spec_id": V1_SPEC_ID,
     "surface": "beta.rangecast.touch_probability+neither_probability",
     "symbol": PRIMARY_SYMBOL,
+    "procedure_digest": V1_PROCEDURE_DIGEST,
 }
 V1_SPEC_DIGEST = sha256_json(V1_SPEC_IDENTITY)
+V2_SPEC_DIGEST = sha256_json(V2_SPEC_IDENTITY)
+# The frozen artifact's own spec_digest is sha256 of rangecast_v2.spec() (the math only).
+# It is not the store's spec_digest and it is not a stream id.
+V2_ARTIFACT_MATH_DIGEST = "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
+V2_ARTIFACT_ID = "RANGECAST_V2_W_L1_MODEL_V1"
+V2_ARTIFACT_SHA256 = "2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533"
+V2_PARAMS_DIGEST = "095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261"
+DEFAULT_SETTLE_LIMIT = 500
+DEFAULT_SETTLE_BATCHES = 8
 _V2_RECORD_PROCEDURES = frozenset({V2_RECORD_PROCEDURE_ID, V2_PROCEDURE_ID})
 _V2_RECORD_SPECS = frozenset({V2_RECORD_SPEC_ID, V2_SPEC_ID})
 _V1_RECORD_PROCEDURES = frozenset({V1_RECORD_PROCEDURE_ID, V1_PROCEDURE_ID})
@@ -325,6 +343,23 @@ class ShadowLedger:
         revisions = self.outcomes.get(anchor_key) or []
         return None if not revisions else revisions[-1]
 
+    def due_unscored(self, now: datetime, *, limit: int) -> list:
+        """Elapsed anchors with no outcome, oldest first, at most ``limit``.
+
+        An anchor whose horizon is still open is not returned. An anchor that already
+        has an outcome is not returned, so a restarted batch continues after the last
+        stored outcome.
+        """
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        moment = _utc(now)
+        due = [
+            anchor for anchor in self.anchors.values()
+            if anchor["horizon_end"] <= moment and not self.outcomes.get(anchor["anchor_key"])
+        ]
+        due.sort(key=lambda row: (row["horizon_end"], row["anchor_key"]))
+        return due[:int(limit)]
+
     def joined_rows(self) -> list:
         out = []
         for (anchor_key, procedure_id, spec_id), issue in sorted(self.issues.items()):
@@ -446,11 +481,13 @@ def paired_report(rows: Sequence[Mapping], *, procedure_v1: str = V1_PROCEDURE_I
     }
 
 
-def monitor_observations(rows: Sequence[Mapping]) -> list:
+def monitor_observations(rows: Sequence[Mapping], *, now: Optional[datetime] = None) -> list:
     """Monitor V2 observations. Each procedure and specification stays on its own book.
 
     The production journal's procedure is not used here. A shadow row names its own.
+    An anchor with no outcome whose horizon is still open is PENDING, not a hole.
     """
+    clock = None if now is None else _utc(now)
     adapted = []
     for row in rows:
         if row.get("family") == "touch":
@@ -461,6 +498,15 @@ def monitor_observations(rows: Sequence[Mapping]) -> list:
             realized = {"neither": None if row.get("outcome") is None else bool(row["outcome"])}
         if row.get("coverage") is not None:
             realized["coverage"] = row["coverage"]
+        status = row.get("status")
+        if status in (None, "", "MISSING", "PENDING") and row.get("outcome") is None:
+            end = row.get("horizon_end")
+            if status == "PENDING" or (clock is not None and isinstance(end, datetime) and end > clock):
+                status = "PENDING"
+            else:
+                status = "MISSING"
+        elif not status:
+            status = "MISSING"
         adapted.append({
             "claim_class": claim_class,
             "procedure_id": row["procedure_id"],
@@ -471,10 +517,10 @@ def monitor_observations(rows: Sequence[Mapping]) -> list:
             "snapshot_id": row["snapshot_id"],
             "eval_rule_digest": row["eval_rule_digest"],
             "eval_rule_id": row["eval_rule_id"],
-            "status": row.get("status") or "MISSING",
+            "status": status,
             "realized": realized,
         })
-    observations = observations_from_claim_rows(adapted)
+    observations = observations_from_claim_rows(adapted, now=clock)
     for observation, row in zip(observations, adapted):
         if observation["procedure_id"] != row["procedure_id"]:
             raise ShadowConflict("monitor adapter rewrote the procedure")
@@ -543,13 +589,18 @@ def plan_shadow_record(record: Mapping, *, issue_slot: datetime) -> dict:
 
 
 def execute_hour(record: Mapping, ledger, *, issue_slot: datetime, allow_write: bool = False,
-                 bars=None, now: Optional[datetime] = None, score: bool = False) -> dict:
+                 bars=None, now: Optional[datetime] = None, score: bool = False,
+                 settle_limit: int = DEFAULT_SETTLE_LIMIT,
+                 settle_batches: int = DEFAULT_SETTLE_BATCHES, report: bool = True) -> dict:
     """Plan one hour. The default does not write.
 
     ``allow_write=True`` is the owner's later switch. It is not set by this module.
-    A missing-data status is stored instead of a probability. Scoring uses one
-    ``claims.evaluate`` outcome per anchor and does not touch the user journal.
+    A write always launches settlement. ``score`` is accepted for older callers and
+    does not turn settlement off. Without bars the settlement reports ``NO_BARS``
+    and stores no outcome. ``report=False`` skips the full-journal monitor read.
     """
+    if not isinstance(score, bool):
+        raise TypeError("score must be bool")
     planned = plan_shadow_record(record, issue_slot=issue_slot)
     summary = {
         "status": planned["status"],
@@ -559,6 +610,8 @@ def execute_hour(record: Mapping, ledger, *, issue_slot: datetime, allow_write: 
         "kept": 0,
         "horizons": planned["horizons"],
         "scoring": [],
+        "settlement": {"launched": False, "status": "NOT_WRITTEN", "selected": 0,
+                       "stored": 0, "kept": 0, "pending": 0, "limit": settle_limit},
         "paired": None,
         "books": [],
     }
@@ -578,15 +631,24 @@ def execute_hour(record: Mapping, ledger, *, issue_slot: datetime, allow_write: 
     summary["written"] = True
     summary["inserted"] = stored["inserted"]
     summary["kept"] = stored["kept"]
-    if score and bars is not None and now is not None:
-        summary["scoring"] = _score_stored(ledger, bars, now=_utc(now), allow_write=True)
-    summary["paired"] = paired_report(ledger.joined_rows())
-    books = monitor_evaluate(monitor_observations(ledger.joined_rows()))["books"]
-    summary["books"] = [
-        {"procedure_id": book["procedure_id"], "spec_id": book["spec_id"], "family": book["family"],
-         "horizon": book["horizon"], "state": book["state"]}
-        for book in books
-    ]
+    clock = _utc(now) if now is not None else datetime.now(timezone.utc)
+    # `score` remains in the signature for callers written before settlement was
+    # part of every write. It does not skip settlement.
+    summary["settlement"] = settle_due(
+        ledger, bars, now=clock, limit=settle_limit, allow_write=True, max_batches=settle_batches,
+    )
+    summary["scoring"] = summary["settlement"]["reports"]
+    if report:
+        joined = ledger.joined_rows()
+        summary["paired"] = paired_report(joined)
+        books = monitor_evaluate(monitor_observations(joined, now=clock))["books"]
+        summary["books"] = [
+            {"procedure_id": book["procedure_id"], "spec_id": book["spec_id"], "family": book["family"],
+             "horizon": book["horizon"], "state": book["state"],
+             "n_pending": book["n_pending"], "n_unfinished": book["n_unfinished"],
+             "n_rows": book["n_rows"]}
+            for book in books
+        ]
     return summary
 
 
@@ -700,36 +762,74 @@ def _issued(anchor: Mapping, procedure_id: str, spec_id: str, spec_digest: str, 
     return _issue(anchor, model, probability, issued_at)
 
 
-def _score_stored(ledger, bars, *, now: datetime, allow_write: bool) -> list:
-    reports = []
-    seen = set()
-    for row in ledger.joined_rows():
-        key = row["anchor_key"]
-        if key in seen:
-            continue
-        seen.add(key)
-        if row["horizon_end"] > now:
-            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "PENDING"})
-            continue
-        if ledger.latest_outcome(key) is not None:
-            latest = ledger.latest_outcome(key)
-            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "KEPT",
-                            "outcome": latest["outcome"], "coverage": latest["coverage"]})
-            continue
-        scored = score_anchor(row, bars, now=now)
-        if scored["status"] == "PENDING":
-            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "PENDING"})
-            continue
-        ledger.record_outcome(
-            key, status=scored["status"], outcome=scored["outcome"], coverage=scored["coverage"],
-            eval_rule_digest=row["eval_rule_digest"], computed_at=now, allow_write=allow_write,
-        )
-        label = scored["status"]
-        if scored["coverage"] is not None and scored["coverage"] < 0.9:
-            label = "LOW_COVERAGE"
-        reports.append({"horizon": row["horizon"], "family": row["family"], "status": label,
-                        "outcome": scored["outcome"], "coverage": scored["coverage"]})
-    return reports
+def settle_due(ledger, bars, *, now: datetime, limit: int = DEFAULT_SETTLE_LIMIT,
+               allow_write: bool = False, max_batches: int = 1) -> dict:
+    """Score elapsed anchors that have no outcome yet.
+
+    Each batch asks the ledger for at most ``limit`` such anchors. A horizon that is
+    still open is not selected. ``score_anchor`` may still return PENDING when the
+    price window is not yet late enough to call the outcome missing; that anchor is
+    left without a row so the next run continues it. An outcome already stored is
+    not selected, so a restart resumes after the last committed anchor. One settler
+    runs at a time: a second writer of revision 1 hits the unique outcome key.
+    """
+    _require_recording(allow_write)
+    if limit < 1:
+        raise ValueError("limit must be positive")
+    if max_batches < 1:
+        raise ValueError("max_batches must be positive")
+    moment = _utc(now)
+    summary = {
+        "launched": True,
+        "status": "OK",
+        "limit": int(limit),
+        "batches": 0,
+        "selected": 0,
+        "stored": 0,
+        "kept": 0,
+        "pending": 0,
+        "reports": [],
+    }
+    if bars is None:
+        summary["status"] = "NO_BARS"
+        return summary
+    for _batch in range(int(max_batches)):
+        due = ledger.due_unscored(moment, limit=int(limit))
+        summary["batches"] += 1
+        summary["selected"] += len(due)
+        stored_before = summary["stored"]
+        pending_before = summary["pending"]
+        for anchor in due:
+            scored = score_anchor(anchor, bars, now=moment)
+            if scored["status"] == "PENDING":
+                summary["pending"] += 1
+                summary["reports"].append({
+                    "anchor_key": anchor["anchor_key"], "horizon": anchor["horizon"],
+                    "family": anchor["family"], "status": "PENDING",
+                })
+                continue
+            written = ledger.record_outcome(
+                anchor["anchor_key"], status=scored["status"], outcome=scored["outcome"],
+                coverage=scored["coverage"], eval_rule_digest=anchor["eval_rule_digest"],
+                computed_at=moment, allow_write=True,
+            )
+            if written["stored"]:
+                summary["stored"] += 1
+            else:
+                summary["kept"] += 1
+            label = scored["status"]
+            if scored["coverage"] is not None and scored["coverage"] < 0.9 and scored["status"] == "COMPLETE":
+                label = "LOW_COVERAGE"
+            summary["reports"].append({
+                "anchor_key": anchor["anchor_key"], "horizon": anchor["horizon"],
+                "family": anchor["family"], "status": label,
+                "outcome": scored["outcome"], "coverage": scored["coverage"],
+            })
+        made_progress = summary["stored"] > stored_before
+        still_open = summary["pending"] > pending_before and not made_progress
+        if len(due) < int(limit) or still_open:
+            break
+    return summary
 
 
 def _parse_time(value) -> datetime:

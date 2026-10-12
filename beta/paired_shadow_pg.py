@@ -92,6 +92,35 @@ class PgShadowLedger:
             "coverage": loaded["coverage"],
         }
 
+    def due_unscored(self, now: datetime, *, limit: int) -> list:
+        """Elapsed anchors with no outcome. The query is limited; it does not read the issue journal."""
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        moment = now.astimezone(UTC)
+        raw = self._scalar(f"""
+            SELECT coalesce(json_agg(row_to_json(x)), '[]'::json)
+            FROM (
+                SELECT a.anchor_key, a.symbol, a.family, a.horizon,
+                       to_char(a.issue_slot AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS issue_slot,
+                       to_char(a.as_of AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS as_of,
+                       to_char(a.horizon_end AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS horizon_end,
+                       a.side, a.distance_pct, a.distance_up_pct, a.distance_down_pct,
+                       a.level_up, a.level_down, a.eval_rule_id, a.eval_rule_digest
+                FROM beta_shadow_anchors a
+                WHERE a.horizon_end <= {_time(moment)}
+                  AND NOT EXISTS (
+                      SELECT 1 FROM beta_shadow_outcomes o WHERE o.anchor_pk = a.anchor_pk
+                  )
+                ORDER BY a.horizon_end, a.anchor_key
+                LIMIT {int(limit)}
+            ) x
+        """)
+        rows = json.loads(raw or "[]")
+        for row in rows:
+            for field in ("issue_slot", "as_of", "horizon_end"):
+                row[field] = datetime.fromisoformat(row[field].replace("Z", "+00:00")).astimezone(UTC)
+        return rows
+
     def joined_rows(self) -> list:
         raw = self._scalar("""
             SELECT coalesce(json_agg(row_to_json(x) ORDER BY x.anchor_key, x.procedure_id, x.spec_id), '[]'::json)

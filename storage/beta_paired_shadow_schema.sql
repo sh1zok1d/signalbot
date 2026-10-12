@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS beta_shadow_anchors (
             AND eval_rule_id = 'NEITHER_V1')
     )
 );
+CREATE INDEX IF NOT EXISTS ix_beta_shadow_anchors_horizon_end
+    ON beta_shadow_anchors (horizon_end, anchor_key);
 DROP TRIGGER IF EXISTS trg_beta_shadow_anchors_append_only ON beta_shadow_anchors;
 CREATE TRIGGER trg_beta_shadow_anchors_append_only
     BEFORE UPDATE OR DELETE ON beta_shadow_anchors

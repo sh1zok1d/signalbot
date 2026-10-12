@@ -19,9 +19,10 @@ from beta.claims import claim_row
 from beta.hist_series import Bars, to_ms
 from beta.paired_shadow import (
     SHADOW_RECORDING_ENABLED, V1_PROCEDURE_ID, V1_SPEC_DIGEST, V1_SPEC_ID, V2_PROCEDURE_ID,
-    V2_SPEC_DIGEST, V2_SPEC_ID, BoundShadowModel, ShadowConflict, ShadowLedger,
+    V2_ARTIFACT_MATH_DIGEST, V2_PROCEDURE_DIGEST, V2_SPEC_DIGEST, V2_SPEC_ID, V2_SPEC_IDENTITY,
+    BoundShadowModel, ShadowConflict, ShadowLedger,
     ShadowRecordingDisabled, bind_rangecast_v1, execute_hour, export_row, monitor_observations,
-    log_loss, paired_report, plan_issues, plan_shadow_record, score_anchor,
+    log_loss, paired_report, plan_issues, plan_shadow_record, score_anchor, settle_due,
 )
 from beta.rangecast import P_GRID
 from beta.state_tape import sha256_json
@@ -249,10 +250,17 @@ def _shadow_record(*, status="OK", spec_digest=V2_SPEC_DIGEST, p_v2=0.80):
     }
 
 
-def test_w_l1_digest_is_the_mathematical_procedure_pin():
+def test_w_l1_digest_is_the_procedure_identity_not_the_artifact_math():
     assert V2_SPEC_ID == "W_L1"
-    assert V2_SPEC_DIGEST == "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
-    assert len(V2_SPEC_DIGEST) == 64
+    assert V2_SPEC_IDENTITY["half_life_days"] == 365
+    assert isinstance(V2_SPEC_IDENTITY["half_life_days"], int)
+    assert V2_SPEC_IDENTITY["procedure_digest"] == V2_PROCEDURE_DIGEST
+    assert V2_PROCEDURE_DIGEST == "e573ae5d65894bb7b98831014aa3fd3fb3807aa1badaed89eb6b42f5288cb3b6"
+    assert V2_SPEC_DIGEST == sha256_json(V2_SPEC_IDENTITY)
+    assert V2_SPEC_DIGEST == "9a6b61d01e0816a59752e0e2d66c7b56f9fc29de76832c87fe1227b52361a20a"
+    assert V1_SPEC_DIGEST == "30b8e81e339b35c40506698e064e12301645fb2822c18bbaa433136c36b28273"
+    assert V2_ARTIFACT_MATH_DIGEST == "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
+    assert V2_SPEC_DIGEST != V2_ARTIFACT_MATH_DIGEST
 
 
 def test_one_spec_digest_covers_every_anchor():
@@ -294,6 +302,50 @@ def test_hour_path_keeps_probabilities_and_records_a_data_gap():
     refused = plan_shadow_record(_shadow_record(spec_digest="cd" * 32), issue_slot=SLOT + timedelta(hours=8))
     assert refused["rows"] == []
     assert refused["horizons"]["4h"]["status"] == "MODEL_INVALID"
+
+
+def test_settle_due_scores_elapsed_anchors_and_leaves_open_horizons_pending():
+    ledger = ShadowLedger()
+    v1, v2 = _models()
+    ledger.record_issues(plan_issues(
+        [v1, v2], price=PRICE, as_of=AS_OF, issue_slot=SLOT, horizons=("1h", "24h"),
+        distances=(1.25,), neither_pairs=(),
+    ), allow_write=True)
+    now = AS_OF + timedelta(hours=2)
+    bars = _bars(high=PRICE * 1.005, low=PRICE * 0.995, n=48)
+    calls = {"joined": 0}
+    original = ledger.joined_rows
+
+    def _joined():
+        calls["joined"] += 1
+        return original()
+
+    ledger.joined_rows = _joined
+    first = settle_due(ledger, bars, now=now, limit=1, allow_write=True)
+    assert calls["joined"] == 0
+    assert first["launched"] is True
+    assert first["selected"] == 1
+    assert first["stored"] == 1
+    assert first["reports"][0]["horizon"] == "1h"
+    assert first["reports"][0]["status"] == "COMPLETE"
+    second = settle_due(ledger, bars, now=now, limit=10, allow_write=True)
+    assert second["stored"] == 1
+    assert {item["horizon"] for item in second["reports"]} == {"1h"}
+    third = settle_due(ledger, bars, now=now, limit=10, allow_write=True)
+    assert third["selected"] == 0
+    assert third["stored"] == 0
+    open_24 = [anchor for anchor in ledger.anchors.values() if anchor["horizon"] == "24h"]
+    assert open_24
+    assert all(ledger.latest_outcome(anchor["anchor_key"]) is None for anchor in open_24)
+    assert calls["joined"] == 0
+    books = evaluate(monitor_observations(original(), now=now))["books"]
+    day = [book for book in books if book["horizon"] == "24h"]
+    assert day
+    assert all(book["state"] != "INCOMPLETE_DATA" for book in day)
+    assert all(book["n_pending"] > 0 and book["n_unfinished"] == 0 for book in day)
+    hour = [book for book in books if book["horizon"] == "1h" and book["family"] == "touch"]
+    assert hour and all(book["state"] != "INCOMPLETE_DATA" for book in hour)
+    assert calls["joined"] == 0
 
 
 def test_coverage_below_the_monitor_floor_is_not_paired():
