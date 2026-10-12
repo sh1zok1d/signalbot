@@ -1,0 +1,854 @@
+{
+  "monitor": "CALIBRATION_MONITOR_V2",
+  "null": {
+    "days": 56,
+    "seeds": 20,
+    "v1_window_rate": 0.475,
+    "v1_windows_with_any_divergence": 133,
+    "v2_full_seeds_confirmed": 0,
+    "v2_full_seeds_suspected": 0,
+    "v2_short_windows_not_insufficient": 0,
+    "window_days": 7,
+    "windows": 280
+  },
+  "power": {
+    "level_bias_then_null_after_day_36": {
+      "final_neither_channels": {
+        "LEVEL": {
+          "estimate": 0.015885416666666666,
+          "state": "WITHIN_NOISE"
+        },
+        "SHAPE": {
+          "estimate": -0.013194444444444458,
+          "state": "WITHIN_NOISE"
+        },
+        "TAIL_HIGH": {
+          "estimate": 0.005338541666666667,
+          "state": "WITHIN_NOISE"
+        },
+        "TAIL_LOW": {
+          "estimate": 0.011979166666666671,
+          "state": "WITHIN_NOISE"
+        }
+      },
+      "final_touch_channels": {
+        "LEVEL": {
+          "estimate": 0.013289262820512824,
+          "state": "RECOVERED"
+        },
+        "SHAPE": {
+          "estimate": 0.0021208333333333283,
+          "state": "WITHIN_NOISE"
+        },
+        "TAIL_HIGH": {
+          "estimate": 0.017238562091503266,
+          "state": "RECOVERED"
+        },
+        "TAIL_LOW": {
+          "estimate": 0.01774572649572649,
+          "state": "RECOVERED"
+        }
+      },
+      "final_v1_touch": [
+        [
+          0.0,
+          0.05
+        ],
+        [
+          0.5,
+          0.7
+        ]
+      ],
+      "final_v2": {
+        "neither": "WITHIN_NOISE",
+        "touch": "RECOVERED"
+      },
+      "neither_mean_residual": 0.015885416666666662,
+      "touch_mean_residual": 0.04179947916666667,
+      "v1_touch_diverged_by_day_14": true,
+      "v1_touch_diverged_by_day_7": true,
+      "v2_neither_confirmed_on": null,
+      "v2_touch_confirmed_on": 28,
+      "v2_touch_suspected_on": null
+    },
+    "level_minus_10pp": {
+      "practical_gate": 0.05,
+      "runs": [
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": -0.006547619047619048,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": 0.0006349206349206202,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.006696428571428571,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": -0.011309523809523806,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.10151785714285713,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": 0.0044920634920634795,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.09797619047619045,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.09464285714285714,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.0,
+              0.05
+            ],
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0.5,
+              0.7
+            ],
+            [
+              0.7,
+              0.85
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": -0.006547619047619053,
+          "touch_mean_residual": 0.10151785714285713,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.0014136904761904764,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.01361111111111112,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.0047619047619047615,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.007738095238095243,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.0900595238095238,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": 0.015206349206349192,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.09916666666666664,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.07043650793650794,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0.5,
+              0.7
+            ],
+            [
+              0.7,
+              0.85
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.0014136904761904707,
+          "touch_mean_residual": 0.0900595238095238,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.013616071428571429,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.011230158730158745,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.007589285714285714,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.01190476190476191,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.07770833333333332,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": 0.010206349206349191,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.10154761904761903,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.07321428571428572,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.3,
+              0.5
+            ],
+            [
+              0.5,
+              0.7
+            ],
+            [
+              0.7,
+              0.85
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.013616071428571422,
+          "touch_mean_residual": 0.07770833333333332,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        }
+      ]
+    },
+    "neither_only_minus_10pp": {
+      "practical_gate": 0.05,
+      "runs": [
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.09345238095238093,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": -0.00029761904761904786,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.0958333333333333,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.09196428571428572,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.006517857142857151,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.003507936507936507,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.0036904761904761915,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.007976190476190475,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_v1_touch": [],
+          "final_v2": {
+            "neither": "CONFIRMED_DIVERGENCE",
+            "touch": "WITHIN_NOISE"
+          },
+          "neither_mean_residual": 0.09345238095238094,
+          "touch_mean_residual": 0.0065178571428571455,
+          "v1_touch_diverged_by_day_14": false,
+          "v1_touch_diverged_by_day_7": false,
+          "v2_neither_confirmed_on": 28,
+          "v2_touch_confirmed_on": null,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.10141369047619046,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": -0.012351190476190477,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.09851190476190474,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.10773809523809526,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": -0.0049404761904761835,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": 0.007206349206349207,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.0013690476190476165,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": -0.016230158730158734,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_v1_touch": [],
+          "final_v2": {
+            "neither": "CONFIRMED_DIVERGENCE",
+            "touch": "WITHIN_NOISE"
+          },
+          "neither_mean_residual": 0.10141369047619046,
+          "touch_mean_residual": -0.004940476190476188,
+          "v1_touch_diverged_by_day_14": false,
+          "v1_touch_diverged_by_day_7": false,
+          "v2_neither_confirmed_on": 28,
+          "v2_touch_confirmed_on": null,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.1136160714285714,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "SHAPE": {
+              "estimate": -0.012053571428571429,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.10446428571428569,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.12053571428571429,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": -0.01729166666666666,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": 0.0022063492063492045,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.012083333333333331,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": -0.013452380952380954,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_v1_touch": [],
+          "final_v2": {
+            "neither": "CONFIRMED_DIVERGENCE",
+            "touch": "WITHIN_NOISE"
+          },
+          "neither_mean_residual": 0.11361607142857141,
+          "touch_mean_residual": -0.017291666666666664,
+          "v1_touch_diverged_by_day_14": false,
+          "v1_touch_diverged_by_day_7": false,
+          "v2_neither_confirmed_on": 28,
+          "v2_touch_confirmed_on": null,
+          "v2_touch_suspected_on": null
+        }
+      ]
+    },
+    "shape_stretch": {
+      "practical_gate": 0.05,
+      "runs": [
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": -0.006547619047619048,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": 0.0006349206349206202,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.006696428571428571,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": -0.011309523809523806,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.018017857142857144,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.15204126984126978,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.09430952380952379,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.10397619047619044,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.0,
+              0.05
+            ],
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.7,
+              0.85
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": -0.006547619047619053,
+          "touch_mean_residual": 0.018017857142857144,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.0014136904761904764,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.01361111111111112,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.0047619047619047615,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.007738095238095243,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.006559523809523812,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.14132698412698408,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.09936904761904759,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.07976984126984124,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.7,
+              0.85
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.0014136904761904707,
+          "touch_mean_residual": 0.006559523809523811,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.013616071428571429,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.011230158730158745,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.007589285714285714,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.01190476190476191,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": -0.005791666666666665,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.14632698412698408,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.1100833333333333,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.08254761904761902,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.15,
+              0.3
+            ],
+            [
+              0.5,
+              0.7
+            ],
+            [
+              0.7,
+              0.85
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.013616071428571422,
+          "touch_mean_residual": -0.005791666666666665,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        }
+      ]
+    },
+    "tail_pm_12pp": {
+      "practical_gate": 0.05,
+      "runs": [
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": -0.006547619047619048,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": 0.0006349206349206202,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.006696428571428571,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": -0.011309523809523806,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.016517857142857147,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.13684126984126982,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.1063095238095238,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.10797619047619048,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.0,
+              0.05
+            ],
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": -0.006547619047619053,
+          "touch_mean_residual": 0.016517857142857147,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": 27
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.0014136904761904764,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.01361111111111112,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.0047619047619047615,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.007738095238095243,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": 0.005059523809523812,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.1261269841269841,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.1113690476190476,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.08376984126984127,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.0014136904761904707,
+          "touch_mean_residual": 0.0050595238095238115,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        },
+        {
+          "final_neither_channels": {
+            "LEVEL": {
+              "estimate": 0.013616071428571429,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.011230158730158745,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_HIGH": {
+              "estimate": 0.007589285714285714,
+              "state": "WITHIN_NOISE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.01190476190476191,
+              "state": "WITHIN_NOISE"
+            }
+          },
+          "final_touch_channels": {
+            "LEVEL": {
+              "estimate": -0.007291666666666664,
+              "state": "WITHIN_NOISE"
+            },
+            "SHAPE": {
+              "estimate": -0.13112698412698412,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_HIGH": {
+              "estimate": -0.12208333333333332,
+              "state": "CONFIRMED_DIVERGENCE"
+            },
+            "TAIL_LOW": {
+              "estimate": 0.08654761904761905,
+              "state": "CONFIRMED_DIVERGENCE"
+            }
+          },
+          "final_v1_touch": [
+            [
+              0.05,
+              0.15
+            ],
+            [
+              0.85,
+              1.0
+            ]
+          ],
+          "final_v2": {
+            "neither": "WITHIN_NOISE",
+            "touch": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_mean_residual": 0.013616071428571422,
+          "touch_mean_residual": -0.007291666666666664,
+          "v1_touch_diverged_by_day_14": true,
+          "v1_touch_diverged_by_day_7": true,
+          "v2_neither_confirmed_on": null,
+          "v2_touch_confirmed_on": 28,
+          "v2_touch_suspected_on": null
+        }
+      ]
+    }
+  },
+  "surface": "synthetic comonotonic slots, not a market archive and not October 2026",
+  "variants_tried_for_thresholds": 0
+}
