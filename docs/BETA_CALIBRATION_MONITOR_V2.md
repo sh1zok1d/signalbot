@@ -152,7 +152,7 @@ Unit tests cover the anchor chain, a claim issued before the previous anchor res
 
 Do not restart services, do not clear `touch_live_cal`, do not edit user text, do not grant the census role, and do not point health or the notifier at this module.
 
-One command, on the VPS, as the user that already runs the bot. It fetches the branch of PR #458 (refs only), extracts the two export files into a temporary directory, and runs them. It does not check out `/opt/signalbot`. The session inside the existing container is read-only. The query uses the table owner already configured there, because the census role cannot `SELECT` these tables.
+One command, on the VPS, as the user that already runs the bot. It fetches the verified export commit `1c82e638211f0c889891c830d8bde8ee4e88741e` and extracts those two files. A later move of the branch does not change which files run. It does not check out `/opt/signalbot`. The session inside the existing container is read-only. The query uses the table owner already configured there, because the census role cannot `SELECT` these tables.
 
 ```bash
 bash -c "$(cat <<'BLOCK'
@@ -162,11 +162,13 @@ cd /opt/signalbot
 WORK=$(mktemp -d /tmp/calmon.XXXXXXXX)
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
-git -C /opt/signalbot fetch -q origin cursor/calibration-monitor-v2-shadow-08d8
-git -C /opt/signalbot rev-parse -q --verify 'FETCH_HEAD^{commit}' >/dev/null \
-  || { echo "branch cursor/calibration-monitor-v2-shadow-08d8 is not available after fetch"; exit 1; }
-echo "scripts from $(git -C /opt/signalbot rev-parse --short FETCH_HEAD)"
-git -C /opt/signalbot archive FETCH_HEAD \
+EXPORT_SHA=1c82e638211f0c889891c830d8bde8ee4e88741e
+git -C /opt/signalbot fetch -q origin "$EXPORT_SHA" \
+  || git -C /opt/signalbot fetch -q origin cursor/calibration-monitor-v2-shadow-08d8
+git -C /opt/signalbot cat-file -e "${EXPORT_SHA}^{commit}" \
+  || { echo "export sha $EXPORT_SHA is not available"; exit 1; }
+echo "scripts from ${EXPORT_SHA:0:12}"
+git -C /opt/signalbot archive "$EXPORT_SHA" \
     scripts/beta/export_calibration_journal_v2.sql \
     scripts/beta/export_calibration_journal_v2.sh | tar -x -C "$WORK"
 bash "$WORK/scripts/beta/export_calibration_journal_v2.sh" /tmp/calibration_monitor_v2.jsonl
