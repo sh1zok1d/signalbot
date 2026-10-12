@@ -152,7 +152,9 @@ def test_recency_weights_change_the_fit(bars):
 
 
 def test_the_candidate_is_not_wired_into_the_product():
-    pat = re.compile(r"rangecast_v2")
+    """No module but the shadow layer imports the candidate (the paired shadow store names it in a comment only)."""
+    pat = re.compile(r"^\s*(from\s+\S*\brangecast_v2\s+import|import\s+\S*\brangecast_v2\b|"
+                     r"from\s+\S+\s+import\s+[^#\n]*\brangecast_v2\b)", re.M)
     offenders = [str(p.relative_to(ROOT)) for d in ("beta", "runtime", "storage") for p in (ROOT / d).rglob("*.py")
                  if p.name not in ("rangecast_v2.py", "rangecast_shadow.py") and pat.search(p.read_text(encoding="utf-8"))]
     assert offenders == []

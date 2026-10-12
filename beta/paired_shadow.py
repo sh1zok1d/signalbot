@@ -32,6 +32,10 @@ V1_PROCEDURE_ID = "RANGECAST_V1"
 V1_SPEC_ID = "RANGECAST_V1"
 V2_PROCEDURE_ID = "RANGECAST_V2"
 V2_SPEC_ID = "W_L1"
+# procedure_digest: sha256 of every constant of the procedure beyond its coefficients (model math, nightly
+# fit, serving rules), computed by beta.rangecast_v2.shadow_procedure and beta.rangecast_shadow.
+# v1_shadow_procedure. Pinned here so this store imports no model code; the binders refuse to issue when
+# the code no longer computes the pinned value (tests/beta/test_rangecast_shadow_contract.py).
 V2_SPEC_IDENTITY = {
     "procedure_id": V2_PROCEDURE_ID,
     "spec_id": V2_SPEC_ID,
@@ -39,12 +43,14 @@ V2_SPEC_IDENTITY = {
     "half_life_days": 365,
     "symbol": PRIMARY_SYMBOL,
     "market": "binance_usdm",
+    "procedure_digest": "e573ae5d65894bb7b98831014aa3fd3fb3807aa1badaed89eb6b42f5288cb3b6",
 }
 V1_SPEC_IDENTITY = {
     "procedure_id": V1_PROCEDURE_ID,
     "spec_id": V1_SPEC_ID,
     "surface": "beta.rangecast.touch_probability+neither_probability",
     "symbol": PRIMARY_SYMBOL,
+    "procedure_digest": "4aef58b31d70164e15486cd71b9468349fc517935deb6262d8035bf2881873f7",
 }
 V1_SPEC_DIGEST = sha256_json(V1_SPEC_IDENTITY)
 V2_SPEC_DIGEST = sha256_json(V2_SPEC_IDENTITY)

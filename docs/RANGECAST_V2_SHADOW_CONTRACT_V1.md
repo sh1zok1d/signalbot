@@ -1,6 +1,7 @@
 # Rangecast V2 paired shadow — interface contract V1
 
-**Status:** `PROPOSED` (2026-10-12) by the forecast-engine track to the journal and monitor track (calibration monitor V2, PR #458). Nothing here is wired; no table, claim class or user text changes on this branch.
+**Status:** `SUPERSEDED / WITHDRAWN` (2026-10-12). Owner decision of 2026-10-12: the paired shadow uses the journal track's store (`BETA_PAIRED_SHADOW_CONTRACT_V1.md`, `beta_shadow_*`); the `_RCV2` classes in `beta_claims` proposed below are withdrawn and were never written. Current forecast side: `RANGECAST_V2_SHADOW_CONTRACT_V2.md`. The text below is kept as the record of the proposal.
+**Original status:** `PROPOSED` (2026-10-12) by the forecast-engine track to the journal and monitor track (calibration monitor V2, PR #458).
 **Ownership:**
 - **Forecast engine** (this branch) provides numbers and identities: `beta/rangecast_shadow.py`, the frozen artifact, `beta/rangecast_paired.py`.
 - **Journal and monitor track** stores them, resolves outcomes, keeps the V1 and V2 books apart and runs the measurement.

@@ -20,10 +20,17 @@ Monitor V2 thresholds are unchanged. Each procedure and specification is its own
 `spec_digest` for W_L1 is `beta.paired_shadow.V2_SPEC_DIGEST`, the sha256 of:
 
 ```json
-{"half_life_days": 365, "level": "L1", "market": "binance_usdm", "procedure_id": "RANGECAST_V2", "spec_id": "W_L1", "symbol": "BTCUSDT"}
+{"half_life_days": 365, "level": "L1", "market": "binance_usdm", "procedure_digest": "e573ae5d65894bb7b98831014aa3fd3fb3807aa1badaed89eb6b42f5288cb3b6", "procedure_id": "RANGECAST_V2", "spec_id": "W_L1", "symbol": "BTCUSDT"}
 ```
 
-That object hashes to `13554464fedb7e470dd6e2b5270e08604206001b9241dcd638c2992276ca4712`. `shadow_spec_digest()` returns this value. The V1 identity hashes to `76867603601d82f3dd450097c7a01dc359add1a737ea4aac7cf97f41e2b5e28e`.
+That object hashes to `9a6b61d01e0816a59752e0e2d66c7b56f9fc29de76832c87fe1227b52361a20a`. `shadow_spec_digest()` returns this value. The V1 identity hashes to `30b8e81e339b35c40506698e064e12301645fb2822c18bbaa433136c36b28273`.
+
+**Amendment 1 (2026-10-12, proposed by the forecast track before any shadow issue; owner instruction: the digest covers the procedure, not only its name).** Both identity objects carry `procedure_digest`: the sha256 of every constant of the procedure beyond its coefficients.
+- **W_L1:** `rangecast_v2.shadow_procedure()` (the model math of `rangecast_v2.spec()`, the nightly fit, the serving rules).
+- **V1:** `rangecast_shadow.v1_shadow_procedure()` (the constants of `beta.rangecast` that move a touch or «ни один» chance).
+- The values are pinned in `beta/paired_shadow.py`, so the store imports no model code.
+- `shadow_spec_digest()` and `rangecast_shadow.bind_v1` refuse to issue when the code no longer computes the pinned value. The store itself only rejects a digest change on an anchor it already holds.
+- The earlier digests `13554464…` (V2) and `76867603…` (V1) were never used for a stored issue.
 
 Canonical JSON is `beta.state_tape.sha256_json` (sorted keys). A change of level, half-life, feature set, symbol or market is a new `spec_id` and a new identity object.
 

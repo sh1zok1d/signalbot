@@ -1,6 +1,7 @@
 # Rangecast V2 paired shadow — plan and promotion rule V1
 
-**Status:** `RULE_FROZEN_BEFORE_ANY_SHADOW_OUTCOME` (2026-10-12). Code of the rule: `beta/rangecast_paired.py` (`RANGECAST_V2_PROMOTION_RULE_V1`), tests `tests/beta/test_rangecast_paired.py`. The shadow has not started; it needs the journal track's writer (`RANGECAST_V2_SHADOW_CONTRACT_V1.md` §6) and an owner go.
+**Status:** `SUPERSEDED BEFORE ANY SHADOW OUTCOME` (2026-10-12) by `RANGECAST_V2_SHADOW_PLAN_V2.md` (`RANGECAST_V2_PROMOTION_RULE_V2`): owner instruction to block a recommendation on an observed 4h result against W_L1, to report non-inferiority apart from superiority, to output a recommendation instead of a switch, and to evaluate W_L1 refitted nightly. Rule V1 was never applied: no shadow row exists. Kept as the record.
+**Original status:** `RULE_FROZEN_BEFORE_ANY_SHADOW_OUTCOME` (2026-10-12).
 
 ## 1. Three kinds of evidence, kept apart
 

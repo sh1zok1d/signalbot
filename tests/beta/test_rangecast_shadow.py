@@ -1,4 +1,4 @@
-"""Paired shadow adapter (beta/rangecast_shadow.py, not wired) with the frozen W_L1 artifact.
+"""Paired shadow forecast side (beta/rangecast_shadow.py, not wired) with the frozen W_L1 artifact.
 
 Synthetic bars only; no network and no market outcome.
 """
@@ -86,6 +86,9 @@ def test_pinned_constants_are_the_products():
     assert sh.TOUCH_GRID_PCT == claims.TOUCH_GRID_PCT and sh.NEITHER_GRID_PCT == claims.NEITHER_GRID_PCT
     assert (sh.MIN_DISTANCE_PCT, sh.MAX_DISTANCE_PCT) == (check.MIN_DISTANCE_PCT, check.MAX_DISTANCE_PCT)
     assert sh.STALE_AFTER == decision.STALE_AFTER and sh.EVENT_ZONE_POST_MS == decision.EVENT_ZONE_POST_MS
+    from beta import paired_shadow as ps
+    assert (sh.V1_PROCEDURE_ID, sh.V1_SPEC_ID) == (ps.V1_PROCEDURE_ID, ps.V1_SPEC_ID)
+    assert (v2.SHADOW_PROCEDURE_ID, v2.SHADOW_SPEC_ID, v2.SHADOW_SYMBOL) == (ps.V2_PROCEDURE_ID, ps.V2_SPEC_ID, ps.PRIMARY_SYMBOL)
 
 
 # ---- the paired record -----------------------------------------------------------------------------
@@ -133,18 +136,16 @@ def test_v2_numbers_are_the_research_path_at_every_5_minute_anchor(bars, art):
 
 
 def test_the_two_sides_pair_one_to_one(bars, v1, art):
-    out = sh.paired_forecast(_snap(bars), v1_model=v1, v2_model=art, v1_ids={"stats_pk": 7, "stats_digest": "d"},
-                             target_prices=[float(bars.close[-1]) * 1.01])
-    keys = set()
+    from beta import paired_shadow as ps
+    out = sh.paired_forecast(_snap(bars), v1_model=v1, v2_model=art, target_prices=[float(bars.close[-1]) * 1.01])
     for h, x in out["horizons"].items():
         assert x["paired"] and x["v1"]["status"] == x["v2"]["status"] == sh.OK
         assert [t["subject_key"] for t in x["v1"]["touch"]] == [t["subject_key"] for t in x["v2"]["touch"]]
         assert [q["subject_key"] for q in x["v1"]["neither"]] == [q["subject_key"] for q in x["v2"]["neither"]]
         assert x["v1"]["as_of"] == x["v2"]["as_of"] and x["v1"]["horizon_end"] == x["v2"]["horizon_end"]
-        assert x["v1"]["procedure_id"] == sh.PROCEDURE_V1 and x["v2"]["procedure_id"] == sh.PROCEDURE_V2
-        assert x["v1"]["stats_pk"] == 7 and x["v2"]["params_digest"] == sh.MODEL_PARAMS_DIGEST
-        keys.add(x["pair_key"])
-    assert len(keys) == 3
+        assert (x["v1"]["procedure_id"], x["v1"]["spec_digest"]) == (ps.V1_PROCEDURE_ID, ps.V1_SPEC_DIGEST)
+        assert (x["v2"]["procedure_id"], x["v2"]["spec_digest"]) == (ps.V2_PROCEDURE_ID, ps.V2_SPEC_DIGEST)
+        assert x["v1"]["snapshot_id"] == sh.v1_snapshot_id(v1) and x["v2"]["snapshot_id"] == sh.MODEL_PARAMS_DIGEST
     json.dumps(out)
 
 
@@ -295,27 +296,9 @@ def test_a_nightly_fit_never_uses_a_window_that_has_not_closed(bars):
 
 
 def test_the_shadow_is_not_wired_into_the_product():
-    pat = re.compile(r"rangecast_shadow|rangecast_v2")
+    """No product module and not the shadow store imports the V2 code (the store pins the identity only)."""
+    pat = re.compile(r"^\s*(from\s+\S*\b(rangecast_shadow|rangecast_v2)\s+import|import\s+\S*\b(rangecast_shadow|rangecast_v2)\b|"
+                     r"from\s+\S+\s+import\s+[^#\n]*\b(rangecast_shadow|rangecast_v2)\b)", re.M)
     offenders = [str(p.relative_to(ROOT)) for d in ("beta", "runtime", "storage") for p in (ROOT / d).rglob("*.py")
                  if p.name not in ("rangecast_v2.py", "rangecast_shadow.py") and pat.search(p.read_text(encoding="utf-8"))]
     assert offenders == []
-
-
-def test_the_proposed_journal_rows_fit_the_existing_schema_and_rules(art):
-    """Contract §3: the V2 rows need no table change and resolve with the V1 classes' rules."""
-    from beta import claims
-    schema = (ROOT / "storage/beta_v0_schema.sql").read_text(encoding="utf-8")
-    table = schema[schema.index("CREATE TABLE IF NOT EXISTS beta_claims ("):]
-    table = table[:table.index(");")]
-    class_re = re.search(r"claim_class\s+TEXT NOT NULL CHECK \(claim_class ~ '([^']+)'\)", table).group(1)
-    digest_re = re.search(r"stats_digest\s+TEXT CHECK \(stats_digest IS NULL OR stats_digest ~ '([^']+)'\)",
-                          table).group(1)
-    assert "UNIQUE (claim_class, subject_key, issue_slot)" in table
-    ident = sh.v2_identity(art)
-    assert re.fullmatch(digest_re, ident["params_digest"])
-    assert sh.shadow_rule_version(art) == f"RANGECAST_V2_W_L1+{sh.MODEL_PARAMS_DIGEST[:16]}+{sh.ADAPTER_VERSION}"
-    for (family, h), cls in sh.SHADOW_CLASSES.items():
-        assert re.fullmatch(class_re, cls) and cls[:2] == "L3"
-        v1_class = cls[:-len("_RCV2")]
-        assert v1_class in claims.CLASSES and cls not in claims.CLASSES     # proposed, not yet written
-        assert claims.CLASSES[v1_class][2] == ("TOUCH_V1" if family == "touch" else "NEITHER_V1")

@@ -1,6 +1,7 @@
 """Shadow-readiness audit of W_L1 on the development folds 2021-2024 (the consumed selection surface).
 
     python -m scripts.research.rangecast_v2.audit
+    python -m scripts.research.rangecast_v2.audit --rule-v2     # only the history of promotion rule V2
 
 No 2025-2026 outcome is read: the one read of that surface is done and stays done. Writes
 docs/research/RANGECAST_V2_SHADOW_AUDIT.json with:
@@ -10,6 +11,11 @@ docs/research/RANGECAST_V2_SHADOW_AUDIT.json with:
 3. neither: monotonicity in both levels and the Fréchet bounds against the single chances, fold 2024;
 4. planning: weekly variability of the paired log-loss difference on the claim-journal grid, and the
    historical behaviour of the promotion rule `RANGECAST_V2_PROMOTION_RULE_V1` (beta/rangecast_paired.py).
+
+`--rule-v2` writes docs/research/RANGECAST_V2_PROMOTION_RULE_V2_HISTORY.json: the same development folds and
+journal grid, the weekly log-loss and Brier differences of touch and «ни один» at 1h / 4h / 24h, and the share
+of historical 12-week windows in which each part of `RANGECAST_V2_PROMOTION_RULE_V2` holds. The audit record
+above is not rewritten.
 """
 from __future__ import annotations
 
@@ -27,6 +33,7 @@ from . import evaluate as E
 
 REPO = Path(__file__).resolve().parents[3]
 OUT = REPO / "docs/research/RANGECAST_V2_SHADOW_AUDIT.json"
+OUT_RULE_V2 = REPO / "docs/research/RANGECAST_V2_PROMOTION_RULE_V2_HISTORY.json"
 
 
 def anchors(S) -> dict:
@@ -162,6 +169,62 @@ def planning(S) -> dict:
                                 "share_superiority_label_when_no_gain": round(float(np.mean(sup_null)), 3)}}
 
 
+def weekly_books(S) -> dict:
+    """{(family, horizon, metric): {week: mean V2 − V1}} on the journal grid, development folds."""
+    out: dict = {}
+    for h in ("1h", "4h", "24h"):
+        acc = {k: [] for k in ("touch_ll", "touch_br", "neither_ll", "neither_br", "week")}
+        for y in E.YEARS:
+            train, test = S.split(h, E.ms(y), E.ms(y + 1))
+            O = E.outcomes(S, h, test)
+            R1, R2 = E.model_v1(S, h, train, test), E.model_w("L1")(S, h, train, test)
+            acc["touch_ll"].append(E.logloss(R2[1], O["YJ"]).mean(axis=(1, 2)) - E.logloss(R1[1], O["YJ"]).mean(axis=(1, 2)))
+            acc["touch_br"].append(((R2[1] - O["YJ"]) ** 2).mean(axis=(1, 2)) - ((R1[1] - O["YJ"]) ** 2).mean(axis=(1, 2)))
+            acc["neither_ll"].append(E.logloss(R2[2], O["YN"]).mean(axis=1) - E.logloss(R1[2], O["YN"]).mean(axis=1))
+            acc["neither_br"].append(((R2[2] - O["YN"]) ** 2).mean(axis=1) - ((R1[2] - O["YN"]) ** 2).mean(axis=1))
+            acc["week"].append(E.week_id(S.close_ms[test]))
+        wk = np.concatenate(acc["week"])
+        u, inv = np.unique(wk, return_inverse=True)
+        for k in ("touch_ll", "touch_br", "neither_ll", "neither_br"):
+            fam, metric = k.split("_")
+            d = np.concatenate(acc[k])
+            out[(fam, h, metric)] = dict(zip(u.tolist(), (np.bincount(inv, weights=d) / np.bincount(inv)).tolist()))
+        print("weekly books", h, flush=True)
+    return out
+
+
+def rule_v2_history(S) -> dict:
+    """Shares of historical 12-week windows (every 2nd start) in which each part of rule V2 holds: as observed,
+    with the gain removed (every series centred at 0), and with V2 worse by the margin (combined series moved
+    to mean + margin, the 4h series moved by the same amount)."""
+    wb = weekly_books(S)
+    weeks = sorted(set.intersection(*[set(v) for v in wb.values()]))
+    ser = {k: np.array([v[w] for w in weeks]) for k, v in wb.items()}
+    comb = (ser[("touch", "1h", "ll")] + ser[("touch", "4h", "ll")]) / 2
+    W, M, k = rp.LOOK_WEEKS, rp.NI_MARGIN, rp.SE_INFLATION
+    four = [("touch", "4h", "ll"), ("touch", "4h", "br"), ("neither", "4h", "ll"), ("neither", "4h", "br")]
+    scen = {"observed": lambda a, key: a, "gain_removed": lambda a, key: a - ser[key].mean() if key else a - comb.mean(),
+            "v2_worse_by_margin": lambda a, key: (a - ser[key].mean() + M) if key else (a - comb.mean() + M)}
+    out = {"weeks": len(weeks), "windows": 0, "look_weeks": W, "ni_margin": M, "se_inflation": k, "scenarios": {}}
+    for name, f in scen.items():
+        prim, gate, both, sup = [], [], [], []
+        for s0 in range(0, len(weeks) - W + 1, 2):
+            sl = slice(s0, s0 + W)
+            iv = rp.weekly_interval(list(f(comb[sl], None)), k)
+            p_ok = iv["mean"] < 0 and iv["hi"] < M
+            g_ok = all(f(ser[key][sl], key).mean() < 0 for key in four)
+            s_iv = rp.weekly_interval(list(f(comb[sl], None)), rp.SUPERIORITY_SE_INFLATION)
+            prim.append(p_ok); gate.append(g_ok); both.append(p_ok and g_ok); sup.append(p_ok and g_ok and s_iv["hi"] < 0)
+        out["windows"] = len(prim)
+        out["scenarios"][name] = {"share_primary": round(float(np.mean(prim)), 3),
+                                  "share_four_hour_gate": round(float(np.mean(gate)), 3),
+                                  "share_primary_and_four_hour_gate": round(float(np.mean(both)), 3),
+                                  "share_with_superiority_evidence": round(float(np.mean(sup)), 3)}
+    out["four_hour_means"] = {f"{f_}_{h}_{m}": round(float(ser[(f_, h, m)].mean()), 6) for f_, h, m in four}
+    out["four_hour_weekly_sd"] = {f"{f_}_{h}_{m}": round(float(ser[(f_, h, m)].std(ddof=1)), 6) for f_, h, m in four}
+    return out
+
+
 def main() -> dict:
     S = E.Surface()
     out = {"surface": "development folds 2021-2024 (consumed); no 2025-2026 outcome read",
@@ -172,4 +235,11 @@ def main() -> dict:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--rule-v2" in sys.argv:
+        res = {"surface": "development folds 2021-2024 (consumed); no 2025-2026 outcome read",
+               "rule": rp.PROMOTION_RULE_ID, **rule_v2_history(E.Surface())}
+        print(json.dumps(res["scenarios"]), flush=True)
+        OUT_RULE_V2.write_text(json.dumps(res, indent=1) + "\n")
+    else:
+        main()

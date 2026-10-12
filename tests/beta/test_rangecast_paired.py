@@ -1,4 +1,4 @@
-"""Paired shadow evaluator and the frozen promotion rule (beta/rangecast_paired.py). Synthetic rows only."""
+"""Paired shadow evaluator and promotion rule V2 (beta/rangecast_paired.py). Synthetic rows only."""
 from __future__ import annotations
 
 import math
@@ -27,8 +27,11 @@ def _expit(x):
 
 def stream(weeks: int, *, v1_shift: float = 0.35, v2_shift: float = 0.0, seed: int = 1, start=START,
            hours_per_week: int = 168, status=lambda i: "COMPLETE"):
-    """Hourly anchors; truth q from a random scale; V2 = truth shifted by v2_shift in logit, V1 by v1_shift."""
+    """Hourly anchors; truth q from a random scale; V2 = truth shifted by v2_shift in logit, V1 by v1_shift
+    (a number, or {horizon: shift})."""
     rng = np.random.default_rng(seed)
+    s1 = v1_shift if isinstance(v1_shift, dict) else {h: v1_shift for h in rp.HORIZONS}
+    s2 = v2_shift if isinstance(v2_shift, dict) else {h: v2_shift for h in rp.HORIZONS}
     rows, k = [], 0
     for w in range(weeks):
         for hr in range(hours_per_week):
@@ -43,15 +46,15 @@ def stream(weeks: int, *, v1_shift: float = 0.35, v2_shift: float = 0.0, seed: i
                         y = int(rng.random() < q)
                         rows.append({"pair_key": key, "horizon": h, "family": "touch", "subject_key": f"{side:+d}:{d}",
                                      "source": "GRID", "as_of": at.isoformat(), "distance_pct": d, "outcome": y,
-                                     "p_v1": _expit(_logit(q) + v1_shift), "p_v2": _expit(_logit(q) + v2_shift),
+                                     "p_v1": _expit(_logit(q) + s1[h]), "p_v2": _expit(_logit(q) + s2[h]),
                                      "status": status(k), "coverage": 1.0})
                         k += 1
                 for du, dd in PAIRS:
                     q = min(max((1 - math.exp(-du / s)) * (1 - math.exp(-dd / s)), 1e-3), 0.999)
                     y = int(rng.random() < q)
                     rows.append({"pair_key": key, "horizon": h, "family": "neither", "subject_key": f"{du}:{dd}",
-                                 "as_of": at.isoformat(), "outcome": y, "p_v1": _expit(_logit(q) - v1_shift),
-                                 "p_v2": _expit(_logit(q) - v2_shift), "status": status(k), "coverage": 1.0})
+                                 "as_of": at.isoformat(), "outcome": y, "p_v1": _expit(_logit(q) - s1[h]),
+                                 "p_v2": _expit(_logit(q) - s2[h]), "status": status(k), "coverage": 1.0})
                     k += 1
     return rows
 
@@ -77,9 +80,11 @@ def test_scores_on_a_hand_example():
     assert d[2] == pytest.approx(0.36 - 0.64)
 
 
-def test_a_better_calibrated_v2_is_promoted_at_the_look(good12):
+def test_a_better_calibrated_v2_is_recommended_to_the_owner_at_the_look(good12):
     r = rp.decide(good12, monitor_states=OK_MONITOR)
-    assert r["decision"] == rp.PROMOTE, r["reason"]
+    assert r["decision"] == rp.RECOMMEND_SWITCH, r["reason"]
+    assert r["automatic_switch"] is False and "owner" in r["statement"]
+    assert r["evidence"] == rp.SUPERIORITY_SHOWN and r["checks"]["four_hour_observed"]
     rep = r["report"]
     assert rep["complete_weeks"] and len(rep["complete_weeks"]) == rp.LOOK_WEEKS
     assert rep["combined"]["mean"] < 0 and rep["combined"]["hi"] < rp.NI_MARGIN
@@ -90,9 +95,9 @@ def test_a_better_calibrated_v2_is_promoted_at_the_look(good12):
 
 def test_a_blocking_monitor_state_or_a_missing_book_stops_promotion(good12):
     r = rp.decide(good12, monitor_states={**OK_MONITOR, "touch_4h": "CONFIRMED_DIVERGENCE"})
-    assert r["decision"] == rp.NO_PROMOTION and "monitor" in r["reason"]
+    assert r["decision"] == rp.NO_RECOMMENDATION and "monitor" in r["reason"] and r["evidence"] is None
     r = rp.decide(good12, monitor_states={k: v for k, v in OK_MONITOR.items() if k != "neither_1h"})
-    assert r["decision"] == rp.NO_PROMOTION
+    assert r["decision"] == rp.NO_RECOMMENDATION
 
 
 def test_before_the_look_the_rule_waits():
@@ -105,19 +110,32 @@ def test_a_worse_v2_is_stopped_for_harm():
     assert r["decision"] == rp.STOP_HARM
 
 
-def test_equal_models_never_earn_the_superiority_label():
-    """Equal models can pass non-inferiority (the rule relies on the historical superiority record); the live
-    superiority label needs the stricter interval and does not appear."""
+def test_equal_models_are_never_called_superior():
+    """Equal models can pass non-inferiority; the evidence then says NON_INFERIORITY_ONLY (or nothing is
+    recommended), never SUPERIORITY_SHOWN."""
     for s in (3, 9):
         r = rp.decide(stream(12, v1_shift=0.0, v2_shift=0.0, seed=s, hours_per_week=150), monitor_states=OK_MONITOR)
-        assert r["decision"] in (rp.PROMOTE, rp.NO_PROMOTION) and r["label"] == "NON_INFERIOR_ONLY"
+        assert r["decision"] in (rp.RECOMMEND_SWITCH, rp.NO_RECOMMENDATION)
+        assert r["evidence"] in (rp.NON_INFERIORITY_ONLY, None)
+        if r["decision"] == rp.RECOMMEND_SWITCH:
+            assert "Superiority is not shown" in r["statement"]
+
+
+def test_an_observed_4h_result_against_v2_blocks_the_recommendation():
+    """V2 far better at 1h and 24h carries the combined endpoint, but its 4h result is observed worse."""
+    rows = stream(12, v1_shift={"1h": 0.5, "4h": 0.0, "24h": 0.5}, v2_shift={"1h": 0.0, "4h": 0.06, "24h": 0.0},
+                  seed=4)
+    r = rp.decide(rows, monitor_states=OK_MONITOR)
+    assert r["report"]["combined"]["mean"] < 0
+    assert r["report"]["books"]["touch_4h"]["logloss_diff"]["mean"] > 0
+    assert r["decision"] == rp.NO_RECOMMENDATION and not r["checks"]["four_hour_observed"]
 
 
 def test_faults_make_the_comparison_not_evaluable(good12):
     bad = list(good12[:-1]) + [{**good12[-1], "p_v2": 1.2}]
     assert rp.decide(bad, monitor_states=OK_MONITOR)["decision"] == rp.NOT_EVALUABLE
-    assert rp.decide(good12, monitor_states=OK_MONITOR, artifact_unchanged=False)["decision"] == rp.NOT_EVALUABLE
-    assert rp.decide(good12, monitor_states=OK_MONITOR, parity_faults=1)["decision"] == rp.NOT_EVALUABLE
+    assert rp.decide(good12, monitor_states=OK_MONITOR, identity_faults=1)["decision"] == rp.NOT_EVALUABLE
+    assert rp.decide(good12, monitor_states=OK_MONITOR, unverified_snapshots=1)["decision"] == rp.NOT_EVALUABLE
 
 
 def test_the_look_uses_only_the_first_twelve_complete_weeks(good12):

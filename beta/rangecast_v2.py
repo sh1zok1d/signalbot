@@ -98,6 +98,100 @@ def params_digest(model: Mapping[str, Any]) -> str:
     return _digest(model["horizons"])
 
 
+# ---- paired shadow contract (docs/BETA_PAIRED_SHADOW_CONTRACT_V1.md) --------------------------------
+# The evaluated procedure is W_L1 refitted nightly. Its identity covers every rule that can move a stored
+# probability: the model math (`spec`), the nightly fit and the serving rules. The coefficients are not
+# identity: a refit changes `shadow_snapshot_id` only. A change of anything below is a new spec_id.
+SHADOW_PROCEDURE_ID = "RANGECAST_V2"        # = beta.paired_shadow.V2_PROCEDURE_ID
+SHADOW_SPEC_ID = "W_L1"                     # = beta.paired_shadow.V2_SPEC_ID
+SHADOW_SYMBOL, SHADOW_MARKET = "BTCUSDT", "binance_usdm"
+SNAPSHOT_MAX_AGE_H = 72                     # one missed nightly fit is tolerated, two are not
+STALE_AFTER_MIN = 10                        # = beta.decision.STALE_AFTER (test-pinned)
+EVENT_ZONE_POST_MIN = 60                    # = beta.decision.EVENT_ZONE_POST_MS (test-pinned)
+
+
+def shadow_procedure() -> dict:
+    """Every constant of the evaluated procedure beyond the coefficients."""
+    return {
+        "math": spec(),
+        "fit": {"schedule": "NIGHTLY", "function": "fit_range_model_v2",
+                "grid": "history_stats.load_history_grid: first stored 5m bar to the UTC midnight of the build",
+                "train_rows": "hourly anchors whose horizon window closed inside the grid, every feature present",
+                "feature_min_window_frac": 0.9, "weights": "0.5 ** (age_days / half_life_days)",
+                "min_train_anchors": rc.MIN_TRAIN_ANCHORS},
+        "serve": {"state": "state_at on the last complete 5m bar", "min_present": {str(k): v for k, v in MIN_PRESENT.items()},
+                  "stale_after_min": STALE_AFTER_MIN, "event_zone": {"kinds": list(rc.EVENT_KINDS), "post_min": EVENT_ZONE_POST_MIN},
+                  "snapshot": "newest built at or before the issue", "snapshot_max_age_h": SNAPSHOT_MAX_AGE_H,
+                  "prob_clip": [PROB_MIN, PROB_MAX]},
+    }
+
+
+def shadow_procedure_digest() -> str:
+    return _digest(shadow_procedure())
+
+
+def shadow_spec_identity() -> dict:
+    """The identity object of `beta.paired_shadow.V2_SPEC_IDENTITY`, computed from this code."""
+    if SELECTED_HALF_LIFE_DAYS != int(SELECTED_HALF_LIFE_DAYS):
+        raise RangeModelV2Error("half-life must be a whole number of days in the identity")
+    return {"procedure_id": SHADOW_PROCEDURE_ID, "spec_id": SHADOW_SPEC_ID, "level": SELECTED_LEVEL,
+            "half_life_days": int(SELECTED_HALF_LIFE_DAYS), "symbol": SHADOW_SYMBOL, "market": SHADOW_MARKET,
+            "procedure_digest": shadow_procedure_digest()}
+
+
+def shadow_spec_digest() -> str:
+    """`beta.paired_shadow.V2_SPEC_DIGEST`, after checking that this code still computes it. A procedure
+    constant changed without a new spec_id raises: no probability is issued under a stale identity."""
+    from .paired_shadow import V2_SPEC_DIGEST, V2_SPEC_IDENTITY
+    from .state_tape import sha256_json
+    mine = shadow_spec_identity()
+    if mine != dict(V2_SPEC_IDENTITY) or sha256_json(mine) != V2_SPEC_DIGEST:
+        raise RangeModelV2Error("SPEC_IDENTITY_MISMATCH: the procedure changed; register a new spec_id")
+    return V2_SPEC_DIGEST
+
+
+def shadow_snapshot_id(model: Mapping[str, Any]) -> str:
+    """sha256 of the fitted coefficients (`params_digest`). A refit changes it; the spec does not."""
+    return params_digest(model)
+
+
+def bind_shadow_model(model: Mapping[str, Any], state_by_horizon: Mapping[str, Mapping[str, float]], *,
+                      snapshot_id: str):
+    """W_L1 probabilities at one issue bar for `beta.paired_shadow.plan_issues`. No journal write.
+
+    `state_by_horizon[h]` is the `state_at` dict of that bar. A horizon without a state has no
+    probability: asking for it raises, so a missing state never becomes a number."""
+    from .paired_shadow import BoundShadowModel
+    if model.get("level") != SELECTED_LEVEL or model.get("half_life_days") != SELECTED_HALF_LIFE_DAYS:
+        raise RangeModelV2Error("NOT_W_L1")
+    if model.get("spec_digest") != spec_digest():
+        raise RangeModelV2Error("MATH_SPEC_MISMATCH")
+    if snapshot_id != shadow_snapshot_id(model):
+        raise RangeModelV2Error("SNAPSHOT_ID_MISMATCH")
+    states = {}
+    for h, st in state_by_horizon.items():
+        if h not in model["horizons"] or st is None or not st or not all(math.isfinite(float(v)) for v in st.values()):
+            raise RangeModelV2Error(f"NO_STATE:{h}")
+        states[h] = {k: float(v) for k, v in st.items()}
+
+    def _state(h: str) -> dict:
+        if h not in states:
+            raise RangeModelV2Error(f"NO_STATE:{h}")
+        return states[h]
+
+    def touch(h: str, distance_pct: float, side: int) -> float:
+        if side not in (1, -1):
+            raise RangeModelV2Error("SIDE")
+        return touch_probability_v2(model, h, _state(h), side, float(distance_pct))
+
+    def neither(h: str, up_pct: float, down_pct: float) -> float:
+        s = {k: np.array([v]) for k, v in _state(h).items()}
+        return float(neither_prob(model["horizons"][h], s, np.array([float(up_pct)]), np.array([float(down_pct)]))[0])
+
+    return BoundShadowModel(procedure_id=SHADOW_PROCEDURE_ID, spec_id=SHADOW_SPEC_ID,
+                            spec_digest=shadow_spec_digest(), snapshot_id=snapshot_id, touch=touch, neither=neither)
+
+
 # ---- data quality at the anchor (live use) -------------------------------------------------------
 # Fitting and the historical evaluation needed 90 % of every window (pandas min_periods), and the
 # history surface has no gap outside the E1 window. A live anchor is held to a stricter rule so a

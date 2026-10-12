@@ -36,3 +36,13 @@
 - The 1h shadow book is scored at hourly anchors. A user's `/check` at :25 meets the off-hour bias of both models.
 - The frozen artifact ages. The recency weights were fitted to 2026-10-11, and a 12-week shadow adds about 3 % to the age of the newest data, which is small against a 365-day half-life. A refit is a new artifact and a new registered shadow.
 - The gate turns some live anchors into `INCOMPLETE_WINDOW` that V1 would still answer. These anchors are counted, and the pairing completeness gate of the plan uses them.
+
+## 5. Addendum (2026-10-12): integration with the paired shadow store
+
+The findings of §1 stand. The owner chose the journal track's store for the shadow (`BETA_PAIRED_SHADOW_CONTRACT_V1.md`), and the integration layer was reworked onto it (`RANGECAST_V2_SHADOW_CONTRACT_V2.md`). The model math, the frozen artifact, the parity record, the data-quality gate, the event-zone rule, the tails and the «ни один» checks are unchanged. Their tests still pass.
+
+- **Identity.** The paired identity now covers the procedure, not only its name. `procedure_digest` covers the math of `spec()`, the nightly fit and the serving rules; V1 has the same. The binders refuse to issue when the code drifts from the pinned value.
+- **Evaluated procedure.** W_L1 refitted nightly on the V1 nightly grid, with every snapshot of coefficients kept and verified. The frozen artifact stays for reproducibility.
+  - The §4 risk "the frozen artifact ages" no longer applies to the shadow.
+  - A missed nightly fit is bounded: a snapshot older than 72 hours stops W_L1 issues, and V1 is then withheld too.
+- **Promotion rule.** `RANGECAST_V2_PROMOTION_RULE_V2` (`RANGECAST_V2_SHADOW_PLAN_V2.md`) adds the 4h gate and the recommendation-only output. Its history on the development folds is in `RANGECAST_V2_PROMOTION_RULE_V2_HISTORY.json`. No 2025–2026 outcome was read and E1 was not requested.

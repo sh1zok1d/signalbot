@@ -8634,3 +8634,31 @@ WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for engineering
 OBJECTS_2025_2026_USED = product-planner kline objects for the artifact fit only (no outcome); E1 objects refused; E1 / V3 untouched
 PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V1 frozen before any shadow outcome; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 shadow integrated with the paired shadow store; identity covers the procedure; promotion rule V2; shadow not started
+
+**Unit.** `RANGECAST_V2` follow-up. Owner decision of 2026-10-12: use the journal track's store (`BETA_PAIRED_SHADOW_CONTRACT_V1.md`) and no second shadow-claims system; W_L1 refitted nightly is the evaluated procedure; the promotion rule blocks an observed 4h result against W_L1 and only recommends. Records:
+- `docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md`;
+- `docs/RANGECAST_V2_SHADOW_PLAN_V2.md`;
+- `docs/research/RANGECAST_V2_PROMOTION_RULE_V2_HISTORY.json` (`scripts/research/rangecast_v2/audit.py --rule-v2`);
+- the addendum §5 of `RANGECAST_V2_SHADOW_AUDIT.md`.
+
+Contract V1 and plan V1 are superseded and kept.
+- **Read.** The development folds 2021–2024 again, for the weekly log-loss and Brier series of the rule's history. No new window. No 2025–2026 outcome was read and E1 objects were not requested.
+- **Evidence (rule history, 100 windows of 12 weeks).**
+
+  | Scenario | Primary and 4h gate pass | With superiority |
+  |---|---|---|
+  | Gain as observed | 84 % | 42 % |
+  | No gain | 25 % | 2 % |
+  | V2 worse by the margin | 5 % | 0 % |
+- **Not done.**
+  - No production change, no table, no claim and no user-facing probability changed.
+  - Recording is off. It waits for the owner's go on the store's schema and writer, and on the nightly W_L1 fit.
+  - The journal track has to take Amendment 1, `procedure_digest`, into #459.
+
+```
+WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for the rule's operating characteristics)
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched
+PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V2 fixed before any shadow outcome (V1 superseded unused); PRODUCT_CHANGE = none
+```

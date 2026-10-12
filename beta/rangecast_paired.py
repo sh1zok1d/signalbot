@@ -1,29 +1,36 @@
-"""Paired shadow comparison of the range model V1 and the W_L1 candidate, and the frozen promotion rule.
+"""Paired shadow comparison of the range model V1 and W_L1, and the promotion rule fixed before any outcome.
 
-NOT WIRED. A pure function of paired, resolved claim rows (the export the journal owner provides). It reads
-no database, writes nothing and changes no user text. Plan and rule: docs/RANGECAST_V2_SHADOW_PLAN_V1.md.
+NOT WIRED. A pure function of the paired shadow store's joined rows (`beta.paired_shadow.ShadowLedger.
+joined_rows`, or the same fields from its export). It reads no database, writes nothing, changes no user text
+and switches nothing: its output is a recommendation to the owner. Plan and rule:
+docs/RANGECAST_V2_SHADOW_PLAN_V2.md.
 
-Input rows, one per claim pair element that both models issued on the same anchor and level:
-    pair_key, horizon (1h / 4h / 24h), family (touch / neither), subject_key, source (GRID / TARGET),
-    as_of (tz-aware ISO or datetime), p_v1, p_v2, outcome (0 / 1), status, coverage, distance_pct (touch).
-The two models share one outcome per row, so a row left out (status other than COMPLETE, or coverage under
-0.9) leaves out both models together.
+`rows_from_ledger` pairs the store's rows by anchor (one market question, both procedures, one outcome) into
+the evaluator's rows:
+    pair_key (issue slot and horizon), horizon (1h / 4h / 24h), family (touch / neither), subject_key (the
+    store's anchor key), as_of, p_v1, p_v2, outcome (0 / 1), status, coverage, distance_pct (touch).
+A row left out (status other than COMPLETE, or coverage under 0.9) leaves out both models together.
 
 Per horizon and family: the paired difference V2 − V1 in log loss and Brier per anchor (touch on the
 journal grid, «ни один» on its pairs), its weekly means (ISO weeks, equal weight per week), the near and
 far touch groups, and each model's calibration (pooled logistic intercept and slope, reliability bins).
 
-Promotion rule `RANGECAST_V2_PROMOTION_RULE_V1`, fixed before any shadow outcome:
+Rule `RANGECAST_V2_PROMOTION_RULE_V2` (replaces V1 before any shadow outcome; V1 was never applied):
 - one look, on the first 12 complete ISO weeks;
-- primary: the combined weekly endpoint C = (Δ1h + Δ4h) / 2 of the touch log loss. PASS when mean(C) < 0 and
-  mean(C) + 1.5 · t(0.975, W−1) · sd(C) / √W < 0.001 (V2 not worse by more than 0.001 nats, with the
-  standard error inflated by 1.5 for week-to-week regime persistence measured on the development folds);
+- primary (non-inferiority): the combined weekly endpoint C = (Δ1h + Δ4h) / 2 of the touch log loss. PASS when
+  mean(C) < 0 and mean(C) + 1.5 · t(0.975, W−1) · sd(C) / √W < 0.001 (V2 not worse by more than 0.001 nats,
+  the standard error inflated by 1.5 for week-to-week regime persistence measured on the development folds);
+- 4h gate: the observed 4h result is not against V2. For touch and «ни один» at 4h, the mean weekly
+  difference V2 − V1 is below 0 in log loss and in Brier;
 - gates: no horizon or family significantly worse (lower bound above 0, same inflation); 4h near and far
   touch groups not significantly worse; V2 calibration slope in [0.85, 1.15] and |intercept| ≤ 0.15 at 1h and
-  4h; no V2 book of calibration monitor V2 suspected, confirmed, faulted or incomplete; the artifact digest
-  unchanged and no parity fault;
+  4h; no V2 book of calibration monitor V2 suspected, confirmed, faulted or incomplete; one spec digest per
+  procedure over the look, and every V2 snapshot verifiable;
 - harm stop from week 6: the combined lower bound above 0;
-- a failed look is NO_PROMOTION. Continuing needs a new registered rule; this one is not extended.
+- outcome: RECOMMEND_SWITCH or NO_RECOMMENDATION at the look, a recommendation to the owner and never a
+  switch. Non-inferiority is not superiority: the evidence label says SUPERIORITY_SHOWN only when the
+  stricter interval (inflation 2.0) lies below 0, and NON_INFERIORITY_ONLY otherwise;
+- a failed look is not extended. Continuing needs a new registered rule.
 """
 from __future__ import annotations
 
@@ -33,15 +40,17 @@ from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 
-EVALUATOR_VERSION = "RANGECAST_PAIRED_EVAL_V1"
-PROMOTION_RULE_ID = "RANGECAST_V2_PROMOTION_RULE_V1"
+EVALUATOR_VERSION = "RANGECAST_PAIRED_EVAL_V2"
+PROMOTION_RULE_ID = "RANGECAST_V2_PROMOTION_RULE_V2"
+V1_PAIR = ("RANGECAST_V1", "RANGECAST_V1")          # (procedure_id, spec_id) = beta.paired_shadow (test-pinned)
+V2_PAIR = ("RANGECAST_V2", "W_L1")
 HORIZONS = ("1h", "4h", "24h")
 FAMILIES = ("touch", "neither")
 LOOK_WEEKS = 12
 HARM_FROM_WEEK = 6
 NI_MARGIN = 0.001
 SE_INFLATION = 1.5
-SUPERIORITY_SE_INFLATION = 2.0          # a secondary label only; never a promotion condition
+SUPERIORITY_SE_INFLATION = 2.0          # the evidence label only; never a recommendation condition
 MIN_WEEK_ANCHORS = 140                  # usable hourly anchors per horizon for a week to count (of 168)
 COVERAGE_MIN = 0.9                      # = beta.claims.COVERAGE_MIN
 P_CLIP = (1e-4, 1 - 1e-4)
@@ -52,11 +61,13 @@ FAR_MIN_PCT = 2.0
 PROB_BINS = (0.0, 0.05, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0000001)
 BLOCKING_MONITOR_STATES = ("SUSPECTED_DEGRADATION", "CONFIRMED_DIVERGENCE", "TECHNICAL_FAULT", "INCOMPLETE_DATA")
 
-PROMOTE = "PROMOTE"
+RECOMMEND_SWITCH = "RECOMMEND_SWITCH"
+NO_RECOMMENDATION = "NO_RECOMMENDATION"
 CONTINUE = "CONTINUE"
-NO_PROMOTION = "NO_PROMOTION"
 STOP_HARM = "STOP_HARM"
 NOT_EVALUABLE = "NOT_EVALUABLE"
+SUPERIORITY_SHOWN = "SUPERIORITY_SHOWN"
+NON_INFERIORITY_ONLY = "NON_INFERIORITY_ONLY"
 
 
 # ---- small statistics ------------------------------------------------------------------------------
@@ -228,25 +239,82 @@ def paired_report(rows: Sequence[Mapping[str, Any]], *, weeks_limit: Optional[in
     return rep
 
 
+# ---- the paired shadow store's rows --------------------------------------------------------------------
+def rows_from_ledger(joined: Sequence[Mapping[str, Any]], *, v1: tuple = V1_PAIR, v2: tuple = V2_PAIR) -> tuple:
+    """(rows, info) from `ShadowLedger.joined_rows()` (or its export fields). One row per anchor that both
+    specifications hold; `info` counts unpaired anchors and lists the spec digests and V2 snapshot ids seen,
+    so the caller can check one digest per procedure and every snapshot against the snapshot store."""
+    by: dict = {}
+    digests: dict = {v1: set(), v2: set()}
+    snapshots: set = set()
+    for r in joined:
+        ident = (r.get("procedure_id"), r.get("spec_id"))
+        if ident not in (v1, v2):
+            continue
+        digests[ident].add(r.get("spec_digest"))
+        if ident == v2:
+            snapshots.add(r.get("snapshot_id"))
+        by.setdefault(r["anchor_key"], {})[ident] = r
+    rows, unpaired = [], 0
+    for key, pair in by.items():
+        a, b = pair.get(v1), pair.get(v2)
+        if a is None or b is None:
+            unpaired += 1
+            continue
+        slot = a.get("issue_slot")
+        slot = slot.isoformat() if isinstance(slot, datetime) else slot
+        rows.append({"pair_key": f"{slot}|{a['horizon']}", "horizon": a["horizon"], "family": a["family"],
+                     "subject_key": key, "source": "GRID", "as_of": a.get("as_of"), "distance_pct": a.get("distance_pct"),
+                     "p_v1": a.get("probability"), "p_v2": b.get("probability"), "outcome": a.get("outcome"),
+                     "status": a.get("status"), "coverage": a.get("coverage")})
+    faults = [f"SPEC_DIGESTS:{ident[0]}:{len(d)}" for ident, d in digests.items() if len(d) > 1]
+    return rows, {"unpaired_anchors": unpaired, "spec_digests": {f"{k[0]}/{k[1]}": sorted(x for x in d if x)
+                                                                  for k, d in digests.items()},
+                  "v2_snapshot_ids": sorted(s for s in snapshots if s), "identity_faults": faults}
+
+
 # ---- decision ------------------------------------------------------------------------------------------
+def _statement(decision: str, evidence: Optional[str]) -> str:
+    if decision == RECOMMEND_SWITCH and evidence == SUPERIORITY_SHOWN:
+        return ("Recommendation to the owner: W_L1 scored better than V1 on the live record, and the stricter "
+                "interval excludes no difference. Switching is the owner's decision.")
+    if decision == RECOMMEND_SWITCH:
+        return ("Recommendation to the owner: W_L1 is not worse than V1 within 0.001 nats and was observed better at "
+                "4h. Superiority is not shown. Switching is the owner's decision.")
+    return {CONTINUE: "The look has not been reached; nothing is recommended.",
+            STOP_HARM: "W_L1 is worse than V1 on the live record; the shadow stops and nothing is recommended.",
+            NOT_EVALUABLE: "The comparison is not evaluable; nothing is recommended."}.get(
+        decision, "The rule did not hold at the look; no switch is recommended.")
+
+
 def decide(rows: Sequence[Mapping[str, Any]], *, monitor_states: Optional[Mapping[str, str]] = None,
-           artifact_unchanged: bool = True, parity_faults: int = 0) -> dict:
-    """Apply RANGECAST_V2_PROMOTION_RULE_V1. `monitor_states` maps 'touch_1h' … to the V2 books' states of
-    calibration monitor V2; a missing book is treated as not blocking only before the look."""
+           identity_faults: int = 0, unverified_snapshots: int = 0) -> dict:
+    """Apply RANGECAST_V2_PROMOTION_RULE_V2. `monitor_states` maps 'touch_1h' … to the states of calibration
+    monitor V2's W_L1 books. The result is a recommendation to the owner; nothing switches."""
     full = paired_report(rows)
-    checks: dict = {"faults": full["n_faults"] == 0 and artifact_unchanged and parity_faults == 0}
-    out = {"rule": PROMOTION_RULE_ID, "weeks": len(full["complete_weeks"]), "checks": checks, "report": full}
+    checks: dict = {"faults": full["n_faults"] == 0 and identity_faults == 0 and unverified_snapshots == 0}
+    out = {"rule": PROMOTION_RULE_ID, "weeks": len(full["complete_weeks"]), "checks": checks, "report": full,
+           "evidence": None, "automatic_switch": False}
     if not checks["faults"]:
-        return {**out, "decision": NOT_EVALUABLE, "reason": "FAULTS_OR_ARTIFACT_OR_PARITY"}
+        return {**out, "decision": NOT_EVALUABLE, "reason": "FAULTS_OR_IDENTITY_OR_SNAPSHOTS",
+                "statement": _statement(NOT_EVALUABLE, None)}
     c = full["combined"]
     if c is not None and out["weeks"] >= HARM_FROM_WEEK and c["lo"] > 0:
-        return {**out, "decision": STOP_HARM, "reason": "COMBINED_LOWER_BOUND_ABOVE_0"}
+        return {**out, "decision": STOP_HARM, "reason": "COMBINED_LOWER_BOUND_ABOVE_0",
+                "statement": _statement(STOP_HARM, None)}
     if out["weeks"] < LOOK_WEEKS:
-        return {**out, "decision": CONTINUE, "reason": f"{out['weeks']}_OF_{LOOK_WEEKS}_WEEKS"}
+        return {**out, "decision": CONTINUE, "reason": f"{out['weeks']}_OF_{LOOK_WEEKS}_WEEKS",
+                "statement": _statement(CONTINUE, None)}
     rep = paired_report(rows, weeks_limit=LOOK_WEEKS)                 # the look: the first 12 complete weeks only
     out["report"] = rep
     c = rep["combined"]
     checks["primary"] = bool(c and c["mean"] < 0 and c["hi"] < NI_MARGIN)
+    four = {}
+    for fam in FAMILIES:
+        book = rep["books"].get(f"{fam}_4h") or {}
+        ll, br = book.get("logloss_diff"), book.get("brier_diff")
+        four[fam] = bool(ll and br and ll["mean"] < 0 and br["mean"] < 0)
+    checks["four_hour_observed"] = all(four.values())
     harm = {}
     for name, book in rep["books"].items():
         iv = book["logloss_diff"]
@@ -262,8 +330,11 @@ def decide(rows: Sequence[Mapping[str, Any]], *, monitor_states: Optional[Mappin
     ms = dict(monitor_states or {})
     checks["monitor"] = all(ms.get(f"{f}_{h}") not in BLOCKING_MONITOR_STATES and f"{f}_{h}" in ms
                             for f in FAMILIES for h in ("1h", "4h"))
+    ok = all(checks[k] for k in ("primary", "four_hour_observed", "no_book_worse", "near_far_not_worse",
+                                 "calibration", "monitor"))
+    decision = RECOMMEND_SWITCH if ok else NO_RECOMMENDATION
     sup = rep["combined_superiority"]
-    out["label"] = "LIVE_SUPERIORITY_CONFIRMED" if (sup and sup["hi"] < 0) else "NON_INFERIOR_ONLY"
-    ok = all(checks[k] for k in ("primary", "no_book_worse", "near_far_not_worse", "calibration", "monitor"))
-    return {**out, "decision": PROMOTE if ok else NO_PROMOTION,
-            "reason": None if ok else ",".join(k for k, v in checks.items() if not v)}
+    evidence = (SUPERIORITY_SHOWN if (sup and sup["hi"] < 0) else NON_INFERIORITY_ONLY) if ok else None
+    return {**out, "decision": decision, "evidence": evidence,
+            "reason": None if ok else ",".join(k for k, v in checks.items() if not v),
+            "statement": _statement(decision, evidence)}
