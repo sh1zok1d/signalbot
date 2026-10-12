@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -77,10 +78,12 @@ def summary(report: dict) -> dict:
         books.append({
             "family": book["family"],
             "horizon": book["horizon"],
+            "spec_id": book.get("spec_id"),
             "state": book["state"],
             "e_value": book["e_value"],
             "n_claims": book["n_claims"],
             "n_rows": book["n_rows"],
+            "n_pending": book.get("n_pending", 0),
             "n_unfinished": book["n_unfinished"],
             "n_low_coverage": book["n_low_coverage"],
             "n_days": book["n_days"],
@@ -109,7 +112,7 @@ def main(argv: list) -> int:
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    report = evaluate(observations_from_claim_rows(rows))
+    report = evaluate(observations_from_claim_rows(rows, now=datetime.now(timezone.utc)))
     json.dump(summary(report), sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
     return 0

@@ -169,6 +169,44 @@ def test_illegal_probability_and_mixed_rules_are_faults_not_divergences():
     assert _book(evaluate(mixed))["state"] == STATE_FAULT
 
 
+def test_pending_horizons_do_not_raise_the_incomplete_fraction():
+    """An open 24h forecast is not a hole. The same count of NO_DATA rows is."""
+    complete = _rows(2, horizon="24h", every_hours=24, probabilities=(0.40,), outcome=0.0)
+    pending = []
+    holes = []
+    for index in range(30):
+        moment = START + timedelta(days=20, hours=index)
+        base = {
+            "procedure_id": PROCEDURE_TOUCH_CHANCE, "family": "touch", "horizon": "24h",
+            "as_of": moment, "horizon_end": moment + timedelta(hours=24),
+            "probability": 0.40, "outcome": None, "eval_rule_id": "TOUCH_V1", "snapshot_id": "snap-a",
+        }
+        pending.append({**base, "status": "PENDING"})
+        holes.append({**base, "status": "NO_DATA"})
+    waiting = _book(evaluate(complete + pending), horizon="24h")
+    assert waiting["state"] != STATE_INCOMPLETE
+    assert waiting["n_pending"] == 30
+    assert waiting["n_rows"] == len(complete)
+    assert waiting["n_unfinished"] == 0
+    unfinished = _book(evaluate(complete + holes), horizon="24h")
+    assert unfinished["state"] == STATE_INCOMPLETE
+    assert unfinished["n_unfinished"] == 30
+    assert unfinished["n_pending"] == 0
+    future = START + timedelta(days=4000)
+    journal = [{
+        "claim_class": "L3_DISTANCE_TOUCH_24H",
+        "as_of": future.isoformat(),
+        "horizon_end": (future + timedelta(hours=24)).isoformat(),
+        "probability": 0.40,
+        "eval_rule_id": "TOUCH_V1",
+        "eval_rule_digest": "ab" * 32,
+    }]
+    early = observations_from_claim_rows(journal, now=future + timedelta(hours=1))
+    assert early[0]["status"] == "PENDING"
+    late = observations_from_claim_rows(journal, now=future + timedelta(hours=30))
+    assert late[0]["status"] == "MISSING"
+
+
 def test_too_many_unscored_outcomes_are_incomplete_rather_than_a_model_verdict():
     rows = _rows(15, probabilities=(0.40,), outcome=0.0)
     for row in rows[: len(rows) // 3]:
@@ -354,6 +392,7 @@ def test_journal_adapter_uses_digest_snapshot_and_drops_the_subject():
     assert observation["eval_rule_id"] == "rule-digest-1"
     assert observation["coverage"] == 0.97
     assert observation["procedure_id"] == PROCEDURE_TOUCH_CHANCE
+    assert observation["spec_id"] == "JOURNAL_UNSPECIFIED"
     assert "subject" not in observation
     assert "price" not in observation
     level = _journal_row(claim_class="L3_LEVEL_TOUCH_4H",
@@ -428,6 +467,24 @@ def test_replay_export_rejects_prices_and_stays_read_only():
         raise AssertionError("a subject field must be refused")
     report = evaluate(observations_from_claim_rows(loaded))
     assert summary(report)["shadow_component"] == "touch_cal_monitor_v2"
+
+
+def test_two_procedures_stay_in_separate_books():
+    v1 = _rows(12, probabilities=(0.40,), outcome=0.0)
+    v2 = _rows(12, probabilities=(0.90,), outcome=1.0)
+    for row in v2:
+        row["procedure_id"] = "RANGECAST_V2"
+        row["spec_id"] = "W_L1"
+    report = evaluate(v1 + v2)
+    books = [item for item in report["books"] if item["family"] == "touch" and item["horizon"] == "4h"]
+    assert {(item["procedure_id"], item["spec_id"]) for item in books} == {
+        (PROCEDURE_TOUCH_CHANCE, "JOURNAL_UNSPECIFIED"),
+        ("RANGECAST_V2", "W_L1"),
+    }
+    assert len({item["e_value"] for item in books}) == 2
+    named = observation_from_journal_row(_journal_row(procedure_id="RANGECAST_V2", spec_id="W_L1"))
+    assert named["procedure_id"] == "RANGECAST_V2"
+    assert named["spec_id"] == "W_L1"
 
 
 def test_shadow_notices_fire_on_a_change_and_once_per_day():
