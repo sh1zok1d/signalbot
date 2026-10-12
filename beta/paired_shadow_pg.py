@@ -6,9 +6,11 @@ which stays off until the owner allows the hourly writer.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from typing import Mapping, Optional, Sequence
+from urllib.parse import unquote, urlsplit
 
 from beta.paired_shadow import ShadowConflict
 
@@ -158,16 +160,50 @@ class PgShadowLedger:
         self._run(sql)
 
     def _run(self, sql: str) -> subprocess.CompletedProcess:
+        argv, env = psql_invocation(self.dsn)
         completed = subprocess.run(
-            ["psql", self.dsn, "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-1"],
-            input=sql, capture_output=True, text=True, check=False,
+            argv, input=sql, capture_output=True, text=True, check=False, env=env,
         )
         if completed.returncode != 0:
-            message = completed.stderr or completed.stdout
+            message = redact_connection(completed.stderr or completed.stdout, self.dsn)
             if "spec_digest" in message or "already frozen" in message or "already has status" in message:
                 raise ShadowConflict(message.strip())
             raise RuntimeError(message.strip())
         return completed
+
+
+def psql_invocation(dsn: str, *, extra: Sequence[str] = ()) -> tuple:
+    """``psql`` argv and environment. The URL and the password are not arguments."""
+    parts = urlsplit(dsn)
+    database = unquote(parts.path.lstrip("/"))
+    if not database or "/" in database:
+        raise RuntimeError("paired shadow database name is missing")
+    env = os.environ.copy()
+    for key in ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE"):
+        env.pop(key, None)
+    env["PGDATABASE"] = database
+    if parts.hostname:
+        env["PGHOST"] = parts.hostname
+    if parts.port:
+        env["PGPORT"] = str(parts.port)
+    if parts.username:
+        env["PGUSER"] = unquote(parts.username)
+    if parts.password:
+        env["PGPASSWORD"] = unquote(parts.password)
+    argv = ["psql", "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-1", *extra]
+    return argv, env
+
+
+def redact_connection(text: str, dsn: str) -> str:
+    """Drop the URL and the password from a client error before it is printed."""
+    if not text:
+        return ""
+    parts = urlsplit(dsn)
+    secret = unquote(parts.password) if parts.password else ""
+    cleaned = text.replace(dsn, "[dsn]")
+    if secret:
+        cleaned = cleaned.replace(secret, "[redacted]")
+    return cleaned
 
 
 def _issues_sql(rows: Sequence[Mapping]) -> str:
@@ -194,14 +230,10 @@ def _issues_sql(rows: Sequence[Mapping]) -> str:
                       AND family = {_dollar(row['family'])}
                       AND horizon = {_dollar(row['horizon'])}
                       AND issue_slot = {_time(row['issue_slot'])}
-                      AND as_of = {_time(row['as_of'])}
-                      AND horizon_end = {_time(row['horizon_end'])}
                       AND side IS NOT DISTINCT FROM {_int(row.get('side'))}
                       AND distance_pct IS NOT DISTINCT FROM {_float(row.get('distance_pct'))}
                       AND distance_up_pct IS NOT DISTINCT FROM {_float(row.get('distance_up_pct'))}
                       AND distance_down_pct IS NOT DISTINCT FROM {_float(row.get('distance_down_pct'))}
-                      AND level_up IS NOT DISTINCT FROM {_float(row.get('level_up'))}
-                      AND level_down IS NOT DISTINCT FROM {_float(row.get('level_down'))}
                       AND eval_rule_id = {_dollar(row['eval_rule_id'])}
                       AND eval_rule_digest = {_dollar(row['eval_rule_digest'])}
                 ) THEN

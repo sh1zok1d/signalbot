@@ -1,0 +1,38 @@
+[Unit]
+Description=Signalbot paired shadow hour read (write stays off until a drop-in)
+Documentation=file:/opt/signalbot/docs/PAIRED_SHADOW_PRODUCTION_PREFLIGHT_V1.md
+# The shipped command does not pass --write. A later drop-in replaces ExecStart.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=signalbot
+Group=signalbot
+WorkingDirectory=/opt/signalbot
+EnvironmentFile=/opt/signalbot/.env.paired-shadow
+Environment=SIGNALBOT_DOTENV=0
+InaccessiblePaths=-/opt/signalbot/.env
+Environment=PAIRED_SHADOW_SNAPSHOT_DIR=/var/lib/signalbot/paired-shadow/snapshots
+Environment=PYTHONDONTWRITEBYTECODE=1
+# The hour reads the snapshot tree. It does not receive StateDirectory for it,
+# so ProtectSystem=strict keeps that tree read-only here.
+RuntimeDirectory=paired-shadow-hour
+BindReadOnlyPaths=-/var/lib/signalbot/paired-shadow
+ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
+ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/scripts/beta/run_paired_shadow_hour.py --from-live --bars-from-db
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-paired-shadow-hour
+
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077

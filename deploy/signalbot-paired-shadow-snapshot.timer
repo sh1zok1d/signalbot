@@ -1,0 +1,14 @@
+[Unit]
+Description=Fit the paired shadow W_L1 snapshot daily at 02:40 UTC
+Documentation=file:/opt/signalbot/docs/PAIRED_SHADOW_PRODUCTION_PREFLIGHT_V1.md
+
+[Timer]
+# After signalbot-beta-history.timer (02:20 UTC). This unit does not start that one.
+OnCalendar=*-*-* 02:40:00 UTC
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalbot-paired-shadow-snapshot.service
+
+[Install]
+WantedBy=timers.target

@@ -86,8 +86,9 @@ def test_claude_forecast_is_stored_once_and_scored(snapshot):
     _psql_file(ROOT / "storage/beta_v0_schema.sql")
     approved = os.environ.copy()
     approved["PAIRED_SHADOW_SCHEMA_APPROVED"] = "1"
+    approved["PAIRED_SHADOW_DSN"] = TEST_DSN
     applied = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py"), TEST_DSN],
+        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py")],
         capture_output=True, text=True, check=False, env=approved,
     )
     assert applied.returncode == 0, applied.stderr

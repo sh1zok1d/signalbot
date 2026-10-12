@@ -46,7 +46,7 @@ His record labels are mapped on the way in:
 | `params_digest` | `snapshot_id` |
 | `stats_digest` | V1 `snapshot_id` |
 
-`plan_shadow_record` is the mapping. `execute_hour` stores it. The first probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability. A horizon whose status is not `OK` stores that status and no probability.
+`plan_shadow_record` is the mapping. `execute_hour` stores it. The first probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability. A later run in the same hour may carry another price and `as_of`; the first barriers and `as_of` stay, and the rerun is not a conflict, so settlement still runs. A different distance, side or evaluation rule under the same anchor key is a conflict. A horizon whose status is not `OK` stores that status and no probability.
 
 ## Anchors and outcomes
 
@@ -72,5 +72,5 @@ Hidden shadow issues are not `beta_claims` rows and have no `beta_claim_displays
 
 1. Run the read-only production-journal export in `docs/BETA_CALIBRATION_MONITOR_V2.md` and return the JSONL. That scores the journal that already exists. It does not start paired recording.
 2. Allow `storage/beta_paired_shadow_schema.sql` on the production database. Until then the apply script exits without connecting usefully: it requires `PAIRED_SHADOW_SCHEMA_APPROVED=1`.
-3. Allow `scripts/beta/run_paired_shadow_hour.py --write` by setting `PAIRED_SHADOW_HOUR_APPROVED=1`, and pass `--bars` with the 5m history. Until then `--write` exits 2. The write records the hour and launches `settle_due`. The default limit is 500 anchors per batch and 8 batches per run. A 12-week backlog is drained by repeating that run; each run resumes after the last stored outcome. The nightly W_L1 fit (`fit_nightly_snapshot` and `SnapshotStore`) is a further owner decision and is not started by this writer.
+3. Allow `scripts/beta/run_paired_shadow_hour.py --write` by setting `PAIRED_SHADOW_HOUR_APPROVED=1`. The database URL is `PAIRED_SHADOW_DSN` in the process environment, not a command argument. Until then `--write` exits 2. The write records the hour and launches `settle_due`. The default limit is 500 anchors per batch and 8 batches per run. A 12-week backlog is drained by repeating that run; each run resumes after the last stored outcome. The nightly W_L1 fit (`fit_nightly_snapshot` and `SnapshotStore`) is a further owner decision and is not started by this writer. The host steps are `docs/PAIRED_SHADOW_PRODUCTION_PREFLIGHT_V1.md`. Scenarios A and B there are not started by installing the units.
 4. Keep user wording, `touch_live_cal`, sticky flags and the sharp-move detector on V1.

@@ -220,23 +220,42 @@ class SnapshotStore:
         verify_snapshot(record)
         sid = record["snapshot_id"]
         same = [p for p in self._files() if p.stem.endswith("_" + sid)]
+        replaced = False
         if same:
-            return {"stored": False, "path": str(same[0])}
+            try:
+                verify_snapshot(json.loads(same[-1].read_text(encoding="utf-8")))
+            except (OSError, ValueError, KeyError, ShadowModelError):
+                replaced = True
+            else:
+                return {"stored": False, "path": str(same[-1]), "replaced_corrupt": False}
         self.root.mkdir(parents=True, exist_ok=True)
         path = self.root / f"{_stamp(_utc(record['built_at']))}_{sid}.json"
+        self._write(path, record)
+        return {"stored": True, "path": str(path), "replaced_corrupt": replaced}
+
+    def _write(self, path: Path, record: Mapping[str, Any]) -> None:
         tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")      # a crashed write never blocks the next
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(record, f, sort_keys=True)
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp, path)
-        return {"stored": True, "path": str(path)}
 
     def get(self, snapshot_id: str) -> dict:
+        matched = False
         for p in self._files():
-            if p.stem.endswith("_" + snapshot_id):
+            if not p.stem.endswith("_" + snapshot_id):
+                continue
+            matched = True
+            try:
                 rec = json.loads(p.read_text(encoding="utf-8"))
                 verify_snapshot(rec)
-                return rec
-        raise KeyError(snapshot_id)
+            except (OSError, ValueError, KeyError, ShadowModelError):
+                continue
+            return rec
+        if not matched:
+            raise KeyError(snapshot_id)
+        raise ShadowModelError("snapshot file does not verify")
 
     def select(self, at: datetime) -> tuple:
         """(status, reason, record) of the snapshot in force at `at`: the newest built at or before it."""
@@ -493,6 +512,53 @@ def paired_forecast(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2
     except Exception as exc:  # noqa: BLE001
         logger.warning("rangecast shadow forecast failed: %s", type(exc).__name__)
         return {**out, "status": NOT_COMPUTABLE, "reason": type(exc).__name__, "horizons": {}}
+
+
+def refuse_issue(snap: Snapshot, status: str, reason: str) -> dict:
+    """A record the store will not issue. No price and no probability."""
+    now = _utc(snap.now)
+    return {"schema": SHADOW_SCHEMA, "adapter_version": ADAPTER_VERSION, "status": status, "reason": reason,
+            "now": _iso(now), "as_of": None,
+            "issue_slot": _iso(now.replace(minute=0, second=0, microsecond=0)),
+            "price": None, "horizons": {}}
+
+
+def issue_live_record(snap: Snapshot, *, v1_state: str, v1_model: Optional[Mapping[str, Any]],
+                      v2_status: str, v2_reason: Optional[str], v2_model: Optional[Mapping[str, Any]],
+                      v1_stats_pk: Optional[int] = None) -> dict:
+    """One paired record from the market snapshot both models share.
+
+    ``v1_state`` is ``ok``, ``missing`` or ``stale``. A missing model, a stale V1 statistics row,
+    a missing, stale or unreadable W_L1 snapshot, or an identity that no longer matches the pins
+    returns a refusal. The store issues no probability from a refusal.
+    """
+    try:
+        v1_spec_digest()
+        v2.shadow_spec_digest()
+    except (ShadowModelError, v2.RangeModelV2Error):
+        return refuse_issue(snap, MODEL_INVALID, "SPEC_IDENTITY_MISMATCH")
+    if v1_state == "missing" or v1_model is None and v1_state != "stale":
+        return refuse_issue(snap, NO_MODEL, "NO_V1_MODEL")
+    if v1_state == "stale":
+        return refuse_issue(snap, STALE_DATA, "V1_STATS_STALE")
+    if v2_status != OK or v2_model is None:
+        return refuse_issue(snap, v2_status if v2_status and v2_status != OK else NO_MODEL,
+                            v2_reason or "NO_V2_MODEL")
+    return paired_forecast(
+        snap, v1_model=v1_model, v2_model=v2_model,
+        v1_ids={"stats_pk": v1_stats_pk, "stats_digest": v1_snapshot_id(v1_model)},
+    )
+
+
+def issue_summary(record: Mapping[str, Any]) -> dict:
+    """Statuses only. No price, probability, barrier or connection string."""
+    horizons = {}
+    for name, block in (record.get("horizons") or {}).items():
+        block = block or {}
+        horizons[name] = {"status": block.get("status"), "reason": block.get("reason"),
+                          "paired": bool(block.get("paired"))}
+    return {"status": record.get("status"), "reason": record.get("reason"), "horizons": horizons,
+            "schema": record.get("schema")}
 
 
 def plan_paired_issues(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_model: Optional[Mapping[str, Any]],

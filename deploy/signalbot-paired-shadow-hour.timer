@@ -1,0 +1,13 @@
+[Unit]
+Description=Read one paired shadow hour at minute 05 (not a writer until scenario B)
+Documentation=file:/opt/signalbot/docs/PAIRED_SHADOW_PRODUCTION_PREFLIGHT_V1.md
+
+[Timer]
+OnCalendar=*-*-* *:05:00 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalbot-paired-shadow-hour.service
+
+[Install]
+WantedBy=timers.target

@@ -256,7 +256,7 @@ class ShadowLedger:
             known[spec_key] = digest
             key = row["anchor_key"]
             stored = self.anchors.get(key)
-            if stored is not None and _anchor_body(stored) != _anchor_body(row):
+            if stored is not None and _anchor_identity(stored) != _anchor_identity(row):
                 raise ShadowConflict(f"anchor {key} was already frozen")
             ident = (key, row["procedure_id"], row["spec_id"])
             previous = self.issues.get(ident)
@@ -883,8 +883,22 @@ def _issue(anchor: Mapping, model: BoundShadowModel, probability: float, issued_
             "probability": probability, "issued_at": issued_at}
 
 
-def _anchor_body(row: Mapping) -> tuple:
-    return tuple(row[field] for field in _ANCHOR_FIELDS)
+_ANCHOR_IDENTITY_FIELDS = (
+    "anchor_key", "symbol", "family", "horizon", "issue_slot",
+    "side", "distance_pct", "distance_up_pct", "distance_down_pct",
+    "eval_rule_id", "eval_rule_digest",
+)
+
+
+def _anchor_identity(row: Mapping) -> tuple:
+    """The market question. A later minute may carry another price and ``as_of``; those are not part of it."""
+    values = []
+    for field in _ANCHOR_IDENTITY_FIELDS:
+        value = row[field]
+        if isinstance(value, datetime):
+            value = _utc(value)
+        values.append(value)
+    return tuple(values)
 
 
 def _scored(row: Mapping) -> bool:
