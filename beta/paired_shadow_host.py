@@ -15,7 +15,8 @@ from typing import Mapping, Optional, Sequence
 DSN_ENV = "PAIRED_SHADOW_DSN"
 ENV_FILE = Path("/opt/signalbot/.env.paired-shadow")
 SNAPSHOT_DIR_ENV = "PAIRED_SHADOW_SNAPSHOT_DIR"
-DEFAULT_SNAPSHOT_DIR = Path("/var/lib/signalbot/paired-shadow/snapshots")
+STATE_DIRECTORY_NAME = "signalbot/paired-shadow"
+DEFAULT_SNAPSHOT_DIR = Path("/var/lib") / STATE_DIRECTORY_NAME / "snapshots"
 HOUR_APPROVED = "PAIRED_SHADOW_HOUR_APPROVED"
 SCHEMA_APPROVED = "PAIRED_SHADOW_SCHEMA_APPROVED"
 SNAPSHOT_APPROVED = "PAIRED_SHADOW_SNAPSHOT_APPROVED"
@@ -91,6 +92,36 @@ def overall(checks: Mapping[str, Mapping]) -> str:
 
 def _env_quote(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def state_directory_path(name: str = STATE_DIRECTORY_NAME) -> Path:
+    """The host path systemd creates for ``StateDirectory=`` under ``/var/lib``."""
+    parts = Path(name).parts
+    if not parts or name.startswith("/") or ".." in parts:
+        raise ValueError("state directory name must be a relative path")
+    return Path("/var/lib").joinpath(*parts)
+
+
+def _inside(child: Path, parent: Path) -> bool:
+    try:
+        child.absolute().resolve().relative_to(parent.absolute().resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def snapshot_directory(env: Optional[Mapping[str, str]] = None) -> Path:
+    """The W_L1 directory. Under the snapshot unit it must sit inside ``STATE_DIRECTORY``.
+
+    ``ProtectSystem=strict`` leaves only that directory writable. A configured path
+    outside it is refused instead of failing later on a read-only filesystem.
+    """
+    current = os.environ if env is None else env
+    configured = Path(current.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR)
+    state = (current.get("STATE_DIRECTORY") or "").split(":", 1)[0].strip()
+    if state and not _inside(configured, Path(state)):
+        raise RuntimeError("SNAPSHOT_DIR_OUTSIDE_STATE_DIRECTORY")
+    return configured
 
 
 async def load_market(dsn: str, *, now: datetime, snapshot_dir: Path) -> dict:

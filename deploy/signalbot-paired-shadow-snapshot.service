@@ -14,9 +14,12 @@ WorkingDirectory=/opt/signalbot
 EnvironmentFile=/opt/signalbot/.env.paired-shadow
 Environment=SIGNALBOT_DOTENV=0
 InaccessiblePaths=-/opt/signalbot/.env
+# StateDirectory is /var/lib/signalbot/paired-shadow and is the only tree
+# ProtectSystem=strict leaves writable. The snapshot files are a subdirectory of it.
+StateDirectory=signalbot/paired-shadow
+ReadWritePaths=/var/lib/signalbot/paired-shadow
 Environment=PAIRED_SHADOW_SNAPSHOT_DIR=/var/lib/signalbot/paired-shadow/snapshots
 Environment=PYTHONDONTWRITEBYTECODE=1
-StateDirectory=paired-shadow
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
 ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/scripts/beta/fit_paired_shadow_snapshot.py

@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from beta.paired_shadow import plan_shadow_record
-from beta.paired_shadow_host import judge_sources, overall, require_dsn, write_env_file
+from beta.paired_shadow_host import judge_sources, overall, require_dsn, snapshot_directory, write_env_file
 from beta.paired_shadow_pg import psql_invocation, redact_connection
 from beta.rangecast_shadow import issue_live_record
 
@@ -100,6 +100,46 @@ def test_a_disabled_paired_timer_is_not_already_enabled(monkeypatch):
     monkeypatch.setattr(module, "_systemctl_show", show)
     report = module._schedulers()
     assert report["status"] == "PASS" and report["reason"] is None
+
+
+def test_sha_sees_a_dirty_worktree_and_the_deployed_commit(tmp_path, monkeypatch):
+    module = _preflight_module()
+    root = tmp_path
+    (root / "BUILD_SHA").write_text("abc123\n", encoding="utf-8")
+    monkeypatch.setattr(module, "_git_head", lambda _root: "abc123")
+    monkeypatch.setattr(module, "_git_dirty", lambda _root: False)
+    clean = module._sha(root)
+    assert clean["status"] == "PASS" and clean["sha"] == "abc123" and clean["matches_git"] is True
+    monkeypatch.setenv("PAIRED_SHADOW_EXPECTED_SHA", "abc123")
+    assert module._sha(root)["status"] == "PASS"
+    monkeypatch.setenv("PAIRED_SHADOW_EXPECTED_SHA", "fff")
+    assert module._sha(root)["reason"] == "SHA_MISMATCH"
+    monkeypatch.delenv("PAIRED_SHADOW_EXPECTED_SHA")
+    monkeypatch.setattr(module, "_git_dirty", lambda _root: True)
+    dirty = module._sha(root)
+    assert dirty["status"] == "FAIL" and dirty["reason"] == "DIRTY_TREE"
+    assert "porcelain" not in json.dumps(dirty)
+    monkeypatch.setattr(module, "_git_head", lambda _root: "other")
+    monkeypatch.setattr(module, "_git_dirty", lambda _root: False)
+    assert module._sha(root)["reason"] == "SHA_MISMATCH"
+    monkeypatch.setattr(module, "_git_dirty", lambda _root: None)
+    monkeypatch.setattr(module, "_git_head", lambda _root: None)
+    assert module._sha(root)["reason"] == "TREE_UNKNOWN"
+
+
+def test_snapshot_unit_path_is_inside_the_state_directory():
+    module = _preflight_module()
+    report = module._sandbox(ROOT)
+    assert report == {"status": "PASS", "reason": None}
+
+
+def test_snapshot_directory_outside_the_state_directory_is_refused(monkeypatch):
+    monkeypatch.setenv("STATE_DIRECTORY", "/var/lib/signalbot/paired-shadow")
+    monkeypatch.setenv("PAIRED_SHADOW_SNAPSHOT_DIR", "/var/lib/paired-shadow/snapshots")
+    with pytest.raises(RuntimeError, match="SNAPSHOT_DIR_OUTSIDE_STATE_DIRECTORY"):
+        snapshot_directory()
+    monkeypatch.setenv("PAIRED_SHADOW_SNAPSHOT_DIR", "/var/lib/signalbot/paired-shadow/snapshots")
+    assert snapshot_directory() == Path("/var/lib/signalbot/paired-shadow/snapshots")
 
 
 def test_source_and_overall_verdicts():

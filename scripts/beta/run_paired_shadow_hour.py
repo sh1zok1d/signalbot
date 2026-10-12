@@ -26,7 +26,7 @@ if str(_ROOT) not in sys.path:
 
 from beta.paired_shadow import DEFAULT_SETTLE_BATCHES, DEFAULT_SETTLE_LIMIT, execute_hour, plan_shadow_record
 from beta.paired_shadow_host import (
-    DEFAULT_SNAPSHOT_DIR, HOUR_APPROVED, SNAPSHOT_DIR_ENV, approved, require_dsn,
+    HOUR_APPROVED, approved, require_dsn, snapshot_directory,
 )
 from beta.rangecast_shadow import issue_live_record, issue_summary
 
@@ -124,7 +124,7 @@ async def _market(dsn: str, now: datetime, snapshot_dir: Path) -> dict:
 
 
 async def _bars_only(dsn: str, now: datetime):
-    market = await _market(dsn, now, Path(os.environ.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR))
+    market = await _market(dsn, now, snapshot_directory())
     return market["bars"]
 
 
@@ -155,7 +155,7 @@ def _parse(argv: list) -> dict:
         "write": False, "from_live": False, "bars_from_db": False, "bars_path": None,
         "record_path": None, "settle_limit": DEFAULT_SETTLE_LIMIT,
         "settle_batches": DEFAULT_SETTLE_BATCHES,
-        "snapshot_dir": Path(os.environ.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR),
+        "snapshot_dir": None,
     }
     index = 0
     while index < len(argv):
@@ -199,6 +199,13 @@ def _parse(argv: list) -> dict:
     if opts["bars_path"] and opts["bars_from_db"]:
         print("pass either --bars or --bars-from-db", file=sys.stderr)
         raise SystemExit(2)
+    if opts["snapshot_dir"] is None:
+        try:
+            opts["snapshot_dir"] = snapshot_directory()
+        except RuntimeError as exc:
+            print(json.dumps({"status": "NOT_COMPUTABLE", "reason": str(exc), "written": False},
+                             sort_keys=True))
+            raise SystemExit(1) from None
     return opts
 
 

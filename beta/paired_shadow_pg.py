@@ -230,14 +230,10 @@ def _issues_sql(rows: Sequence[Mapping]) -> str:
                       AND family = {_dollar(row['family'])}
                       AND horizon = {_dollar(row['horizon'])}
                       AND issue_slot = {_time(row['issue_slot'])}
-                      AND as_of = {_time(row['as_of'])}
-                      AND horizon_end = {_time(row['horizon_end'])}
                       AND side IS NOT DISTINCT FROM {_int(row.get('side'))}
                       AND distance_pct IS NOT DISTINCT FROM {_float(row.get('distance_pct'))}
                       AND distance_up_pct IS NOT DISTINCT FROM {_float(row.get('distance_up_pct'))}
                       AND distance_down_pct IS NOT DISTINCT FROM {_float(row.get('distance_down_pct'))}
-                      AND level_up IS NOT DISTINCT FROM {_float(row.get('level_up'))}
-                      AND level_down IS NOT DISTINCT FROM {_float(row.get('level_down'))}
                       AND eval_rule_id = {_dollar(row['eval_rule_id'])}
                       AND eval_rule_digest = {_dollar(row['eval_rule_digest'])}
                 ) THEN

@@ -158,6 +158,37 @@ def test_both_models_share_anchors_and_the_first_probability_is_kept():
         plan_issues([v1, v1], price=PRICE, as_of=AS_OF, issue_slot=SLOT)
 
 
+def test_a_later_minute_keeps_the_first_barrier_and_still_settles():
+    ledger = ShadowLedger()
+    first = ledger.record_issues(_plan(), allow_write=True)
+    later_price = PRICE * 1.08
+    later = plan_issues(
+        list(_models(touch_v2=0.11, snapshot_v2="snap-later")),
+        price=later_price, as_of=AS_OF + timedelta(minutes=7), issue_slot=SLOT,
+        horizons=("4h",), distances=(1.25,), neither_pairs=((0.5, 1.0),),
+    )
+    second = ledger.record_issues(later, allow_write=True)
+    assert second == {"inserted": 0, "kept": first["inserted"]}
+    anchor = next(row for row in ledger.anchors.values() if row["family"] == "touch" and row["side"] == 1)
+    assert anchor["as_of"] == AS_OF
+    assert anchor["level_up"] == pytest.approx(PRICE * 1.0125)
+    stored_v2 = [row for row in ledger.joined_rows() if row["procedure_id"] == V2_PROCEDURE_ID and row["family"] == "touch"]
+    assert {row["probability"] for row in stored_v2} == {0.80}
+    assert {row["snapshot_id"] for row in stored_v2} == {"snap-v2"}
+    # 1.02 crosses the first 1.25% barrier and not the barrier a 8% higher price would have frozen.
+    scored = settle_due(
+        ledger, _bars(high=PRICE * 1.02, low=PRICE * 0.995),
+        now=AS_OF + timedelta(hours=5), allow_write=True,
+    )
+    assert scored["launched"] is True and scored["status"] == "OK" and scored["stored"] > 0
+    hit = next(item for item in scored["reports"] if item["anchor_key"] == anchor["anchor_key"])
+    assert hit["outcome"] == 1
+    changed = dict(later[0])
+    changed["distance_pct"] = 2.0
+    with pytest.raises(ShadowConflict, match="already frozen"):
+        ledger.record_issues([changed], allow_write=True)
+
+
 def test_one_outcome_scores_both_procedures_and_hides_the_barrier():
     ledger = ShadowLedger()
     ledger.record_issues(_plan(), allow_write=True)

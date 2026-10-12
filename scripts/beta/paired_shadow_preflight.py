@@ -22,8 +22,8 @@ if str(_ROOT) not in sys.path:
 
 from beta.paired_shadow import SHADOW_RECORDING_ENABLED, V1_SPEC_DIGEST, V2_SPEC_DIGEST
 from beta.paired_shadow_host import (
-    BACKUP_MAX_AGE_H, DEFAULT_SNAPSHOT_DIR, ENV_FILE, MIN_FREE_BYTES, SNAPSHOT_DIR_ENV,
-    env_file_status, judge_sources, overall, source_facts,
+    BACKUP_MAX_AGE_H, ENV_FILE, MIN_FREE_BYTES, SNAPSHOT_DIR_ENV,
+    env_file_status, judge_sources, overall, snapshot_directory, source_facts, state_directory_path,
 )
 
 UTC = timezone.utc
@@ -55,6 +55,7 @@ def main(argv: list) -> int:
         "backup": _backup(_ROOT, now),
         "schedulers": _schedulers(),
         "snapshot": _snapshot(now),
+        "sandbox": _sandbox(_ROOT),
     }
     report = {"schema": "PAIRED_SHADOW_PREFLIGHT_V1", "at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "status": overall(checks), "checks": checks}
@@ -63,20 +64,36 @@ def main(argv: list) -> int:
 
 
 def _sha(root: Path) -> dict:
+    """The deployed commit, after a real worktree check.
+
+    ``git rev-parse HEAD`` stays the same when a tracked file is modified.
+    ``git status --porcelain`` sees that modification. The report names the
+    result and does not list paths. ``BUILD_SHA`` is the identity the installer
+    wrote; when ``PAIRED_SHADOW_EXPECTED_SHA`` is set it has to match that
+    identity, and a git checkout has to be the same commit and clean.
+    """
     build = root / "BUILD_SHA"
     file_sha = build.read_text(encoding="utf-8").strip() if build.is_file() else None
     git_sha = _git_head(root)
+    dirty = _git_dirty(root)
     sha = file_sha or git_sha
     if not sha:
         return {"status": "NOT_READY", "reason": "SHA_UNKNOWN"}
     expected = (os.environ.get("PAIRED_SHADOW_EXPECTED_SHA") or "").strip() or None
+    commit = _commit_of(sha)
+    head_commit = _commit_of(git_sha) if git_sha else None
+    matches_git = None if not (file_sha and git_sha) else commit == head_commit
     status, reason = "PASS", None
-    if sha.endswith("-dirty"):
+    if sha.endswith("-dirty") or dirty is True:
         status, reason = "FAIL", "DIRTY_TREE"
-    elif expected and not sha.startswith(expected):
+    elif matches_git is False:
         status, reason = "FAIL", "SHA_MISMATCH"
-    return {"status": status, "reason": reason, "sha": sha, "source": "BUILD_SHA" if file_sha else "git",
-            "matches_git": None if not (file_sha and git_sha) else file_sha == git_sha}
+    elif expected and not (sha == expected or commit == expected or commit.startswith(expected)):
+        status, reason = "FAIL", "SHA_MISMATCH"
+    elif dirty is None:
+        status, reason = "NOT_READY", "TREE_UNKNOWN"
+    return {"status": status, "reason": reason, "sha": sha,
+            "source": "BUILD_SHA" if file_sha else "git", "matches_git": matches_git}
 
 
 def _digests() -> dict:
@@ -105,7 +122,10 @@ def _sources(now: datetime) -> dict:
 
 
 def _disk() -> dict:
-    path = Path(os.environ.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR)
+    try:
+        path = snapshot_directory()
+    except RuntimeError as exc:
+        return {"status": "FAIL", "reason": str(exc)}
     probe = path if path.exists() else path.parent if path.parent.exists() else Path("/")
     free = shutil.disk_usage(probe).free
     return {"status": "PASS" if free >= MIN_FREE_BYTES else "FAIL",
@@ -149,10 +169,41 @@ def _schedulers() -> dict:
 
 def _snapshot(now: datetime) -> dict:
     from beta.rangecast_shadow import OK, SnapshotStore
-    root = Path(os.environ.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR)
+    try:
+        root = snapshot_directory()
+    except RuntimeError as exc:
+        return {"status": "FAIL", "reason": str(exc)}
     status, reason, record = SnapshotStore(root).select(now)
     return {"status": "PASS" if status == OK else "NOT_READY", "reason": reason,
             "snapshot": status, "files": len(list(root.glob('*_*.json'))) if root.is_dir() else 0}
+
+
+def _sandbox(root: Path) -> dict:
+    """The unit files agree on one writable snapshot tree. No host paths beyond that fact."""
+    try:
+        snapshot_unit = _unit_map(root / "deploy/signalbot-paired-shadow-snapshot.service")
+        hour_unit = _unit_map(root / "deploy/signalbot-paired-shadow-hour.service")
+    except OSError:
+        return {"status": "NOT_READY", "reason": "UNIT_UNREADABLE"}
+    state_name = snapshot_unit.get("StateDirectory")
+    snapshot_env = _env_value(snapshot_unit.get("Environment", ""), SNAPSHOT_DIR_ENV)
+    hour_env = _env_value(hour_unit.get("Environment", ""), SNAPSHOT_DIR_ENV)
+    writable = snapshot_unit.get("ReadWritePaths")
+    bind = hour_unit.get("BindReadOnlyPaths", "").lstrip("-")
+    if not state_name or not snapshot_env or snapshot_env != hour_env:
+        return {"status": "FAIL", "reason": "SNAPSHOT_PATH_MISMATCH"}
+    try:
+        state = state_directory_path(state_name)
+    except ValueError:
+        return {"status": "FAIL", "reason": "SNAPSHOT_PATH_MISMATCH"}
+    snapshot = Path(snapshot_env)
+    if not _path_inside(snapshot, state) or writable != str(state) or not _path_inside(snapshot, Path(bind)):
+        return {"status": "FAIL", "reason": "SNAPSHOT_DIR_OUTSIDE_STATE_DIRECTORY"}
+    if snapshot_unit.get("ProtectSystem") != "strict" or hour_unit.get("ProtectSystem") != "strict":
+        return {"status": "FAIL", "reason": "SANDBOX_NOT_STRICT"}
+    if hour_unit.get("StateDirectory") or hour_unit.get("ReadWritePaths"):
+        return {"status": "FAIL", "reason": "HOUR_SNAPSHOT_WRITABLE"}
+    return {"status": "PASS", "reason": None}
 
 
 def _systemctl_show(unit: str):
@@ -173,17 +224,66 @@ def _systemctl_show(unit: str):
     return out
 
 
-def _git_head(root: Path):
+def _git(root: Path, *args: str):
     try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), "rev-parse", "HEAD"],
+        return subprocess.run(
+            ["git", "-c", f"safe.directory={root}", "-C", str(root), *args],
             capture_output=True, text=True, check=False, timeout=10,
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    if completed.returncode != 0:
+
+
+def _git_head(root: Path):
+    completed = _git(root, "rev-parse", "HEAD")
+    if completed is None or completed.returncode != 0:
         return None
     return completed.stdout.strip() or None
+
+
+def _git_dirty(root: Path):
+    """True when a tracked file differs from HEAD. The path list is discarded."""
+    completed = _git(root, "status", "--porcelain", "--untracked-files=no")
+    if completed is None or completed.returncode != 0:
+        return None
+    return bool(completed.stdout.strip())
+
+
+def _commit_of(value: str) -> str:
+    return value[:-6] if value.endswith("-dirty") else value
+
+
+def _unit_map(path: Path) -> dict:
+    found = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or line.startswith("["):
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key == "Environment":
+            found.setdefault("Environment", "")
+            found["Environment"] += "\n" + value
+        elif key not in found:
+            found[key] = value
+    return found
+
+
+def _env_value(block: str, name: str):
+    prefix = name + "="
+    for line in block.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):]
+    return None
+
+
+def _path_inside(child: Path, parent: Path) -> bool:
+    try:
+        child.absolute().resolve().relative_to(parent.absolute().resolve())
+    except ValueError:
+        return False
+    return child != parent
 
 
 if __name__ == "__main__":

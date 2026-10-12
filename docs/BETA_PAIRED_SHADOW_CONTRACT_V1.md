@@ -46,7 +46,7 @@ His record labels are mapped on the way in:
 | `params_digest` | `snapshot_id` |
 | `stats_digest` | V1 `snapshot_id` |
 
-`plan_shadow_record` is the mapping. `execute_hour` stores it. The first probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability. A horizon whose status is not `OK` stores that status and no probability.
+`plan_shadow_record` is the mapping. `execute_hour` stores it. The first probability for `(anchor, procedure, spec)` is kept. A rerun does not create a second row and does not replace the probability. A later run in the same hour may carry another price and `as_of`; the first barriers and `as_of` stay, and the rerun is not a conflict, so settlement still runs. A different distance, side or evaluation rule under the same anchor key is a conflict. A horizon whose status is not `OK` stores that status and no probability.
 
 ## Anchors and outcomes
 

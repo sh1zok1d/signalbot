@@ -15,6 +15,8 @@ Environment=SIGNALBOT_DOTENV=0
 InaccessiblePaths=-/opt/signalbot/.env
 Environment=PAIRED_SHADOW_SNAPSHOT_DIR=/var/lib/signalbot/paired-shadow/snapshots
 Environment=PYTHONDONTWRITEBYTECODE=1
+# The hour reads the snapshot tree. It does not receive StateDirectory for it,
+# so ProtectSystem=strict keeps that tree read-only here.
 RuntimeDirectory=paired-shadow-hour
 BindReadOnlyPaths=-/var/lib/signalbot/paired-shadow
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python

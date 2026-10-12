@@ -75,11 +75,12 @@ def _apply(dsn: str) -> None:
     assert dsn not in applied.stderr
 
 
-def _record(as_of: datetime) -> dict:
-    touch = [{"side": 1, "distance_pct": 1.25, "status": "OK", "probability": 0.20},
-             {"side": -1, "distance_pct": 1.25, "status": "OK", "probability": 0.20}]
+def _record(as_of: datetime, *, price: float = 65432.1, touch_p: float = 0.20,
+            touch_p_v2: float = 0.80) -> dict:
+    touch = [{"side": 1, "distance_pct": 1.25, "status": "OK", "probability": touch_p},
+             {"side": -1, "distance_pct": 1.25, "status": "OK", "probability": touch_p}]
     neither = [{"up_pct": 0.5, "down_pct": 1.0, "status": "OK", "probability": 0.70}]
-    touch_v2 = [{**item, "probability": 0.80} for item in touch]
+    touch_v2 = [{**item, "probability": touch_p_v2} for item in touch]
     neither_v2 = [{**item, "probability": 0.30} for item in neither]
 
     def block():
@@ -96,18 +97,19 @@ def _record(as_of: datetime) -> dict:
         "schema": "RANGECAST_SHADOW_RECORD_V1",
         "status": "OK",
         "as_of": as_of.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "price": 65432.1,
+        "price": price,
         "horizons": {"1h": block(), "24h": block()},
     }
 
 
-def _bars(as_of: datetime) -> list:
+def _bars(as_of: datetime, *, price: float = 65432.1, high_ratio: float = 1.005,
+          low_ratio: float = 0.995) -> list:
     start = int(as_of.timestamp() * 1000)
     rows = []
     for index in range(48):
         rows.append({
             "open_time_ms": start + index * BAR_MS,
-            "open": 65432.1, "high": 65432.1 * 1.005, "low": 65432.1 * 0.995, "close": 65432.1,
+            "open": price, "high": price * high_ratio, "low": price * low_ratio, "close": price,
             "volume": 1, "quote_volume": 1, "taker_buy_quote": 1,
         })
     return rows
@@ -164,6 +166,55 @@ def test_writer_launches_settlement_for_elapsed_anchors(tmp_path):
     assert again["settlement"]["selected"] == 0
     missing_claims = _psql(WRITER_DSN, "SELECT to_regclass('public.beta_claims')").stdout.strip()
     assert missing_claims in ("", "None", "null")
+
+
+@NEEDS_TEST_DB
+def test_a_later_live_minute_keeps_the_first_pair_and_settles_it(tmp_path):
+    """Seven minutes later the price and bars differ. The first barrier is what gets scored."""
+    _ensure_db("signalbot_shadow_writer", WRITER_DSN)
+    _apply(WRITER_DSN)
+    slot = datetime.now(UTC).replace(minute=0, second=0, microsecond=0) - timedelta(hours=3)
+    first_as_of = slot
+    second_as_of = slot + timedelta(minutes=7)
+    first_price = 65432.1
+    first_path = tmp_path / "first.json"
+    second_path = tmp_path / "second.json"
+    bars_path = tmp_path / "bars.json"
+    first_path.write_text(json.dumps(_record(first_as_of, price=first_price)), encoding="utf-8")
+    second_path.write_text(json.dumps(_record(
+        second_as_of, price=first_price * 1.08, touch_p=0.11, touch_p_v2=0.15,
+    )), encoding="utf-8")
+    # 2% above the first price crosses its 1.25% barrier and not the barrier of the later price.
+    bars_path.write_text(json.dumps({"bars": _bars(first_as_of, price=first_price, high_ratio=1.02)}),
+                         encoding="utf-8")
+    opened = _run_writer(first_path)
+    assert opened["inserted"] > 0
+    assert opened["settlement"]["status"] == "NO_BARS"
+    replay = _run_writer(second_path, "--bars", str(bars_path), "--settle-limit", "50")
+    assert replay["inserted"] == 0
+    assert replay["kept"] == opened["inserted"]
+    assert replay["settlement"]["launched"] is True
+    assert replay["settlement"]["status"] == "OK"
+    assert replay["settlement"]["stored"] > 0
+    row = _psql(WRITER_DSN, """
+        SELECT to_char(a.as_of AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS'),
+               a.level_up::text,
+               i.probability::text,
+               o.outcome::text
+        FROM beta_shadow_anchors a
+        JOIN beta_shadow_issues i ON i.anchor_pk = a.anchor_pk AND i.procedure_id = 'RANGECAST_V1'
+        JOIN LATERAL (
+            SELECT outcome FROM beta_shadow_outcomes
+            WHERE anchor_pk = a.anchor_pk
+            ORDER BY revision DESC LIMIT 1
+        ) o ON true
+        WHERE a.family = 'touch' AND a.side = 1 AND a.horizon = '1h'
+    """).stdout.strip()
+    as_of_text, level_text, probability_text, outcome_text = row.split("|")
+    assert as_of_text == first_as_of.strftime("%Y-%m-%d %H:%M:%S")
+    assert float(level_text) == pytest.approx(first_price * 1.0125)
+    assert float(probability_text) == pytest.approx(0.20)
+    assert outcome_text == "1"
 
 
 def _geometries() -> str:

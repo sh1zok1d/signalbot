@@ -23,10 +23,13 @@ The W_L1 fit (`rangecast_shadow.fit_nightly_snapshot`, `SnapshotStore`) was not 
 - W_L1 comes from `SnapshotStore.select`. `NO_SNAPSHOT`, `STALE_SNAPSHOT` and `MODEL_INVALID` write no file.
 - Both binders run on that same bar. The stored digests must equal the Amendment 1 pins or the hour is `MODEL_INVALID`.
 - A refusal has no price and no probability. `plan_shadow_record` stores nothing from it.
+- A second `--from-live` in the same hour may see a later price and `as_of`. The anchor key does not include them. The first `as_of`, barriers and probabilities stay. The repeat does not raise, and settlement still runs on the frozen pair. A different distance, side or evaluation rule under that same key is still a conflict.
 
 ## W_L1 snapshots
 
-`scripts/beta/fit_paired_shadow_snapshot.py` reads the same grid window as `run_history_build` and writes one JSON file under `PAIRED_SHADOW_SNAPSHOT_DIR` (the unit uses `/var/lib/signalbot/paired-shadow/snapshots`).
+`scripts/beta/fit_paired_shadow_snapshot.py` reads the same grid window as `run_history_build` and writes one JSON file under `PAIRED_SHADOW_SNAPSHOT_DIR`.
+
+The snapshot unit sets `StateDirectory=signalbot/paired-shadow`, which systemd creates as `/var/lib/signalbot/paired-shadow` and makes writable under `ProtectSystem=strict`. `ReadWritePaths` names that same directory. The files go in its `snapshots` subdirectory. The hour unit bind-mounts that directory read-only and does not get `StateDirectory` or `ReadWritePaths` for it. If `STATE_DIRECTORY` is set and the snapshot path is outside it, the fit and the hour exit without writing.
 
 | Condition | Behaviour |
 |---|---|
@@ -38,6 +41,8 @@ The W_L1 fit (`rangecast_shadow.fit_nightly_snapshot`, `SnapshotStore`) was not 
 | Same coefficients, valid file | `put` stores nothing. The snapshot id does not change. |
 
 The fit exits 2 unless `PAIRED_SHADOW_SNAPSHOT_APPROVED=1`. The shipped unit does not set that variable.
+
+`systemd-analyze verify` accepts both units and both timers. Where systemd is not PID 1, the writable-path constraint was also checked in a private mount namespace: a root remounted read-only with a tmpfs only on `/var/lib/paired-shadow` refuses to create `/var/lib/signalbot/paired-shadow/snapshots` (`EROFS`). The same namespace with the tmpfs on `/var/lib/signalbot/paired-shadow` lets `SnapshotStore.put` create a verified file, mode `0600`, and a write outside that directory is refused.
 
 ## Connection file
 
@@ -70,7 +75,7 @@ The JSON report has `status` `PASS`, `NOT_READY` or `FAIL`. It includes the depl
 
 | Check | PASS | Not ready / fail |
 |---|---|---|
-| SHA | `BUILD_SHA` or git HEAD, not dirty, and equal to `PAIRED_SHADOW_EXPECTED_SHA` when that is set | missing, dirty, or different |
+| SHA | `BUILD_SHA` when the installer wrote it, otherwise git HEAD. `git status --porcelain` reports no tracked change, `BUILD_SHA` equals HEAD when both exist, and the value matches `PAIRED_SHADOW_EXPECTED_SHA` when that is set. The report does not list paths | missing, a tracked change (`DIRTY_TREE`), `BUILD_SHA` disagreeing with HEAD, expected SHA disagreeing with the deployed identity, or git status unavailable (`TREE_UNKNOWN`) |
 | Digests | `v1_spec_digest()` and `shadow_spec_digest()` equal the pins in `beta/paired_shadow.py` | any other value, or the identity check raises |
 | Recording | `SHADOW_RECORDING_ENABLED` is false | true |
 | Sources | history present, statistics younger than 72 hours, last Binance 1m bar younger than 15 minutes | no history, stale history, stale live bars, or `DSN_UNSET` |

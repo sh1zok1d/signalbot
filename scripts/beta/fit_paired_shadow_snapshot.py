@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -20,7 +19,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from beta.paired_shadow_host import (
-    DEFAULT_SNAPSHOT_DIR, SNAPSHOT_APPROVED, SNAPSHOT_DIR_ENV, SNAPSHOT_LOCK_KEY, approved, require_dsn,
+    SNAPSHOT_APPROVED, SNAPSHOT_LOCK_KEY, approved, require_dsn, snapshot_directory,
 )
 from beta.rangecast_shadow import OK, SnapshotStore, fit_nightly_snapshot
 
@@ -39,7 +38,11 @@ def main(argv: list) -> int:
         dsn = require_dsn()
     except SystemExit as exc:
         return int(exc.code)
-    root = Path(os.environ.get(SNAPSHOT_DIR_ENV) or DEFAULT_SNAPSHOT_DIR)
+    try:
+        root = snapshot_directory()
+    except RuntimeError as exc:
+        print(json.dumps({"status": "NOT_COMPUTABLE", "reason": str(exc)}, sort_keys=True))
+        return 1
     now = datetime.now(UTC)
     try:
         outcome = asyncio.run(_fit(dsn, now, root))
