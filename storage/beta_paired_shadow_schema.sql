@@ -62,18 +62,30 @@ CREATE TABLE IF NOT EXISTS beta_shadow_issues (
     issued_at     TIMESTAMPTZ NOT NULL,
     CONSTRAINT uq_beta_shadow_issue UNIQUE (anchor_pk, procedure_id, spec_id)
 );
+CREATE TABLE IF NOT EXISTS beta_shadow_spec_identity (
+    procedure_id  TEXT NOT NULL CHECK (procedure_id ~ '^[A-Z][A-Z0-9_]{0,63}$'),
+    spec_id       TEXT NOT NULL CHECK (spec_id ~ '^[A-Z][A-Z0-9_]{0,63}$'),
+    spec_digest   TEXT NOT NULL CHECK (spec_digest ~ '^[0-9a-f]{64}$'),
+    PRIMARY KEY (procedure_id, spec_id)
+);
+DROP TRIGGER IF EXISTS trg_beta_shadow_spec_identity_append_only ON beta_shadow_spec_identity;
+CREATE TRIGGER trg_beta_shadow_spec_identity_append_only
+    BEFORE UPDATE OR DELETE ON beta_shadow_spec_identity
+    FOR EACH ROW EXECUTE FUNCTION beta_shadow_reject_mutation();
+
 CREATE OR REPLACE FUNCTION beta_shadow_issue_identity_guard() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
     existing TEXT;
 BEGIN
+    INSERT INTO beta_shadow_spec_identity (procedure_id, spec_id, spec_digest)
+    VALUES (NEW.procedure_id, NEW.spec_id, NEW.spec_digest)
+    ON CONFLICT (procedure_id, spec_id) DO NOTHING;
     SELECT spec_digest INTO existing
-    FROM beta_shadow_issues
-    WHERE anchor_pk = NEW.anchor_pk
-      AND procedure_id = NEW.procedure_id
-      AND spec_id = NEW.spec_id;
-    IF FOUND AND existing IS DISTINCT FROM NEW.spec_digest THEN
-        RAISE EXCEPTION 'spec_id % changed its digest; use a new spec_id', NEW.spec_id
+    FROM beta_shadow_spec_identity
+    WHERE procedure_id = NEW.procedure_id AND spec_id = NEW.spec_id;
+    IF existing IS DISTINCT FROM NEW.spec_digest THEN
+        RAISE EXCEPTION 'spec_id % already has another spec_digest; use a new spec_id', NEW.spec_id
             USING ERRCODE = 'check_violation';
     END IF;
     RETURN NEW;
@@ -123,6 +135,44 @@ DROP TRIGGER IF EXISTS trg_beta_shadow_outcome_rule ON beta_shadow_outcomes;
 CREATE TRIGGER trg_beta_shadow_outcome_rule
     BEFORE INSERT ON beta_shadow_outcomes
     FOR EACH ROW EXECUTE FUNCTION beta_shadow_outcome_rule_guard();
+
+CREATE TABLE IF NOT EXISTS beta_shadow_hour_status (
+    status_pk    BIGSERIAL PRIMARY KEY,
+    issue_slot   TIMESTAMPTZ NOT NULL,
+    horizon      TEXT NOT NULL CHECK (horizon IN ('1h', '4h', '24h')),
+    status       TEXT NOT NULL CHECK (status IN (
+        'OK', 'STALE_DATA', 'INSUFFICIENT_HISTORY', 'INCOMPLETE_WINDOW', 'EVENT_ZONE',
+        'NO_MODEL', 'MODEL_INVALID', 'NOT_COMPUTABLE', 'INVALID_TARGET', 'PENDING'
+    )),
+    reason       TEXT,
+    recorded_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_beta_shadow_hour_status UNIQUE (issue_slot, horizon)
+);
+CREATE OR REPLACE FUNCTION beta_shadow_hour_status_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    existing_status TEXT;
+    existing_reason TEXT;
+BEGIN
+    SELECT status, reason INTO existing_status, existing_reason
+    FROM beta_shadow_hour_status
+    WHERE issue_slot = NEW.issue_slot AND horizon = NEW.horizon;
+    IF FOUND AND (existing_status IS DISTINCT FROM NEW.status
+                  OR existing_reason IS DISTINCT FROM NEW.reason) THEN
+        RAISE EXCEPTION 'hour % % already has status %', NEW.issue_slot, NEW.horizon, existing_status
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_beta_shadow_hour_status_guard ON beta_shadow_hour_status;
+CREATE TRIGGER trg_beta_shadow_hour_status_guard
+    BEFORE INSERT ON beta_shadow_hour_status
+    FOR EACH ROW EXECUTE FUNCTION beta_shadow_hour_status_guard();
+DROP TRIGGER IF EXISTS trg_beta_shadow_hour_status_append_only ON beta_shadow_hour_status;
+CREATE TRIGGER trg_beta_shadow_hour_status_append_only
+    BEFORE UPDATE OR DELETE ON beta_shadow_hour_status
+    FOR EACH ROW EXECUTE FUNCTION beta_shadow_reject_mutation();
 
 CREATE OR REPLACE VIEW beta_shadow_export_v1 AS
 SELECT a.anchor_key,

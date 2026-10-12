@@ -20,8 +20,8 @@ from beta.hist_series import Bars, to_ms
 from beta.paired_shadow import (
     SHADOW_RECORDING_ENABLED, V1_PROCEDURE_ID, V1_SPEC_DIGEST, V1_SPEC_ID, V2_PROCEDURE_ID,
     V2_SPEC_DIGEST, V2_SPEC_ID, BoundShadowModel, ShadowConflict, ShadowLedger,
-    ShadowRecordingDisabled, bind_rangecast_v1, export_row, monitor_observations,
-    log_loss, paired_report, plan_issues, score_anchor,
+    ShadowRecordingDisabled, bind_rangecast_v1, execute_hour, export_row, monitor_observations,
+    log_loss, paired_report, plan_issues, plan_shadow_record, score_anchor,
 )
 from beta.rangecast import P_GRID
 from beta.state_tape import sha256_json
@@ -94,6 +94,14 @@ def test_recording_stays_off_and_is_not_wired_into_the_product():
         env={key: value for key, value in os.environ.items() if key != "PAIRED_SHADOW_SCHEMA_APPROVED"},
     )
     assert completed.returncode == 2
+    refused = execute_hour(_shadow_record(), ShadowLedger(), issue_slot=SLOT)
+    assert refused["written"] is False
+    dry = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/beta/run_paired_shadow_hour.py"), "--write", "record.json"],
+        capture_output=True, text=True, check=False,
+        env={key: value for key, value in os.environ.items() if key != "PAIRED_SHADOW_HOUR_APPROVED"},
+    )
+    assert dry.returncode == 2
 
 
 def test_v1_binder_uses_the_existing_touch_function_and_ignores_side():
@@ -215,6 +223,77 @@ def test_one_outcome_scores_both_procedures_and_hides_the_barrier():
     assert all(book["state"] == STATE_INSUFFICIENT for book in touch_books)
     assert all(book["state"] != STATE_FAULT for book in touch_books)
     assert {book["spec_id"] for book in books} == {V1_SPEC_ID, V2_SPEC_ID, "W_L2"}
+
+
+def _shadow_record(*, status="OK", spec_digest=V2_SPEC_DIGEST, p_v2=0.80):
+    return {
+        "schema": "RANGECAST_SHADOW_RECORD_V1",
+        "status": status,
+        "reason": None if status == "OK" else "PRICE_OLDER_THAN_10_MIN",
+        "as_of": AS_OF.isoformat(),
+        "price": PRICE,
+        "horizons": {"4h": {
+            "status": status,
+            "reason": None if status == "OK" else "PRICE_OLDER_THAN_10_MIN",
+            "v1": {"procedure_id": "TOUCH_CHANCE_PROCEDURE_V1", "stats_digest": "a" * 64,
+                   "status": "OK",
+                   "touch": [{"side": 1, "distance_pct": 1.25, "status": "OK", "probability": 0.20},
+                             {"side": -1, "distance_pct": 1.25, "status": "OK", "probability": 0.20}],
+                   "neither": [{"up_pct": 0.5, "down_pct": 1.0, "status": "OK", "probability": 0.70}]},
+            "v2": {"procedure_id": "TOUCH_CHANCE_PROCEDURE_RCV2_W_L1", "spec_id": "RANGECAST_V2_W_L1",
+                   "spec_digest": spec_digest, "params_digest": "b" * 64, "status": "OK",
+                   "touch": [{"side": 1, "distance_pct": 1.25, "status": "OK", "probability": p_v2},
+                             {"side": -1, "distance_pct": 1.25, "status": "OK", "probability": p_v2}],
+                   "neither": [{"up_pct": 0.5, "down_pct": 1.0, "status": "OK", "probability": 0.30}]},
+        }},
+    }
+
+
+def test_w_l1_digest_is_the_mathematical_procedure_pin():
+    assert V2_SPEC_ID == "W_L1"
+    assert V2_SPEC_DIGEST == "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
+    assert len(V2_SPEC_DIGEST) == 64
+
+
+def test_one_spec_digest_covers_every_anchor():
+    ledger = ShadowLedger()
+    ledger.record_issues(_plan(), allow_write=True)
+    later = SLOT + timedelta(hours=4)
+    bad = _stub(V2_PROCEDURE_ID, V2_SPEC_ID, "ab" * 32, "snap-other", 0.11, 0.11)
+    v1 = _stub(V1_PROCEDURE_ID, V1_SPEC_ID, V1_SPEC_DIGEST, "snap-v1", 0.20, 0.70)
+    with pytest.raises(ShadowConflict, match="spec_digest"):
+        ledger.record_issues(plan_issues(
+            [v1, bad], price=PRICE, as_of=later, issue_slot=later, horizons=("4h",),
+            distances=(1.25,), neither_pairs=(),
+        ), allow_write=True)
+    assert {row["issue_slot"] for row in ledger.joined_rows()} == {SLOT}
+
+
+def test_hour_path_keeps_probabilities_and_records_a_data_gap():
+    ledger = ShadowLedger()
+    first = execute_hour(_shadow_record(), ledger, issue_slot=SLOT, allow_write=True, score=True,
+                         bars=_bars(high=PRICE * 1.005, low=PRICE * 0.995), now=AS_OF + timedelta(hours=5))
+    assert first["written"] is True
+    assert first["inserted"] > 0
+    assert {book["procedure_id"] for book in first["books"]} == {V1_PROCEDURE_ID, V2_PROCEDURE_ID}
+    assert PROCEDURE_TOUCH_CHANCE not in {book["procedure_id"] for book in first["books"]}
+    touch = [item for item in first["scoring"] if item["family"] == "touch"]
+    assert touch and {item["status"] for item in touch} == {"COMPLETE"}
+    assert touch[0]["outcome"] == 0
+    second = execute_hour(_shadow_record(p_v2=0.11), ledger, issue_slot=SLOT, allow_write=True)
+    assert second["inserted"] == 0
+    assert second["kept"] == first["inserted"]
+    stored = [row["probability"] for row in ledger.joined_rows()
+              if row["procedure_id"] == V2_PROCEDURE_ID and row["family"] == "touch"]
+    assert stored == [0.80, 0.80]
+    stale = execute_hour(_shadow_record(status="STALE_DATA"), ledger, issue_slot=SLOT + timedelta(hours=4),
+                         allow_write=True)
+    assert stale["inserted"] == 0
+    assert stale["horizons"]["4h"]["status"] == "STALE_DATA"
+    assert all(row["issue_slot"] == SLOT for row in ledger.joined_rows())
+    refused = plan_shadow_record(_shadow_record(spec_digest="cd" * 32), issue_slot=SLOT + timedelta(hours=8))
+    assert refused["rows"] == []
+    assert refused["horizons"]["4h"]["status"] == "MODEL_INVALID"
 
 
 def test_coverage_below_the_monitor_floor_is_not_paired():
@@ -341,6 +420,43 @@ def test_shadow_schema_is_additive_and_the_export_view_hides_barriers():
     """, check=False)
     assert changed_digest.returncode != 0
     assert "digest" in changed_digest.stderr
+    _psql("-c", f"""
+        INSERT INTO beta_shadow_anchors (
+            anchor_key, symbol, family, horizon, issue_slot, as_of, horizon_end, side,
+            distance_pct, level_up, eval_rule_id, eval_rule_digest)
+        VALUES (
+            'anchor-2', 'BTCUSDT', 'touch', '4h',
+            timestamptz '2024-01-01 04:00:00+00', timestamptz '2024-01-01 04:01:00+00',
+            timestamptz '2024-01-01 08:01:00+00', 1, 1.25, 66000, 'TOUCH_V1', {_dollar(digest)})
+    """)
+    other_anchor = _psql("-c", f"""
+        INSERT INTO beta_shadow_issues (
+            anchor_pk, procedure_id, spec_id, spec_digest, snapshot_id, probability, issued_at)
+        SELECT anchor_pk, 'RANGECAST_V2', 'W_L1', {_dollar('b' * 64)}, 'snap-other', 0.10,
+               timestamptz '2024-01-01 04:01:00+00'
+        FROM beta_shadow_anchors WHERE anchor_key = 'anchor-2'
+    """, check=False)
+    assert other_anchor.returncode != 0
+    assert "spec_digest" in other_anchor.stderr
+    assert _psql("-At", "-c", "SELECT count(*) FROM beta_shadow_issues WHERE snapshot_id = 'snap-other'").stdout.strip() == "0"
+    identity_update = _psql("-c", "UPDATE beta_shadow_spec_identity SET spec_digest = repeat('c', 64)", check=False)
+    assert identity_update.returncode != 0
+    _psql("-c", """
+        INSERT INTO beta_shadow_hour_status (issue_slot, horizon, status, reason)
+        VALUES (timestamptz '2024-01-01 00:00:00+00', '4h', 'STALE_DATA', 'PRICE_OLDER_THAN_10_MIN')
+    """)
+    replayed = _psql("-c", """
+        INSERT INTO beta_shadow_hour_status (issue_slot, horizon, status, reason)
+        VALUES (timestamptz '2024-01-01 00:00:00+00', '4h', 'STALE_DATA', 'PRICE_OLDER_THAN_10_MIN')
+        ON CONFLICT (issue_slot, horizon) DO NOTHING
+    """)
+    assert replayed.returncode == 0
+    changed_status = _psql("-c", """
+        INSERT INTO beta_shadow_hour_status (issue_slot, horizon, status, reason)
+        VALUES (timestamptz '2024-01-01 00:00:00+00', '4h', 'OK', NULL)
+        ON CONFLICT (issue_slot, horizon) DO NOTHING
+    """, check=False)
+    assert changed_status.returncode != 0
     denied = _psql("-c", "UPDATE beta_shadow_issues SET probability = 0.1", check=False)
     assert denied.returncode != 0
     assert "append-only" in denied.stderr

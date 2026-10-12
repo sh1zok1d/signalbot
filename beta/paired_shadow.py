@@ -16,7 +16,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Mapping, Optional, Sequence
 
 from beta.calibration_monitor import (
-    JOURNAL_SPEC_ID, PROCEDURE_TOUCH_CHANCE, observations_from_claim_rows,
+    JOURNAL_SPEC_ID, PROCEDURE_TOUCH_CHANCE, evaluate as monitor_evaluate,
+    observations_from_claim_rows,
 )
 from beta.claims import (
     HORIZON_MS, NEITHER_GRID_PCT, TOUCH_GRID_PCT, eval_rule, evaluate as score_claim,
@@ -32,14 +33,17 @@ V1_PROCEDURE_ID = "RANGECAST_V1"
 V1_SPEC_ID = "RANGECAST_V1"
 V2_PROCEDURE_ID = "RANGECAST_V2"
 V2_SPEC_ID = "W_L1"
-V2_SPEC_IDENTITY = {
-    "procedure_id": V2_PROCEDURE_ID,
-    "spec_id": V2_SPEC_ID,
-    "level": "L1",
-    "half_life_days": 365,
-    "symbol": PRIMARY_SYMBOL,
-    "market": "binance_usdm",
-}
+# Mathematical procedure: beta.rangecast_v2.spec() at 16c0916ece165d14a2e0e0d3717fc400ddc2699a.
+# The object hashed there is named RANGECAST_V2_W_L1. This store keeps the stream id W_L1.
+# Coefficients are not in the digest. A refit changes snapshot_id only.
+V2_MATH_COMMIT = "16c0916ece165d14a2e0e0d3717fc400ddc2699a"
+V2_RECORD_SPEC_ID = "RANGECAST_V2_W_L1"
+V2_RECORD_PROCEDURE_ID = "TOUCH_CHANCE_PROCEDURE_RCV2_W_L1"
+V1_RECORD_PROCEDURE_ID = "TOUCH_CHANCE_PROCEDURE_V1"
+V2_SPEC_DIGEST = "00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246"
+V2_ARTIFACT_ID = "RANGECAST_V2_W_L1_MODEL_V1"
+V2_ARTIFACT_SHA256 = "2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533"
+V2_PARAMS_DIGEST = "095f409f024c3a968d0ec4dc14ca99a3cea67d27c58c3329c241fce02569e261"
 V1_SPEC_IDENTITY = {
     "procedure_id": V1_PROCEDURE_ID,
     "spec_id": V1_SPEC_ID,
@@ -47,7 +51,13 @@ V1_SPEC_IDENTITY = {
     "symbol": PRIMARY_SYMBOL,
 }
 V1_SPEC_DIGEST = sha256_json(V1_SPEC_IDENTITY)
-V2_SPEC_DIGEST = sha256_json(V2_SPEC_IDENTITY)
+_V2_RECORD_PROCEDURES = frozenset({V2_RECORD_PROCEDURE_ID, V2_PROCEDURE_ID})
+_V2_RECORD_SPECS = frozenset({V2_RECORD_SPEC_ID, V2_SPEC_ID})
+_V1_RECORD_PROCEDURES = frozenset({V1_RECORD_PROCEDURE_ID, V1_PROCEDURE_ID})
+HOUR_STATUSES = (
+    "OK", "STALE_DATA", "INSUFFICIENT_HISTORY", "INCOMPLETE_WINDOW", "EVENT_ZONE",
+    "NO_MODEL", "MODEL_INVALID", "NOT_COMPUTABLE", "INVALID_TARGET", "PENDING",
+)
 TOUCH_RULE_ID = "TOUCH_V1"
 NEITHER_RULE_ID = "NEITHER_V1"
 _LOG_LOSS_CLIP = 1e-6
@@ -212,20 +222,36 @@ class ShadowLedger:
         self.anchors: dict = {}
         self.issues: dict = {}
         self.outcomes: dict = {}
+        self.spec_digests: dict = {}
+        self.hour_status: dict = {}
 
     def record_issues(self, rows: Sequence[Mapping], *, allow_write: bool = False) -> dict:
         _require_recording(allow_write)
-        inserted = kept = 0
+        known = dict(self.spec_digests)
         for row in rows:
+            spec_key = (row["procedure_id"], row["spec_id"])
+            digest = row["spec_digest"]
+            if spec_key in known and known[spec_key] != digest:
+                raise ShadowConflict(
+                    f"{spec_key[0]} / {spec_key[1]} already has another spec_digest; use a new spec_id"
+                )
+            known[spec_key] = digest
             key = row["anchor_key"]
             stored = self.anchors.get(key)
-            if stored is None:
-                self.anchors[key] = {field: row[field] for field in _ANCHOR_FIELDS}
-            elif _anchor_body(stored) != _anchor_body(row):
+            if stored is not None and _anchor_body(stored) != _anchor_body(row):
                 raise ShadowConflict(f"anchor {key} was already frozen")
             ident = (key, row["procedure_id"], row["spec_id"])
             previous = self.issues.get(ident)
-            if previous is None:
+            if previous is not None and previous["spec_digest"] != digest:
+                raise ShadowConflict("spec_id changed its digest; use a new spec_id")
+        inserted = kept = 0
+        self.spec_digests = known
+        for row in rows:
+            key = row["anchor_key"]
+            if key not in self.anchors:
+                self.anchors[key] = {field: row[field] for field in _ANCHOR_FIELDS}
+            ident = (key, row["procedure_id"], row["spec_id"])
+            if ident not in self.issues:
                 self.issues[ident] = {
                     "probability": float(row["probability"]),
                     "snapshot_id": row["snapshot_id"],
@@ -234,9 +260,32 @@ class ShadowLedger:
                 }
                 inserted += 1
             else:
-                if previous["spec_digest"] != row["spec_digest"]:
-                    raise ShadowConflict("spec_id changed its digest; use a new spec_id")
                 kept += 1
+        return {"inserted": inserted, "kept": kept}
+
+    def record_hour_statuses(self, rows: Sequence[Mapping], *, allow_write: bool = False) -> dict:
+        _require_recording(allow_write)
+        incoming = []
+        for row in rows:
+            horizon = row["horizon"]
+            status = row["status"]
+            if horizon not in HORIZONS:
+                raise ValueError(f"unknown horizon {horizon}")
+            if status not in HOUR_STATUSES:
+                raise ValueError(f"unknown hour status {status}")
+            slot = _utc(row["issue_slot"])
+            payload = {"status": status, "reason": row.get("reason")}
+            current = self.hour_status.get((slot, horizon))
+            if current is not None and current != payload:
+                raise ShadowConflict(f"hour {horizon} already has status {current['status']}")
+            incoming.append((slot, horizon, payload))
+        inserted = kept = 0
+        for slot, horizon, payload in incoming:
+            if (slot, horizon) in self.hour_status:
+                kept += 1
+            else:
+                self.hour_status[(slot, horizon)] = payload
+                inserted += 1
         return {"inserted": inserted, "kept": kept}
 
     def record_outcome(self, anchor_key: str, *, status: str, outcome: Optional[int],
@@ -434,6 +483,259 @@ def monitor_observations(rows: Sequence[Mapping]) -> list:
         if observation["procedure_id"] == PROCEDURE_TOUCH_CHANCE or observation["spec_id"] == JOURNAL_SPEC_ID:
             raise ShadowConflict("a shadow issue fell into the production journal book")
     return observations
+
+
+def plan_shadow_record(record: Mapping, *, issue_slot: datetime) -> dict:
+    """Turn one ``paired_forecast`` record into store rows. Writes nothing.
+
+    Claude's record labels are mapped onto ``RANGECAST_V1`` / ``RANGECAST_V2`` and
+    ``W_L1``. A horizon that is not ``OK`` contributes a diagnostic and no probability.
+    The stored barrier is the unrounded distance, not the cent-rounded level in the record.
+    """
+    issue_slot = _utc(issue_slot)
+    status = str(record.get("status") or "NOT_COMPUTABLE")
+    reason = record.get("reason")
+    blocks = record.get("horizons") or {}
+    if status != "OK":
+        return {
+            "status": status, "reason": reason, "rows": [],
+            "horizons": _failed_horizons(blocks, status, reason),
+        }
+    try:
+        price = float(record["price"])
+        as_of = _parse_time(record["as_of"])
+    except (KeyError, TypeError, ValueError):
+        return {
+            "status": "NOT_COMPUTABLE", "reason": "RECORD_WITHOUT_PRICE_OR_TIME", "rows": [],
+            "horizons": _failed_horizons(blocks, "NOT_COMPUTABLE", "RECORD_WITHOUT_PRICE_OR_TIME"),
+        }
+    if not math.isfinite(price) or price <= 0:
+        return {
+            "status": "NOT_COMPUTABLE", "reason": "RECORD_WITHOUT_PRICE_OR_TIME", "rows": [],
+            "horizons": _failed_horizons(blocks, "NOT_COMPUTABLE", "RECORD_WITHOUT_PRICE_OR_TIME"),
+        }
+    rows = []
+    horizons = {}
+    for horizon, block in blocks.items():
+        if horizon not in HORIZONS:
+            horizons[horizon] = {"status": "NOT_COMPUTABLE", "reason": "UNKNOWN_HORIZON", "n_issues": 0}
+            continue
+        block = block or {}
+        horizon_status = str(block.get("status") or "NOT_COMPUTABLE")
+        if horizon_status != "OK":
+            horizons[horizon] = {
+                "status": horizon_status, "reason": block.get("reason"), "n_issues": 0,
+            }
+            continue
+        built, skip_reason = _rows_for_horizon(
+            block, price=price, as_of=as_of, issue_slot=issue_slot, horizon=horizon,
+        )
+        if skip_reason:
+            horizons[horizon] = {"status": "MODEL_INVALID", "reason": skip_reason, "n_issues": 0}
+            continue
+        rows.extend(built)
+        horizons[horizon] = {"status": "OK" if built else "NOT_COMPUTABLE",
+                             "reason": None if built else "NO_PAIRED_PROBABILITY",
+                             "n_issues": len(built)}
+    overall = "OK" if any(item["status"] == "OK" for item in horizons.values()) else "NOT_COMPUTABLE"
+    return {"status": overall, "reason": None if overall == "OK" else "NO_PAIRED_HORIZON",
+            "rows": rows, "horizons": horizons}
+
+
+def execute_hour(record: Mapping, ledger, *, issue_slot: datetime, allow_write: bool = False,
+                 bars=None, now: Optional[datetime] = None, score: bool = False) -> dict:
+    """Plan one hour. The default does not write.
+
+    ``allow_write=True`` is the owner's later switch. It is not set by this module.
+    A missing-data status is stored instead of a probability. Scoring uses one
+    ``claims.evaluate`` outcome per anchor and does not touch the user journal.
+    """
+    planned = plan_shadow_record(record, issue_slot=issue_slot)
+    summary = {
+        "status": planned["status"],
+        "reason": planned["reason"],
+        "written": False,
+        "inserted": 0,
+        "kept": 0,
+        "horizons": planned["horizons"],
+        "scoring": [],
+        "paired": None,
+        "books": [],
+    }
+    if not allow_write and not SHADOW_RECORDING_ENABLED:
+        return summary
+    issue_slot = _utc(issue_slot)
+    statuses = [
+        {"issue_slot": issue_slot, "horizon": horizon, "status": item["status"], "reason": item.get("reason")}
+        for horizon, item in planned["horizons"].items()
+        if horizon in HORIZONS
+    ]
+    if planned["rows"]:
+        stored = ledger.record_issues(planned["rows"], allow_write=True)
+    else:
+        stored = {"inserted": 0, "kept": 0}
+    ledger.record_hour_statuses(statuses, allow_write=True)
+    summary["written"] = True
+    summary["inserted"] = stored["inserted"]
+    summary["kept"] = stored["kept"]
+    if score and bars is not None and now is not None:
+        summary["scoring"] = _score_stored(ledger, bars, now=_utc(now), allow_write=True)
+    summary["paired"] = paired_report(ledger.joined_rows())
+    books = monitor_evaluate(monitor_observations(ledger.joined_rows()))["books"]
+    summary["books"] = [
+        {"procedure_id": book["procedure_id"], "spec_id": book["spec_id"], "family": book["family"],
+         "horizon": book["horizon"], "state": book["state"]}
+        for book in books
+    ]
+    return summary
+
+
+def _failed_horizons(blocks: Mapping, status: str, reason) -> dict:
+    if not blocks:
+        return {horizon: {"status": status, "reason": reason, "n_issues": 0} for horizon in HORIZONS}
+    return {
+        horizon: {"status": str((block or {}).get("status") or status),
+                  "reason": (block or {}).get("reason") if block else reason, "n_issues": 0}
+        for horizon, block in blocks.items()
+    }
+
+
+def _rows_for_horizon(block: Mapping, *, price: float, as_of: datetime, issue_slot: datetime,
+                      horizon: str) -> tuple:
+    v1 = block.get("v1") or {}
+    v2 = block.get("v2") or {}
+    if v1.get("procedure_id") not in _V1_RECORD_PROCEDURES:
+        return [], "V1_PROCEDURE"
+    if v2.get("procedure_id") not in _V2_RECORD_PROCEDURES or v2.get("spec_id") not in _V2_RECORD_SPECS:
+        return [], "V2_IDENTITY"
+    if v2.get("spec_digest") != V2_SPEC_DIGEST:
+        return [], "V2_SPEC_DIGEST"
+    snapshot_v2 = v2.get("params_digest") or v2.get("snapshot_id")
+    snapshot_v1 = v2_snapshot_v1(v1)
+    if not snapshot_v1 or not snapshot_v2:
+        return [], "SNAPSHOT_MISSING"
+    touch_digest = sha256_json(eval_rule(TOUCH_RULE_ID))
+    neither_digest = sha256_json(eval_rule(NEITHER_RULE_ID))
+    horizon_end = as_of + timedelta(milliseconds=HORIZON_MS[horizon])
+    issued_at = as_of
+    rows = []
+    v1_touch = _ok_by_key(v1.get("touch") or (), lambda item: (int(item["side"]), float(item["distance_pct"])))
+    v2_touch = _ok_by_key(v2.get("touch") or (), lambda item: (int(item["side"]), float(item["distance_pct"])))
+    for key in sorted(set(v1_touch) & set(v2_touch)):
+        side, distance = key
+        if distance <= 0:
+            continue
+        level = price * (1.0 + side * distance / 100.0)
+        anchor = {
+            "anchor_key": anchor_key(
+                symbol=PRIMARY_SYMBOL, family="touch", horizon=horizon, issue_slot=issue_slot,
+                side=side, distance_pct=distance, distance_up_pct=None, distance_down_pct=None,
+                eval_rule_id=TOUCH_RULE_ID, eval_rule_digest=touch_digest,
+            ),
+            "symbol": PRIMARY_SYMBOL, "family": "touch", "horizon": horizon,
+            "issue_slot": issue_slot, "as_of": as_of, "horizon_end": horizon_end,
+            "side": side, "distance_pct": distance, "distance_up_pct": None, "distance_down_pct": None,
+            "level_up": level if side > 0 else None, "level_down": level if side < 0 else None,
+            "eval_rule_id": TOUCH_RULE_ID, "eval_rule_digest": touch_digest,
+        }
+        rows.append(_issued(anchor, V1_PROCEDURE_ID, V1_SPEC_ID, V1_SPEC_DIGEST, snapshot_v1,
+                            v1_touch[key], issued_at))
+        rows.append(_issued(anchor, V2_PROCEDURE_ID, V2_SPEC_ID, V2_SPEC_DIGEST, snapshot_v2,
+                            v2_touch[key], issued_at))
+    v1_neither = _ok_by_key(v1.get("neither") or (), lambda item: (float(item["up_pct"]), float(item["down_pct"])))
+    v2_neither = _ok_by_key(v2.get("neither") or (), lambda item: (float(item["up_pct"]), float(item["down_pct"])))
+    for up, down in sorted(set(v1_neither) & set(v2_neither)):
+        if up <= 0 or down <= 0:
+            continue
+        anchor = {
+            "anchor_key": anchor_key(
+                symbol=PRIMARY_SYMBOL, family="neither", horizon=horizon, issue_slot=issue_slot,
+                side=None, distance_pct=None, distance_up_pct=up, distance_down_pct=down,
+                eval_rule_id=NEITHER_RULE_ID, eval_rule_digest=neither_digest,
+            ),
+            "symbol": PRIMARY_SYMBOL, "family": "neither", "horizon": horizon,
+            "issue_slot": issue_slot, "as_of": as_of, "horizon_end": horizon_end,
+            "side": None, "distance_pct": None, "distance_up_pct": up, "distance_down_pct": down,
+            "level_up": price * (1.0 + up / 100.0), "level_down": price * (1.0 - down / 100.0),
+            "eval_rule_id": NEITHER_RULE_ID, "eval_rule_digest": neither_digest,
+        }
+        rows.append(_issued(anchor, V1_PROCEDURE_ID, V1_SPEC_ID, V1_SPEC_DIGEST, snapshot_v1,
+                            v1_neither[(up, down)], issued_at))
+        rows.append(_issued(anchor, V2_PROCEDURE_ID, V2_SPEC_ID, V2_SPEC_DIGEST, snapshot_v2,
+                            v2_neither[(up, down)], issued_at))
+    return rows, None
+
+
+def v2_snapshot_v1(record: Mapping) -> Optional[str]:
+    if record.get("stats_digest"):
+        return str(record["stats_digest"])
+    if record.get("snapshot_id"):
+        return str(record["snapshot_id"])
+    if record.get("stats_pk") is not None:
+        return f"pk:{record['stats_pk']}"
+    if record.get("model_version"):
+        return str(record["model_version"])
+    return None
+
+
+def _ok_by_key(items, key_of) -> dict:
+    out = {}
+    for item in items:
+        if item.get("status") != "OK" or item.get("probability") is None:
+            continue
+        try:
+            out[key_of(item)] = float(item["probability"])
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def _issued(anchor: Mapping, procedure_id: str, spec_id: str, spec_digest: str, snapshot_id: str,
+            probability: float, issued_at: datetime) -> dict:
+    model = BoundShadowModel(
+        procedure_id=procedure_id, spec_id=spec_id, spec_digest=spec_digest, snapshot_id=snapshot_id,
+        touch=lambda *_args, **_kwargs: probability,
+        neither=lambda *_args, **_kwargs: probability,
+    )
+    return _issue(anchor, model, probability, issued_at)
+
+
+def _score_stored(ledger, bars, *, now: datetime, allow_write: bool) -> list:
+    reports = []
+    seen = set()
+    for row in ledger.joined_rows():
+        key = row["anchor_key"]
+        if key in seen:
+            continue
+        seen.add(key)
+        if row["horizon_end"] > now:
+            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "PENDING"})
+            continue
+        if ledger.latest_outcome(key) is not None:
+            latest = ledger.latest_outcome(key)
+            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "KEPT",
+                            "outcome": latest["outcome"], "coverage": latest["coverage"]})
+            continue
+        scored = score_anchor(row, bars, now=now)
+        if scored["status"] == "PENDING":
+            reports.append({"horizon": row["horizon"], "family": row["family"], "status": "PENDING"})
+            continue
+        ledger.record_outcome(
+            key, status=scored["status"], outcome=scored["outcome"], coverage=scored["coverage"],
+            eval_rule_digest=row["eval_rule_digest"], computed_at=now, allow_write=allow_write,
+        )
+        label = scored["status"]
+        if scored["coverage"] is not None and scored["coverage"] < 0.9:
+            label = "LOW_COVERAGE"
+        reports.append({"horizon": row["horizon"], "family": row["family"], "status": label,
+                        "outcome": scored["outcome"], "coverage": scored["coverage"]})
+    return reports
+
+
+def _parse_time(value) -> datetime:
+    if isinstance(value, datetime):
+        return _utc(value)
+    return _utc(datetime.fromisoformat(str(value).replace("Z", "+00:00")))
 
 
 def export_row(row: Mapping) -> dict:
