@@ -1,4 +1,4 @@
-"""Writer settlement and a 12-week journal. Local PostgreSQL only. No production DSN."""
+"""Writer settlement and a 12-week journal. Test PostgreSQL only (BETA_TEST_DSN). No production DSN."""
 from __future__ import annotations
 
 import json
@@ -14,11 +14,25 @@ import pytest
 from beta.hist_series import BAR_MS
 from beta.paired_shadow import V1_SPEC_DIGEST, V2_SPEC_DIGEST
 from beta.paired_shadow_pg import PgShadowLedger
+from beta_fakes import TEST_DSN
 
 ROOT = Path(__file__).resolve().parents[2]
 UTC = timezone.utc
-WRITER_DSN = "postgresql:///signalbot_shadow_writer"
-VOLUME_DSN = "postgresql:///signalbot_shadow_volume"
+
+
+def _sibling(name: str):
+    """A database beside BETA_TEST_DSN's: the same server and role, so CI's PostgreSQL service runs these too."""
+    if not TEST_DSN:
+        return None
+    from urllib.parse import urlsplit
+    parts = urlsplit(TEST_DSN)
+    return f"{parts.scheme}://{parts.netloc}/{name}" + (f"?{parts.query}" if parts.query else "")
+
+
+WRITER_DSN = _sibling("signalbot_shadow_writer")
+VOLUME_DSN = _sibling("signalbot_shadow_volume")
+NEEDS_TEST_DB = pytest.mark.skipif(not TEST_DSN or shutil.which("psql") is None,
+                                   reason="BETA_TEST_DSN not set (local PostgreSQL) or psql missing")
 HOURS = 12 * 7 * 24
 TOUCH = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0)
 NEITHER = (0.5, 1.0, 2.0, 3.0)
@@ -42,7 +56,7 @@ def _ensure_db(name: str, dsn: str) -> None:
         capture_output=True, text=True, check=False,
     )
     if probe.returncode != 0:
-        created = subprocess.run(["createdb", "-O", "ubuntu", name], capture_output=True, text=True, check=False)
+        created = _psql(TEST_DSN, f"CREATE DATABASE {name}", check=False)
         if created.returncode != 0 and "already exists" not in (created.stderr or ""):
             raise AssertionError(created.stderr or created.stdout)
     _psql(dsn, "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;")
@@ -110,7 +124,7 @@ def _run_writer(record_path: Path, *extra: str) -> dict:
     return json.loads(completed.stdout)
 
 
-@pytest.mark.skipif(shutil.which("psql") is None or shutil.which("createdb") is None, reason="local postgres client missing")
+@NEEDS_TEST_DB
 def test_writer_launches_settlement_for_elapsed_anchors(tmp_path):
     _ensure_db("signalbot_shadow_writer", WRITER_DSN)
     _apply(WRITER_DSN)
@@ -169,7 +183,7 @@ def _geometries() -> str:
     return ",\n".join(rows)
 
 
-@pytest.mark.skipif(shutil.which("psql") is None or shutil.which("createdb") is None, reason="local postgres client missing")
+@NEEDS_TEST_DB
 def test_twelve_week_journal_settles_in_bounded_batches():
     _ensure_db("signalbot_shadow_volume", VOLUME_DSN)
     _apply(VOLUME_DSN)
