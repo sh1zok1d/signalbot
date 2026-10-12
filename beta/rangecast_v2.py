@@ -27,6 +27,8 @@ Pure numpy / pandas.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from typing import Any, Mapping, Optional, Sequence
 
@@ -64,6 +66,56 @@ LEVEL_SIGNED = {"L1": (), "L2": (), "L3": SIGNED}
 
 class RangeModelV2Error(RuntimeError):
     pass
+
+
+# ---- identity ------------------------------------------------------------------------------------
+SPEC_ID = "RANGECAST_V2_W_L1"
+
+
+def spec(level: str = SELECTED_LEVEL, half_life_days: Optional[float] = SELECTED_HALF_LIFE_DAYS) -> dict:
+    """Every constant that defines the procedure (features, windows, grids, regularization, weights).
+    Coefficients are parameters, not spec: a refit keeps the spec and changes `params_digest`."""
+    return {"spec_id": SPEC_ID if (level, half_life_days) == (SELECTED_LEVEL, SELECTED_HALF_LIFE_DAYS) else
+            f"RANGECAST_V2_{level}_HL{half_life_days}", "version": RANGE_MODEL_V2_VERSION, "level": level,
+            "half_life_days": half_life_days, "horizons": dict(HORIZONS), "floor_pct": FLOOR, "q_grid": list(Q_GRID),
+            "ridge": RIDGE, "clip_q": list(CLIP_Q), "season_min_rows": SEASON_MIN_ROWS, "lookback_bars": LOOKBACK_BARS,
+            "range_windows": dict(RANGE_WINDOWS), "rv_windows": dict(RV_WINDOWS), "act_windows": dict(ACT_WINDOWS),
+            "move_windows": dict(MOVE_WINDOWS), "signed_ret": dict(SIGNED_RET), "signed_pos": dict(SIGNED_POS),
+            "calendar": list(CALENDAR), "features": list(LEVEL_FEATURES[level]), "signed": list(LEVEL_SIGNED[level]),
+            "event_kinds": list(rc.EVENT_KINDS), "joint_levels": list(rc.JOINT_LEVELS), "anchor_stride": rc.ANCHOR_STRIDE}
+
+
+def _digest(obj: Any) -> str:
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def spec_digest(level: str = SELECTED_LEVEL, half_life_days: Optional[float] = SELECTED_HALF_LIFE_DAYS) -> str:
+    return _digest(spec(level, half_life_days))
+
+
+def params_digest(model: Mapping[str, Any]) -> str:
+    """sha256 of the fitted horizons (coefficients, seasons, clips, quantiles, joint tables)."""
+    return _digest(model["horizons"])
+
+
+# ---- data quality at the anchor (live use) -------------------------------------------------------
+# Fitting and the historical evaluation needed 90 % of every window (pandas min_periods), and the
+# history surface has no gap outside the E1 window. A live anchor is held to a stricter rule so a
+# hole in the 1m tail never becomes a probability: the windows a short-horizon chance leans on most
+# must be complete.
+MIN_PRESENT = {12: 1.0, 48: 1.0, 288: 0.99, 2016: 0.98, 8640: 0.95}
+
+
+def window_presence(b: Bars, i: int) -> dict:
+    """{window bars: share of bars present in the window ending at bar i}."""
+    pres = np.isfinite(b.close)
+    return {n: float(pres[max(0, i - n + 1): i + 1].sum()) / n for n in MIN_PRESENT}
+
+
+def data_quality_failures(b: Bars, i: int) -> list:
+    """Windows below MIN_PRESENT at bar i (empty list: the anchor may be used)."""
+    pres = window_presence(b, i)
+    return [f"WINDOW_{n}_BARS:{pres[n]:.4f}" for n, need in MIN_PRESENT.items() if pres[n] < need]
 
 
 # ---- features (point in time) --------------------------------------------------------------------
@@ -323,7 +375,9 @@ def fit_range_model_v2(b: Bars, *, events: Mapping[str, Sequence[int]], level: s
     """Fit every horizon on all valid hourly anchors of `b`. JSON-ready. The defaults are the candidate
     the frozen RANGECAST_V2 selection rule chose (W_L1)."""
     F = bar_features(b)
-    out = {"version": RANGE_MODEL_V2_VERSION, "level": level, "half_life_days": half_life_days, "horizons": {}}
+    out = {"version": RANGE_MODEL_V2_VERSION, "spec_id": spec(level, half_life_days)["spec_id"],
+           "spec_digest": spec_digest(level, half_life_days), "level": level, "half_life_days": half_life_days,
+           "horizons": {}}
     for h_name, h in HORIZONS.items():
         tg = side_targets(b, h)
         idx = valid_rows(b, F, tg, level)

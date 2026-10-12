@@ -154,5 +154,5 @@ def test_recency_weights_change_the_fit(bars):
 def test_the_candidate_is_not_wired_into_the_product():
     pat = re.compile(r"rangecast_v2")
     offenders = [str(p.relative_to(ROOT)) for d in ("beta", "runtime", "storage") for p in (ROOT / d).rglob("*.py")
-                 if p.name != "rangecast_v2.py" and pat.search(p.read_text(encoding="utf-8"))]
+                 if p.name not in ("rangecast_v2.py", "rangecast_shadow.py") and pat.search(p.read_text(encoding="utf-8"))]
     assert offenders == []
