@@ -1,0 +1,2267 @@
+{
+  "filtration": "NON_OVERLAPPING_ANCHOR",
+  "horizons_seconds": {
+    "1h": 3600,
+    "24h": 86400,
+    "4h": 14400
+  },
+  "monitor": "CALIBRATION_MONITOR_V2",
+  "null": {
+    "anchor_level_only_paths_confirmed": 0,
+    "anchor_level_sup_book_e_max": 24.9115686503127,
+    "anchor_level_sup_book_e_median": 1.2415849395862115,
+    "books_per_path": 6,
+    "days": 80,
+    "expected_4h_anchors": 480,
+    "hourly_overlapping_level_only_paths_confirmed": 4,
+    "hourly_overlapping_sup_book_e_max": 383177307.2195762,
+    "hourly_overlapping_sup_book_e_median": 24.20215609567251,
+    "joint_clopper_pearson_upper_95": 0.12511620483905225,
+    "joint_confirmations": [
+      {
+        "e_at_confirm": 61.57472669351494,
+        "family": "neither",
+        "horizon": "4h",
+        "named_channels": [
+          "TAIL_LOW",
+          "SHAPE"
+        ],
+        "seed": 20261025
+      }
+    ],
+    "joint_rate": 0.027777777777777776,
+    "paths": 36,
+    "paths_with_any_book_ever_confirmed": 1,
+    "touch_4h_included_slots_max": 480,
+    "touch_4h_included_slots_min": 480,
+    "ville_union_bound": 0.1
+  },
+  "power": {
+    "level_bias_then_null_after_day_36": {
+      "days": 90,
+      "runs": [
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.009027777777777779,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.004074074074074073,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.012847222222222222,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.0032407407407407406,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.06208950429817112,
+            "n_days": 90,
+            "n_included_slots": 2160,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.009027777777777779,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.029999999999999995,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.006944444444444444,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.022222222222222223,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.6188870832109787,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.002777777777777777,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.014320987654320987,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.004629629629629629,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.009259259259259259,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.21114352883343032,
+            "n_days": 90,
+            "n_included_slots": 540,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.013469115404168792,
+                "state": "RECOVERED"
+              },
+              "SHAPE": {
+                "estimate": -0.00874733096085411,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.009130655821047273,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.022282663955261815,
+                "state": "RECOVERED"
+              }
+            },
+            "e_value": 6.193344430305344,
+            "n_days": 62,
+            "n_included_slots": 2160,
+            "state": "RECOVERED"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.059250000000000004,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.0071259259259259106,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0742222222222222,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.06466666666666666,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.975273751709407,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.023914783427495298,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.008473320778405541,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.02448210922787193,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.03566227244193346,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.6181432264303086,
+            "n_days": 69,
+            "n_included_slots": 540,
+            "state": "RECOVERED"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.010706018518518521,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.011944444444444443,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.016319444444444445,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.3888126132063975,
+            "n_days": 90,
+            "n_included_slots": 2160,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.003472222222222224,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.009259259259259262,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.015277777777777777,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.011111111111111112,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.5599115734993914,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.025925925925925925,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.022716049382716052,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.038425925925925926,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.009259259259259259,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 4.706305865923082,
+            "n_days": 90,
+            "n_included_slots": 540,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.013200953678474124,
+                "state": "RECOVERED"
+              },
+              "SHAPE": {
+                "estimate": -0.007664668483197109,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0026811989100817384,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.017346049046321522,
+                "state": "RECOVERED"
+              }
+            },
+            "e_value": 0.575251641838918,
+            "n_days": 57,
+            "n_included_slots": 2160,
+            "state": "RECOVERED"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.0953611111111111,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.026385185185185175,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0742222222222222,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.06466666666666666,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 3.4102173479146543,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.03315257352941177,
+                "state": "RECOVERED"
+              },
+              "SHAPE": {
+                "estimate": 0.025818627450980382,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.04845588235294117,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.008308823529411759,
+                "state": "RECOVERED"
+              }
+            },
+            "e_value": 16.8882167531365,
+            "n_days": 71,
+            "n_included_slots": 540,
+            "state": "RECOVERED"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.007465277777777776,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.008549382716049382,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0020833333333333333,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0032407407407407406,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.06938976939053039,
+            "n_days": 90,
+            "n_included_slots": 2160,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.06458333333333334,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.0003703703703703687,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.05138888888888889,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.05555555555555555,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.3969070631488651,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.02199074074074074,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.036913580246913574,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.03518518518518519,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.0265064605929384,
+            "n_days": 90,
+            "n_included_slots": 540,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.005826923076923087,
+                "state": "RECOVERED"
+              },
+              "SHAPE": {
+                "estimate": 0.006032234432234415,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.012703296703296698,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.007919413919413913,
+                "state": "RECOVERED"
+              }
+            },
+            "e_value": 0.08225060998938506,
+            "n_days": 56,
+            "n_included_slots": 2160,
+            "state": "RECOVERED"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.09674999999999999,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.07065185185185187,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.029777777777777764,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.12762962962962962,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 7.496465450731655,
+            "n_days": 90,
+            "n_included_slots": 90,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.021472222222222226,
+                "state": "RECOVERED"
+              },
+              "SHAPE": {
+                "estimate": 0.016212345679012332,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.013851851851851843,
+                "state": "RECOVERED"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.010222222222222218,
+                "state": "RECOVERED"
+              }
+            },
+            "e_value": 0.5514968910814695,
+            "n_days": 70,
+            "n_included_slots": 540,
+            "state": "RECOVERED"
+          }
+        }
+      ]
+    },
+    "level_minus_10pp": {
+      "days": 70,
+      "runs": [
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.009747023809523811,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.00607142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.014136904761904762,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.11798792487763549,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.022321428571428572,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.04428571428571429,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.7656482164812904,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.005654761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.020158730158730154,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.005357142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.01904761904761905,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.3470678966248366,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.09816964285714284,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.0012777777777777724,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.09440476190476188,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09384920634920636,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 2.6712143212681416e+25,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.11267857142857142,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.0035238095238095297,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.11999999999999998,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.12142857142857143,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 5.795765137492973,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.09928571428571427,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.012825396825396816,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.11999999999999998,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09523809523809523,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 8718388.891581303,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.00967261904761905,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.008809523809523807,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.013839285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0011904761904761906,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.141729456283706,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.011607142857142856,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.007142857142857148,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.02857142857142857,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.6389617120780158,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.029464285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.028095238095238097,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.04583333333333333,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 8.751070296954335,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.10769345238095238,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.003817460317460312,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.09916666666666665,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10039682539682541,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 6.0224531975229e+28,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.15375,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.04504761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.11999999999999998,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10714285714285714,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 9.866834719370775,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.11863095238095236,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.028857142857142852,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.13190476190476189,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0880952380952381,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 191367369.2228312,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.007514880952380952,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.0070238095238095224,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.056279968863403515,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.05267857142857143,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.011904761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.048214285714285716,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.9743064827697607,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.030952380952380953,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.04063492063492063,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.007738095238095238,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.04047619047619048,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.2082748950652196,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.1050892857142857,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.015603174603174598,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.11523809523809522,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09682539682539684,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1.6410847277071775e+29,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.17339285714285713,
+                "state": "SUSPECTED_DEGRADATION"
+              },
+              "SHAPE": {
+                "estimate": -0.04733333333333334,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.10571428571428569,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.18809523809523812,
+                "state": "SUSPECTED_DEGRADATION"
+              }
+            },
+            "e_value": 25.48766838379188,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "SUSPECTED_DEGRADATION"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.12339285714285714,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.03647619047619047,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.11523809523809522,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.08888888888888889,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 74766279.86840075,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        }
+      ]
+    },
+    "neither_only_minus_10pp": {
+      "days": 70,
+      "runs": [
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.09025297619047618,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": -0.008779761904761905,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.08482142857142855,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09553571428571428,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 2.751351334599542e+21,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.0776785714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.04107142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.12499999999999997,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.05357142857142857,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 3.777830576210544,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.10565476190476189,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": -0.022023809523809525,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.08928571428571427,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11547619047619048,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1326700.2760789974,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.0031696428571428674,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.006722222222222239,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.003452380952380957,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.007182539682539678,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.07274096106117789,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.01767857142857144,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.011523809523809542,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.01857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.03476190476190476,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.7453532304418731,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.0042857142857142955,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.004825396825396809,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.010238095238095235,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.008571428571428567,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.25042379857303454,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.09032738095238094,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": -0.008333333333333333,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.08720238095238093,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10029761904761905,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 2.268474854310349e+22,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.11160714285714284,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.026785714285714284,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.08928571428571426,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11785714285714285,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 3.7336637924993656,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.1294642857142857,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": 0.03273809523809524,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.15,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11190476190476191,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 32992602550.654915,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.01269345238095239,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.004182539682539699,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.0063690476190476145,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.013730158730158726,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.20321222993216612,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.05875000000000001,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.03704761904761903,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.06857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.020476190476190474,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.208905171133116,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.02363095238095239,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.02085714285714285,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.03404761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0014285714285714201,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.3322280422515969,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.10751488095238093,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": -0.009077380952380953,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.10148809523809522,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10833333333333334,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 5.66327780586203e+27,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.04732142857142855,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.008928571428571428,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.08214285714285711,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.04642857142857143,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.334828794716777,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.13095238095238093,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "SHAPE": {
+                "estimate": -0.04642857142857143,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.10595238095238094,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.15119047619047618,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 776013458.4057978,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.010089285714285724,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.0076031746031745865,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.017083333333333332,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.010158730158730154,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.2767059837553849,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.07839285714285715,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.05533333333333335,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.032857142857142856,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10142857142857142,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.0153649602520165,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.028392857142857154,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.028476190476190464,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.03642857142857143,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.002222222222222216,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 1.849999717560518,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          }
+        }
+      ]
+    },
+    "shape_stretch": {
+      "days": 70,
+      "runs": [
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.009747023809523811,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.00607142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.014136904761904762,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.11798792487763549,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.022321428571428572,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.04428571428571429,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.7656482164812904,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.005654761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.020158730158730154,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.005357142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.01904761904761905,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.3470678966248366,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.014669642857142865,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.1552555555555555,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.10145238095238092,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10318253968253967,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 4.422606860551624e+27,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.029178571428571436,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.1600571428571428,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0794285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.13076190476190475,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 4.712210078696042,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.015785714285714292,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.14370793650793645,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.08776190476190472,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10457142857142857,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1099526.0262343693,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.00967261904761905,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.008809523809523807,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.013839285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0011904761904761906,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.141729456283706,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.011607142857142856,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.007142857142857148,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.02857142857142857,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.6389617120780158,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.029464285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.028095238095238097,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.04583333333333333,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 8.751070296954335,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.02419345238095239,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.15271587301587297,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.09163095238095234,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.1097301587301587,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 6.187705816116434e+29,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.07025,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.11148571428571423,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.029428571428571398,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11647619047619047,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 3.1312079291501447,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.035130952380952395,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.12767619047619042,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.06395238095238091,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09742857142857142,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 607337.6627751491,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.007514880952380952,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.0070238095238095224,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.056279968863403515,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.05267857142857143,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.011904761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.048214285714285716,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.9743064827697607,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.030952380952380953,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.04063492063492063,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.007738095238095238,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.04047619047619048,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.2082748950652196,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.02158928571428572,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.14093015873015866,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.08091666666666664,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10615873015873015,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 4.036105662442821e+28,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.08989285714285715,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.20386666666666658,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.06514285714285711,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.1974285714285714,
+                "state": "SUSPECTED_DEGRADATION"
+              }
+            },
+            "e_value": 22.34264722281742,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "SUSPECTED_DEGRADATION"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.03989285714285715,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.12005714285714279,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.061571428571428534,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.09822222222222221,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 454386.30493339844,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        }
+      ]
+    },
+    "tail_pm_12pp": {
+      "days": 70,
+      "runs": [
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.009747023809523811,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.00607142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.014136904761904762,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.11798792487763549,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.022321428571428572,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.04428571428571429,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.7656482164812904,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.005654761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.020158730158730154,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.005357142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.01904761904761905,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.3470678966248366,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.013169642857142868,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.14005555555555552,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.11345238095238093,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.1071825396825397,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 2.3399697505729608e+30,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.02767857142857144,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.14485714285714282,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.09142857142857141,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.13476190476190478,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 5.147922064792728,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.014285714285714296,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.1285079365079365,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.09976190476190475,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.1085714285714286,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 2827509.7320244825,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.00967261904761905,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.008809523809523807,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.013839285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.0011904761904761906,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.141729456283706,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.011607142857142856,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.007142857142857148,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.0017857142857142857,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.02857142857142857,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.6389617120780158,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.029464285714285714,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": 0.028095238095238097,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.04583333333333333,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 8.751070296954335,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.022693452380952394,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.13751587301587298,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.10363095238095237,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11373015873015875,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1.5925816973464853e+31,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.06875000000000002,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.09628571428571425,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.041428571428571405,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.12047619047619047,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 3.318861398592414,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.03363095238095239,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.11247619047619045,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.07595238095238094,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10142857142857145,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1356050.392101354,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        },
+        {
+          "neither_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.007514880952380952,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.0070238095238095224,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.002976190476190476,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.004761904761904762,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.056279968863403515,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": -0.05267857142857143,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.011904761904761904,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.048214285714285716,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": -0.04285714285714286,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 0.9743064827697607,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "WITHIN_NOISE"
+          },
+          "neither_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.030952380952380953,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.04063492063492063,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": 0.007738095238095238,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.04047619047619048,
+                "state": "WITHIN_NOISE"
+              }
+            },
+            "e_value": 2.2082748950652196,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "WITHIN_NOISE"
+          },
+          "touch_1h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.020089285714285726,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.1257301587301587,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.09291666666666665,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.11015873015873018,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1.0439244478808959e+30,
+            "n_days": 70,
+            "n_included_slots": 1680,
+            "state": "CONFIRMED_DIVERGENCE"
+          },
+          "touch_24h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.08839285714285716,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.18866666666666665,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.07714285714285712,
+                "state": "WITHIN_NOISE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.20142857142857146,
+                "state": "SUSPECTED_DEGRADATION"
+              }
+            },
+            "e_value": 24.652714362143655,
+            "n_days": 70,
+            "n_included_slots": 70,
+            "state": "SUSPECTED_DEGRADATION"
+          },
+          "touch_4h": {
+            "channels": {
+              "LEVEL": {
+                "estimate": 0.03839285714285715,
+                "state": "WITHIN_NOISE"
+              },
+              "SHAPE": {
+                "estimate": -0.10485714285714282,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_HIGH": {
+                "estimate": -0.07357142857142855,
+                "state": "CONFIRMED_DIVERGENCE"
+              },
+              "TAIL_LOW": {
+                "estimate": 0.10222222222222223,
+                "state": "CONFIRMED_DIVERGENCE"
+              }
+            },
+            "e_value": 1021078.6607860166,
+            "n_days": 70,
+            "n_included_slots": 420,
+            "state": "CONFIRMED_DIVERGENCE"
+          }
+        }
+      ]
+    }
+  },
+  "surface": "shared Gaussian path, terminal barrier, exact conditional null; not a market archive and not October 2026",
+  "v1_short_windows": {
+    "days": 56,
+    "paths": 8,
+    "v1_window_rate": 0.5625,
+    "v1_windows_with_any_divergence": 27,
+    "v2_windows_not_insufficient": 0,
+    "window_days": 7,
+    "windows": 48
+  },
+  "variants_tried_for_thresholds": 0
+}
