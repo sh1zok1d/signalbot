@@ -46,6 +46,8 @@ RIDGE = 1.0                                # on standardized columns; guards col
 CLIP_Q = (0.001, 0.999)                    # feature clip quantiles (training)
 SEASON_MIN_ROWS = 30
 LOOKBACK_BARS = 8640                       # 30 days: the longest window a feature reads
+SELECTED_LEVEL = "L1"                      # RANGECAST_V2_RESULT.md: the level the frozen rule selected …
+SELECTED_HALF_LIFE_DAYS = 365.0            # … with recency weights (W_L1)
 
 RANGE_WINDOWS = {"lr_15m": 3, "lr_1h": 12, "lr_4h": 48, "lr_24h": 288, "lr_7d": 2016, "lr_30d": 8640}
 RV_WINDOWS = {"lrv_1h": 12, "lrv_4h": 48, "lrv_24h": 288}
@@ -214,6 +216,7 @@ def fit_level(level: str, F: Mapping[str, np.ndarray], cal: Mapping[str, np.ndar
         out.update(season=season, beta=[float(v) for v in beta],
                    q_one=[float(v) for v in weighted_quantiles(np.concatenate([zu, zd]), Q_GRID,
                                                                None if w is None else np.concatenate([w, w]))],
+                   q_max=[float(v) for v in weighted_quantiles(np.maximum(zu, zd), Q_GRID, w)],
                    q_joint=rc._joint_table(zu, zd))
         return out
     yu, yd = np.log(up + FLOOR), np.log(down + FLOOR)
@@ -315,9 +318,10 @@ def valid_rows(b: Bars, F: Mapping[str, np.ndarray], tg: Mapping[str, np.ndarray
     return np.flatnonzero(ok)
 
 
-def fit_range_model_v2(b: Bars, *, events: Mapping[str, Sequence[int]], level: str = "L3",
-                       half_life_days: Optional[float] = None) -> dict:
-    """Fit every horizon on all valid hourly anchors of `b`. JSON-ready."""
+def fit_range_model_v2(b: Bars, *, events: Mapping[str, Sequence[int]], level: str = SELECTED_LEVEL,
+                       half_life_days: Optional[float] = SELECTED_HALF_LIFE_DAYS) -> dict:
+    """Fit every horizon on all valid hourly anchors of `b`. JSON-ready. The defaults are the candidate
+    the frozen RANGECAST_V2 selection rule chose (W_L1)."""
     F = bar_features(b)
     out = {"version": RANGE_MODEL_V2_VERSION, "level": level, "half_life_days": half_life_days, "horizons": {}}
     for h_name, h in HORIZONS.items():
@@ -361,3 +365,45 @@ def touch_probability_v2(model: Mapping[str, Any], h_name: str, st: Mapping[str,
     m = model["horizons"][h_name]
     s = {k: np.array([v]) for k, v in st.items()}
     return float(touch_prob(m, s, "up" if side > 0 else "down", np.array([abs(distance_pct)]))[0])
+
+
+# ---- the V1 surface contract (L1 only) ---------------------------------------------------------------
+def as_v1_horizon(model_h: Mapping[str, Any]) -> dict:
+    """An L1 horizon in V1's storage (quantiles on rangecast.P_GRID), so the production functions
+    `rangecast.touch_probability`, `neither_probability` and `stop_stats` can read it with the V2 scale.
+    Q_GRID is P_GRID with 0.001 and 0.005 in front, so the view drops the first two levels; the chances
+    agree with `touch_prob` wherever the V1 grid does not clamp them (p <= 0.99)."""
+    if model_h["level"] != "L1":
+        raise RangeModelV2Error("only an L1 horizon has the V1 scale form")
+    k = len(Q_GRID) - len(rc.P_GRID)
+    return {"horizon": model_h["horizon"], "q_one": list(model_h["q_one"][k:]), "q_max": list(model_h["q_max"][k:]),
+            "q_joint": model_h["q_joint"], "n_days": model_h.get("n_days")}
+
+
+def as_v1_model(model: Mapping[str, Any]) -> dict:
+    return {"version": model["version"], "horizons": {h: as_v1_horizon(m) for h, m in model["horizons"].items()}}
+
+
+def forecast_v2(model: Mapping[str, Any], b: Bars, *, price: float, events: Mapping[str, Sequence[int]],
+                coverage: float = rc.COVERAGE) -> dict:
+    """`rangecast.forecast` with the V2 scale: the same keys, so every surface could read it unchanged."""
+    i = b.last_complete_index()
+    out = {"version": model.get("version"), "price": float(price), "anchor_close_ms": None, "coverage": coverage,
+           "horizons": {}}
+    if i is None:
+        return out
+    out["anchor_close_ms"] = int(b.t0 + (i + 1) * BAR_MS)
+    for h_name, m in model["horizons"].items():
+        st = state_at(model, b, i, h_name, events=events)
+        if st is None or "S" not in st:
+            continue
+        S = st["S"]
+        half = float(np.interp(coverage, Q_GRID, m["q_max"])) * S
+        out["horizons"][h_name] = {
+            "scale_pct": S, "half_width_pct": half,
+            "lower": price * (1 - half / 100.0), "upper": price * (1 + half / 100.0),
+            "typical_move_pct": float(np.interp(0.5, Q_GRID, m["q_one"])) * S,
+            "event_in_window": {k_: bool(rc.event_in_window(np.array([out["anchor_close_ms"]]), events.get(k_, ()),
+                                                              HORIZON_MS[h_name])[0]) for k_ in rc.EVENT_KINDS},
+        }
+    return out

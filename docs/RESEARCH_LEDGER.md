@@ -8609,3 +8609,16 @@ WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2025-01-01..2026-10-08 (minus E1
 OBJECTS_2025_2026_USED = 49 kline objects (+ 2024-12 warm-up); E1 objects refused; E1 / V3 untouched
 MODEL_FROZEN = 50eeb39b; HELD_OUT_READ = yes (once); CASE = B/B; STATE = HIST/HIST; PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 development (folds 2021–2024) and one time-disjoint exposed read of 2025–2026; W_L1 selected; not wired
+
+**Unit.** `RANGECAST_V2` (owner go 2026-10-12: the forecast track). Design `1774cfb` before any outcome; development `2d5be72`; read `078fa27`. Records `docs/research/RANGECAST_V2_RESULT.md`, `RANGECAST_V2_DEVELOPMENT.json`, `RANGECAST_V2_READ_2025_2026.json`.
+- **Read.** Binance USD-M BTCUSDT 5m klines 2020-01-01 → 2026-10-11 via the product planner (112 objects, checksum-verified, list digest `17eac792…0e45`); 11 objects overlapping the E1-RUN-001 holdout refused before any request. Touch outcomes of hourly anchors on a 16-point log grid per horizon, both sides; folds 2021–2024 for the whole 8-model menu; 2025-01-01 → 2026-10-11 once, for the selected model and V1 only.
+- **Evidence.** 4h log loss per anchor, V1 0.41402; W_L1 0.41000, −0.0040 (95 % −0.0047..−0.0034), negative in each fold year; L2 and L3 rejected against L1; LightGBM diagnostic +0.0172 against W_L1. Read 2025–2026: −0.0057 (−0.0067..−0.0047) at 4h, −0.0037 at 1h, −0.0072 at 24h.
+- **Not done.** No production change, no journal write, no user-facing probability changed; atlas registration pending (`build_atlas --check` fails on main for an unrelated registry id).
+
+```
+WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2020-01..2024-12 (touch outcomes, model development, further exposure); 2025-01-01..2026-10-11 minus E1 objects (one read, selected model vs V1)
+OBJECTS_2025_2026_USED = kline objects of the product planner; E1 objects refused; E1 / V3 untouched
+MODEL_SELECTED = W_L1 (L1 scale set, recency half-life 365 d); PRODUCT_CHANGE = none
+```
