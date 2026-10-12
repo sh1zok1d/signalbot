@@ -65,11 +65,14 @@ def _ensure_db(name: str, dsn: str) -> None:
 def _apply(dsn: str) -> None:
     approved = os.environ.copy()
     approved["PAIRED_SHADOW_SCHEMA_APPROVED"] = "1"
+    approved["PAIRED_SHADOW_DSN"] = dsn
     applied = subprocess.run(
-        ["python3", str(ROOT / "scripts/beta/apply_paired_shadow_schema.py"), dsn],
+        ["python3", str(ROOT / "scripts/beta/apply_paired_shadow_schema.py")],
         capture_output=True, text=True, check=False, env=approved,
     )
     assert applied.returncode == 0, applied.stderr
+    assert dsn not in applied.stdout
+    assert dsn not in applied.stderr
 
 
 def _record(as_of: datetime) -> dict:
@@ -113,13 +116,16 @@ def _bars(as_of: datetime) -> list:
 def _run_writer(record_path: Path, *extra: str) -> dict:
     approved = os.environ.copy()
     approved["PAIRED_SHADOW_HOUR_APPROVED"] = "1"
+    approved["PAIRED_SHADOW_DSN"] = WRITER_DSN
+    command = ["python3", str(ROOT / "scripts/beta/run_paired_shadow_hour.py"), "--write",
+               str(record_path), *extra]
+    assert WRITER_DSN not in command
     completed = subprocess.run(
-        ["python3", str(ROOT / "scripts/beta/run_paired_shadow_hour.py"), "--write",
-         str(record_path), WRITER_DSN, *extra],
-        capture_output=True, text=True, check=False, env=approved,
+        command, capture_output=True, text=True, check=False, env=approved,
     )
     assert completed.returncode == 0, completed.stderr
     assert WRITER_DSN not in completed.stdout
+    assert WRITER_DSN not in completed.stderr
     assert "postgresql" not in completed.stdout
     return json.loads(completed.stdout)
 

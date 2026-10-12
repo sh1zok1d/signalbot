@@ -410,14 +410,15 @@ def test_shadow_schema_is_additive_and_the_export_view_hides_barriers():
     assert _psql("-At", "-c", "SELECT count(*) FROM beta_claims").stdout.strip() == "1"
     approved = os.environ.copy()
     approved["PAIRED_SHADOW_SCHEMA_APPROVED"] = "1"
+    approved["PAIRED_SHADOW_DSN"] = TEST_DSN
     applied = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py"), TEST_DSN],
+        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py")],
         capture_output=True, text=True, check=False, env=approved,
     )
     assert applied.returncode == 0, applied.stderr
     assert _psql("-At", "-c", "SELECT count(*) FROM beta_claims").stdout.strip() == "1"
     applied_again = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py"), TEST_DSN],
+        [sys.executable, str(ROOT / "scripts/beta/apply_paired_shadow_schema.py")],
         capture_output=True, text=True, check=False, env=approved,
     )
     assert applied_again.returncode == 0, applied_again.stderr

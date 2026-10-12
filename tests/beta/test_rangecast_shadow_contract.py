@@ -289,3 +289,7 @@ def test_nightly_snapshots_are_kept_verified_and_selected(tmp_path, bars, v1):
     assert store.select(end + timedelta(hours=2))[0] == sh.MODEL_INVALID
     with pytest.raises(sh.ShadowModelError):
         store.get(new["snapshot_id"])
+    repaired = store.put(new)
+    assert repaired["stored"] is True and repaired["replaced_corrupt"] is True
+    assert store.select(end + timedelta(hours=2))[0] == sh.OK
+    assert store.get(new["snapshot_id"])["snapshot_id"] == new["snapshot_id"]
