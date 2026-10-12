@@ -51,6 +51,11 @@ STALE_AFTER = timedelta(minutes=10)                  # = beta.decision.STALE_AFT
 EVENT_ZONE_POST_MS = 60 * 60_000                     # = beta.decision.EVENT_ZONE_POST_MS (test-pinned)
 PROB_DECIMALS = 6
 
+# proposed journal classes of the V2 side, never shown (docs/RANGECAST_V2_SHADOW_CONTRACT_V1.md §3): the V1
+# class name plus _RCV2, evaluated by the V1 class's rule
+SHADOW_CLASSES = {**{("touch", h): f"L3_DISTANCE_TOUCH_{h.upper()}_RCV2" for h in HORIZONS},
+                  **{("neither", h): f"L3_NEITHER_{h.upper()}_RCV2" for h in HORIZONS}}
+
 MODEL_PATH = Path(__file__).resolve().parents[1] / "docs/research/RANGECAST_V2_W_L1_MODEL_V1.json"
 MODEL_ARTIFACT_ID = "RANGECAST_V2_W_L1_MODEL_V1"
 MODEL_FILE_SHA256 = "2c7e3eca0d90f12d11e7a10558ffaed8d719ff63d630f2c7b252fd6030f70533"
@@ -100,6 +105,12 @@ def v2_identity(model: Mapping[str, Any]) -> dict:
     return {"procedure_id": PROCEDURE_V2, "model_version": model.get("version"), "spec_id": model.get("spec_id"),
             "spec_digest": model.get("spec_digest"), "params_digest": model.get("params_digest") or v2.params_digest(model),
             "artifact_id": model.get("artifact_id")}
+
+
+def shadow_rule_version(model: Mapping[str, Any]) -> str:
+    """The `rule_version` of a V2 journal row: spec, fitted numbers and adapter (contract §3.3)."""
+    ident = v2_identity(model)
+    return f"{ident['spec_id']}+{ident['params_digest'][:16]}+{ADAPTER_VERSION}"
 
 
 def v1_identity(model: Mapping[str, Any], *, stats_pk: Optional[int] = None,

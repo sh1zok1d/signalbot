@@ -299,3 +299,23 @@ def test_the_shadow_is_not_wired_into_the_product():
     offenders = [str(p.relative_to(ROOT)) for d in ("beta", "runtime", "storage") for p in (ROOT / d).rglob("*.py")
                  if p.name not in ("rangecast_v2.py", "rangecast_shadow.py") and pat.search(p.read_text(encoding="utf-8"))]
     assert offenders == []
+
+
+def test_the_proposed_journal_rows_fit_the_existing_schema_and_rules(art):
+    """Contract §3: the V2 rows need no table change and resolve with the V1 classes' rules."""
+    from beta import claims
+    schema = (ROOT / "storage/beta_v0_schema.sql").read_text(encoding="utf-8")
+    table = schema[schema.index("CREATE TABLE IF NOT EXISTS beta_claims ("):]
+    table = table[:table.index(");")]
+    class_re = re.search(r"claim_class\s+TEXT NOT NULL CHECK \(claim_class ~ '([^']+)'\)", table).group(1)
+    digest_re = re.search(r"stats_digest\s+TEXT CHECK \(stats_digest IS NULL OR stats_digest ~ '([^']+)'\)",
+                          table).group(1)
+    assert "UNIQUE (claim_class, subject_key, issue_slot)" in table
+    ident = sh.v2_identity(art)
+    assert re.fullmatch(digest_re, ident["params_digest"])
+    assert sh.shadow_rule_version(art) == f"RANGECAST_V2_W_L1+{sh.MODEL_PARAMS_DIGEST[:16]}+{sh.ADAPTER_VERSION}"
+    for (family, h), cls in sh.SHADOW_CLASSES.items():
+        assert re.fullmatch(class_re, cls) and cls[:2] == "L3"
+        v1_class = cls[:-len("_RCV2")]
+        assert v1_class in claims.CLASSES and cls not in claims.CLASSES     # proposed, not yet written
+        assert claims.CLASSES[v1_class][2] == ("TOUCH_V1" if family == "touch" else "NEITHER_V1")

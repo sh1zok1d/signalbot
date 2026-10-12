@@ -52,7 +52,8 @@ Statuses:
 
 ## 3. Proposed journal mapping (the journal track decides)
 
-1. **Write only V2 as new classes, never shown:** `L3_DISTANCE_TOUCH_{1H,4H,24H}_RCV2` and `L3_NEITHER_{1H,4H,24H}_RCV2`.
+1. **Write only V2 as new classes, never shown:** `L3_DISTANCE_TOUCH_{1H,4H,24H}_RCV2` and `L3_NEITHER_{1H,4H,24H}_RCV2` (`rangecast_shadow.SHADOW_CLASSES`).
+   - **In `claims.CLASSES`:** each class takes its V1 class's level, templates and rule.
    - **Subject fields:** the V1 claim's fields (`side`, `level`, `distance_pct`, `horizon`, `price`, `scale_pct` / `level_up`, `level_down`, `up_pct`, `down_pct`).
    - **Evaluation rules:** unchanged, `TOUCH_V1` / `NEITHER_V1`. The outcome of a V2 row is then the outcome of the V1 claim with the same subject by construction.
    - **Unique key** `(claim_class, subject_key, issue_slot)`: it does not collide with V1.
@@ -61,14 +62,22 @@ Statuses:
    - The V1 production claim stays as it is.
    - A V1 value that differs from the V1 production claim of the same subject by more than 5·10⁻⁵ (4-decimal rounding) is a parity fault.
 3. **Identities in the row.**
-   - `rule_version` = `RANGECAST_V2_W_L1+<params_digest[:16]>+RANGECAST_SHADOW_ADAPTER_V1`.
+   - `rule_version` = `RANGECAST_V2_W_L1+<params_digest[:16]>+RANGECAST_SHADOW_ADAPTER_V1` (`rangecast_shadow.shadow_rule_version`).
    - `stats_digest` = `params_digest`, which becomes the monitor's `snapshot_id`.
    - `stats_pk` = NULL.
 4. **No row when a horizon's status is not `OK`.** The status counts per hour go into one health component (proposed `rangecast_shadow`), so pairing completeness can be measured.
 5. **Monitor mapping.**
-   - `calibration_monitor.observation_from_journal_row` today maps every `L3_*_TOUCH_*` and `L3_NEITHER_*` row to `TOUCH_CHANCE_PROCEDURE_V1`, and its class pattern does not match the `_RCV2` suffix. V2 rows are therefore ignored until the mapping is added, and never pooled with V1.
+   - `calibration_monitor.observation_from_journal_row` today maps every `L3_*_TOUCH_*` and `L3_NEITHER_*` row to `TOUCH_CHANCE_PROCEDURE_V1`, and its class pattern does not match the `_RCV2` suffix. V2 rows are therefore ignored until the mapping is added, and never pooled with V1 (checked against PR #458 at `1c82e638`).
    - The addition: `_RCV2` classes map to `TOUCH_CHANCE_PROCEDURE_RCV2_W_L1`, with the same families, horizons and rules. The six V2 books are then separate from the six V1 books.
-6. **Export.** Add `numbers.p_v1`, `numbers.pair_key` and `subject.distance_pct` to the JSONL whitelist, so `beta.rangecast_paired` can read the export directly. Prices stay excluded.
+6. **The hourly groups.** `claims.HOURLY_GROUPS["touch"]` takes every class that starts with `L3_`. The `_RCV2` classes must be left out of it and form their own group, proposed `rangecast_shadow`.
+   - Otherwise a V2 row already written for the hour makes `record_claims` skip that hour's V1 claims.
+   - The V2 rows can go in the same transaction as the V1 rows or after them, never instead of them.
+7. **No table change.** `beta_claims` already accepts these rows (test):
+   - `claim_class` matches `^L[123]_[A-Z0-9_]+$` and starts with `L3`;
+   - `stats_digest` = `params_digest` is 64 hex characters, and `stats_pk` may be NULL;
+   - the unique key does not collide with V1;
+   - `claims.evaluate` dispatches on the evaluation rule id, so `TOUCH_V1` and `NEITHER_V1` resolve the V2 rows with no change.
+8. **Export.** Add `numbers.p_v1`, `numbers.pair_key` and `subject.distance_pct` to the JSONL whitelist, so `beta.rangecast_paired` can read the export directly. Prices stay excluded.
 
 ## 4. Version rules
 
@@ -81,12 +90,15 @@ Statuses:
 - **V1 values:** the adapter's V1 values equal `claims.touch_claims` for the distance grid and «ни один» up to the journal's 4-decimal rounding (`tests/beta/test_rangecast_shadow.py`).
 - **V2 values:** they equal the research path at every 5-minute offset (tests). On the 2024 fold the live slice equals the vectorized path within 4.6·10⁻¹⁴ (`RANGECAST_V2_SHADOW_PARITY.json`).
 - **Event zones:** the adapter's event-zone horizons equal `decision.event_zones` (test).
+- **Storage:** the proposed rows fit the `beta_claims` checks, and the V2 classes resolve with the V1 classes' rules (test).
+- **Monitor V2:** this branch merged with PR #458 at `1c82e638` has one index-line conflict, and the monitor, export, claims and shadow tests pass together (107 passed; the skips need PostgreSQL).
 - **No coupling:** no schema change; the monitor's module imports no rangecast code; no product module imports the adapter (test).
 
 ## 6. Needed from the journal track before the shadow starts
 
 1. The writer, behind a setting `rangecast_shadow.enabled`, default off. It writes the `_RCV2` rows from `paired_forecast` in the hourly window.
-2. The monitor mapping of §3.5.
-3. The export fields of §3.6.
-4. A builder from the export to `beta.rangecast_paired` rows: `pair_key`, `horizon`, `family`, `subject_key`, `source`, `as_of`, `p_v1`, `p_v2`, `outcome`, `status`, `coverage`, `distance_pct`.
-5. The owner's go to deploy and switch the setting on. The plan's clock starts at the first complete ISO week after that.
+2. The six classes in `claims.CLASSES` and their own hourly group, outside `touch` (§3.1, §3.6).
+3. The monitor mapping of §3.5.
+4. The export fields of §3.8.
+5. A builder from the export to `beta.rangecast_paired` rows: `pair_key`, `horizon`, `family`, `subject_key`, `source`, `as_of`, `p_v1`, `p_v2`, `outcome`, `status`, `coverage`, `distance_pct`.
+6. The owner's go to deploy and switch the setting on. The plan's clock starts at the first complete ISO week after that.
