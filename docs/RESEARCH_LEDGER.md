@@ -8622,3 +8622,15 @@ WINDOWS_CONSUMED = BINANCE_UM_KLINES_5M_PRODUCT 2020-01..2024-12 (touch outcomes
 OBJECTS_2025_2026_USED = kline objects of the product planner; E1 objects refused; E1 / V3 untouched
 MODEL_SELECTED = W_L1 (L1 scale set, recency half-life 365 d); PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 shadow readiness: W_L1 frozen, paired adapter, audit on the development folds; promotion rule frozen; shadow not started
+
+**Unit.** `RANGECAST_V2` follow-up (owner go 2026-10-12: prepare the paired shadow). Records `docs/research/RANGECAST_V2_SHADOW_AUDIT.md` / `.json`, `RANGECAST_V2_SHADOW_PARITY.json`, `RANGECAST_V2_W_L1_MODEL_V1.json`; `docs/RANGECAST_V2_SHADOW_CONTRACT_V1.md`, `docs/RANGECAST_V2_SHADOW_PLAN_V1.md`.
+- **Read.** The development folds 2021–2024 again (anchor offsets, tails, «ни один», planning numbers); no new window. One W_L1 fit on the product surface 2020-01-01 → 2026-10-11 for the frozen artifact, no outcome scored. The 2025–2026 read was not repeated; E1 objects never requested.
+- **Not done.** No production change, no journal write, no user-facing probability changed; the shadow needs the journal track's writer and an owner go.
+
+```
+WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for engineering checks)
+OBJECTS_2025_2026_USED = product-planner kline objects for the artifact fit only (no outcome); E1 objects refused; E1 / V3 untouched
+PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V1 frozen before any shadow outcome; PRODUCT_CHANGE = none
+```
