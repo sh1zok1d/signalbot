@@ -22,7 +22,7 @@ A historical gain is not a live calibration. This plan makes no user-facing clai
 
 ## 2. What is compared
 
-- **Anchors.** Each hour, V1 and W_L1 on the same anchors of the store, on the same snapshot and bar (`plan_paired_issues`):
+- **Anchors.** Each hour, V1 and W_L1 on the same anchors of the store, on the same snapshot and bar. `rangecast_shadow.paired_forecast` provides the record; the store's `execute_hour` stores it:
   - the six journal distances on both sides and the 16 «ни один» pairs;
   - at 1h, 4h and 24h;
   - outside CPI / FOMC event zones;

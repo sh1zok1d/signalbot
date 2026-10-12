@@ -8662,3 +8662,18 @@ WINDOWS_CONSUMED = none new (development folds 2021-2024 re-read for the rule's 
 OBJECTS_2025_2026_USED = none; E1 / V3 untouched
 PROMOTION_RULE = RANGECAST_V2_PROMOTION_RULE_V2 fixed before any shadow outcome (V1 superseded unused); PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 shadow: identity converged with the updated paired shadow store (#459)
+
+**Unit.** `RANGECAST_V2` follow-up, engineering only. The journal track's update of #459 pinned W_L1 to the digest of `rangecast_v2.spec()`, `00539f2d…`, and added the store's hour path (`plan_shadow_record`, `execute_hour`). This branch now follows it.
+- **Withdrawn.** The forecast track's `procedure_digest` amendment (entry above). Nothing was stored under it.
+- **Kept on this side.** V1 is guarded by a pinned digest of its math constants, `eff8e649…`, proposed to the store as V1's spec digest.
+- **Removed.** `rangecast_shadow.plan_paired_issues`, a second planning path. `paired_forecast` is the record the store's hour path stores.
+- **Unchanged.** The model math, the frozen artifact, the parity record, promotion rule V2 and its history.
+- **Read.** Nothing new: no market window, no 2025–2026 outcome, E1 untouched.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched
+PRODUCT_CHANGE = none
+```

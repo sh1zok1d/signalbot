@@ -1,19 +1,19 @@
-"""Rangecast V2 paired shadow: the forecast side of `beta.paired_shadow`.
+"""Rangecast V2 paired shadow: the number source of the paired shadow store.
 
 NOT WIRED. No product module imports this; nothing here writes a database, a claim or a user text, and V1
-(`beta/rangecast.py`) and the sharp-move detector are untouched. Storage, outcomes and measurement belong to
-the paired shadow store (`beta/paired_shadow.py`, docs/BETA_PAIRED_SHADOW_CONTRACT_V1.md); this module only
-provides numbers. The V2 side of that contract: docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md.
+(`beta/rangecast.py`) and the sharp-move detector are untouched. Storage, the hour path, outcomes and
+measurement belong to the paired shadow store (`beta/paired_shadow.py`: `plan_shadow_record`, `execute_hour`;
+docs/BETA_PAIRED_SHADOW_CONTRACT_V1.md); this module only provides numbers and identities. The forecast side
+of that contract: docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md.
 
-- `plan_paired_issues`: one hourly issue. It checks the snapshot (fresh price and 5m bars, 30 days of history,
-  the live data-quality gate, CPI / FOMC event zones), binds V1 (`paired_shadow.bind_rangecast_v1`) and W_L1
-  (`rangecast_v2.bind_shadow_model`) on the same bar and returns the `paired_shadow.plan_issues` rows for the
-  horizons both models answer. A horizon one model cannot answer is withheld for both, so every stored anchor
-  is paired.
+- `paired_forecast`: one hourly record. It checks the snapshot (fresh price and 5m bars, 30 days of history,
+  the live data-quality gate, CPI / FOMC event zones), binds V1 (`paired_shadow.bind_rangecast_v1`, behind the
+  V1 math guard) and W_L1 (`rangecast_v2.bind_shadow_model`) on the same bar, and returns both models' numbers
+  on the journal grid (and any target prices) with their identities. A horizon one model cannot answer is
+  not `OK` for the pair, so the store keeps only paired anchors.
 - Nightly snapshots: `fit_nightly_snapshot` fits W_L1 on the grid of the V1 nightly build; `SnapshotStore`
   keeps every snapshot of coefficients, write-once and verified on read, and `select` returns the snapshot
   in force at an issue.
-- `paired_forecast`: the same bound models asked for arbitrary target prices (diagnostics; nothing stored).
 - `load_frozen_model`: the committed W_L1 artifact, kept for reproducibility (parity and golden tests).
 
 A probability is never invented: every failure is a status.
@@ -99,32 +99,25 @@ def validate_v2_model(model: Mapping[str, Any]) -> None:
 
 
 # ---- V1 identity (read from beta.rangecast; V1 is not changed) ---------------------------------------------
-def v1_shadow_procedure() -> dict:
-    """Every constant of the production V1 procedure that moves a touch or «ни один» chance. Its digest is
-    the `procedure_digest` of `paired_shadow.V1_SPEC_IDENTITY`."""
-    return {
-        "math": {"version": rc.RANGE_MODEL_VERSION, "horizons": dict(rc.HORIZONS), "features": list(rc.FEATURES),
-                 "past_windows": list(rc.PAST_WINDOWS), "event_kinds": list(rc.EVENT_KINDS), "floor_pct": rc.FLOOR_PCT,
-                 "p_grid": list(rc.P_GRID), "joint_levels": list(rc.JOINT_LEVELS), "anchor_stride": rc.ANCHOR_STRIDE,
-                 "min_train_anchors": rc.MIN_TRAIN_ANCHORS},
-        "fit": {"schedule": "NIGHTLY", "function": "rangecast.fit_range_model", "grid": "history_stats.run_history_build"},
-        "serve": {"state": "rangecast.scale_at on the last complete 5m bar", "stale_after_min": v2.STALE_AFTER_MIN,
-                  "event_zone": {"kinds": list(rc.EVENT_KINDS), "post_min": v2.EVENT_ZONE_POST_MIN}},
-    }
+def v1_math_spec() -> dict:
+    """The constants of `beta.rangecast` that move a touch or «ни один» chance: the V1 counterpart of
+    `rangecast_v2.spec()`. Coefficients are not in it."""
+    return {"spec_id": V1_SPEC_ID, "version": rc.RANGE_MODEL_VERSION, "horizons": dict(rc.HORIZONS),
+            "features": list(rc.FEATURES), "past_windows": list(rc.PAST_WINDOWS), "event_kinds": list(rc.EVENT_KINDS),
+            "floor_pct": rc.FLOOR_PCT, "p_grid": list(rc.P_GRID), "joint_levels": list(rc.JOINT_LEVELS),
+            "anchor_stride": rc.ANCHOR_STRIDE}
 
 
-def v1_spec_identity() -> dict:
-    return {"procedure_id": V1_PROCEDURE_ID, "spec_id": V1_SPEC_ID,
-            "surface": "beta.rangecast.touch_probability+neither_probability", "symbol": v2.SHADOW_SYMBOL,
-            "procedure_digest": sha256_json(v1_shadow_procedure())}
+# sha256 of v1_math_spec() for the production V1 this shadow compares against. A change of a V1 constant stops
+# V1 shadow issues instead of mixing two V1 procedures in one book (proposed to the store as V1's spec digest).
+V1_MATH_DIGEST = "eff8e649f17ebe2f4d1d92d8c2c065c5b75fca3c5d3cdc341aadac41dec7f58f"
 
 
 def v1_spec_digest() -> str:
-    """`paired_shadow.V1_SPEC_DIGEST`, after checking that the V1 code still computes it."""
-    from .paired_shadow import V1_SPEC_DIGEST, V1_SPEC_IDENTITY
-    mine = v1_spec_identity()
-    if mine != dict(V1_SPEC_IDENTITY) or sha256_json(mine) != V1_SPEC_DIGEST:
-        raise ShadowModelError("V1 SPEC_IDENTITY_MISMATCH: the V1 procedure changed; register a new spec_id")
+    """`paired_shadow.V1_SPEC_DIGEST`, after checking that the V1 math is still the registered one."""
+    from .paired_shadow import V1_SPEC_DIGEST
+    if sha256_json(v1_math_spec()) != V1_MATH_DIGEST:
+        raise ShadowModelError("V1 MATH_MISMATCH: a V1 constant changed; register a new V1 spec")
     return V1_SPEC_DIGEST
 
 
@@ -345,8 +338,8 @@ def _v2_side(model, b, i, horizons, events) -> tuple:
 
 def prepare_issue(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_model: Optional[Mapping[str, Any]],
                   horizons: Sequence[str] = HORIZONS) -> dict:
-    """Checks and bindings of one issue. `report` is JSON-ready; `v1` / `v2` are the bound models (or None);
-    `paired` lists the horizons both answer. Never raises."""
+    """Checks and bindings of one issue (the first half of `paired_forecast`). `report` is JSON-ready; `v1` /
+    `v2` are the bound models (or None); `paired` lists the horizons both answer. Never raises."""
     horizons = tuple(horizons)
     try:
         status, reason, i = snapshot_status(snap)
@@ -387,30 +380,7 @@ def prepare_issue(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_m
         return {"report": rep, "v1": None, "v2": None, "paired": []}
 
 
-def plan_paired_issues(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_model: Optional[Mapping[str, Any]],
-                       horizons: Sequence[str] = HORIZONS, distances: Optional[Sequence[float]] = None,
-                       neither_pairs: Optional[Sequence[tuple]] = None) -> dict:
-    """{report, rows}: the `paired_shadow.plan_issues` rows of one hourly issue, both models on the same
-    anchors, for the horizons both answer. The caller stores them (`ShadowLedger.record_issues`, which needs
-    the owner's `allow_write`). Never raises; a failure leaves `rows` empty and says why."""
-    prep = prepare_issue(snap, v1_model=v1_model, v2_model=v2_model, horizons=horizons)
-    rep = prep["report"]
-    rep["paired_horizons"] = list(prep["paired"])
-    if not prep["paired"]:
-        return {"report": rep, "rows": []}
-    try:
-        from .paired_shadow import plan_issues
-        rows = plan_issues([prep["v1"], prep["v2"]], price=float(snap.price), as_of=_utc(rep["as_of"]),
-                           issue_slot=_utc(rep["issue_slot"]), issued_at=snap.now, horizons=prep["paired"],
-                           distances=distances, neither_pairs=neither_pairs)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("rangecast shadow plan failed: %s", type(exc).__name__)
-        rep.update(status=NOT_COMPUTABLE, reason=f"PLAN:{type(exc).__name__}", paired_horizons=[])
-        return {"report": rep, "rows": []}
-    return {"report": rep, "rows": rows}
-
-
-# ---- diagnostics: arbitrary targets on the same bound models -------------------------------------------------
+# ---- the hourly record ----------------------------------------------------------------------------------------
 def _round(p: float) -> float:
     return round(float(p), PROB_DECIMALS)
 
@@ -449,10 +419,11 @@ def neither_pairs(price: float, grid_pct: Sequence[float] = NEITHER_GRID_PCT) ->
             for du in grid_pct for dd in grid_pct]
 
 
-def _identity(bound, procedure_id: str, spec_id: str) -> dict:
+def _identity(bound, procedure_id: str, spec_id: str, model: Optional[Mapping[str, Any]], extra: Mapping) -> dict:
     return {"procedure_id": procedure_id, "spec_id": spec_id,
             "spec_digest": None if bound is None else bound.spec_digest,
-            "snapshot_id": None if bound is None else bound.snapshot_id}
+            "snapshot_id": None if bound is None else bound.snapshot_id,
+            "model_version": None if model is None else model.get("version"), **extra}
 
 
 def _model_record(bound, ident: Mapping[str, Any], status: tuple, *, h: str, as_of: Optional[datetime],
@@ -483,10 +454,13 @@ def _model_record(bound, ident: Mapping[str, Any], status: tuple, *, h: str, as_
 
 
 def paired_forecast(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_model: Optional[Mapping[str, Any]],
-                    horizons: Sequence[str] = HORIZONS, touch_grid_pct: Sequence[float] = TOUCH_GRID_PCT,
-                    neither_grid_pct: Sequence[float] = NEITHER_GRID_PCT, target_prices: Sequence[float] = ()) -> dict:
-    """V1 and V2 numbers per horizon on one anchor, for the journal grid and any target prices. The same
-    checks and bound models as `plan_paired_issues`; nothing is stored. Never raises."""
+                    v1_ids: Optional[Mapping[str, Any]] = None, horizons: Sequence[str] = HORIZONS,
+                    touch_grid_pct: Sequence[float] = TOUCH_GRID_PCT, neither_grid_pct: Sequence[float] = NEITHER_GRID_PCT,
+                    target_prices: Sequence[float] = ()) -> dict:
+    """V1 and V2 numbers per horizon on one anchor, for the journal grid and any target prices, with their
+    identities: the record `paired_shadow.plan_shadow_record` / `execute_hour` store. `v1_ids` may carry the
+    production statistics row (`stats_pk`, `stats_digest`) the V1 model came from. Nothing is stored. Never
+    raises."""
     prep = prepare_issue(snap, v1_model=v1_model, v2_model=v2_model, horizons=horizons)
     out = {k: v for k, v in prep["report"].items() if k != "horizons"}
     out["horizons"] = {}
@@ -495,8 +469,12 @@ def paired_forecast(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2
         ok = out["status"] == OK
         targets = touch_targets(float(snap.price), grid_pct=touch_grid_pct, target_prices=target_prices) if ok else []
         pairs = neither_pairs(float(snap.price), neither_grid_pct) if ok else []
-        id1 = _identity(prep["v1"], V1_PROCEDURE_ID, V1_SPEC_ID)
-        id2 = _identity(prep["v2"], v2.SHADOW_PROCEDURE_ID, v2.SHADOW_SPEC_ID)
+        ids = dict(v1_ids or {})
+        id1 = _identity(prep["v1"], V1_PROCEDURE_ID, V1_SPEC_ID, v1_model,
+                        {"stats_pk": ids.get("stats_pk"), "stats_digest": ids.get("stats_digest")})
+        id2 = _identity(prep["v2"], v2.SHADOW_PROCEDURE_ID, v2.SHADOW_SPEC_ID, v2_model,
+                        {"params_digest": None if prep["v2"] is None else prep["v2"].snapshot_id,
+                         "artifact_id": None if v2_model is None else v2_model.get("artifact_id")})
         for h, hs in prep["report"]["horizons"].items():
             s1 = prep.get("v1_status", {}).get(h, (hs["v1"], hs["reason"]))
             s2 = prep.get("v2_status", {}).get(h, (hs["v2"], hs["reason"]))

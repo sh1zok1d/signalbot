@@ -41,7 +41,7 @@
 
 The findings of §1 stand. The owner chose the journal track's store for the shadow (`BETA_PAIRED_SHADOW_CONTRACT_V1.md`), and the integration layer was reworked onto it (`RANGECAST_V2_SHADOW_CONTRACT_V2.md`). The model math, the frozen artifact, the parity record, the data-quality gate, the event-zone rule, the tails and the «ни один» checks are unchanged. Their tests still pass.
 
-- **Identity.** The paired identity now covers the procedure, not only its name. `procedure_digest` covers the math of `spec()`, the nightly fit and the serving rules; V1 has the same. The binders refuse to issue when the code drifts from the pinned value.
+- **Identity.** The store pins W_L1 to the digest of `spec()`, `00539f2d…`, which is the model math and the frozen artifact's own spec digest. The binders refuse to issue when the code drifts from it. V1 is guarded on this side by a pinned digest of its math constants, `eff8e649…`, which is proposed to the store as V1's spec digest. Serving rules are outside the digest and are pinned by tests.
 - **Evaluated procedure.** W_L1 refitted nightly on the V1 nightly grid, with every snapshot of coefficients kept and verified. The frozen artifact stays for reproducibility.
   - The §4 risk "the frozen artifact ages" no longer applies to the shadow.
   - A missed nightly fit is bounded: a snapshot older than 72 hours stops W_L1 issues, and V1 is then withheld too.
