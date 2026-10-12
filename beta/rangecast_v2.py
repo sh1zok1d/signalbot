@@ -99,26 +99,54 @@ def params_digest(model: Mapping[str, Any]) -> str:
 
 
 # ---- paired shadow contract (docs/BETA_PAIRED_SHADOW_CONTRACT_V1.md) --------------------------------
-# The evaluated procedure is W_L1 refitted nightly. Its spec digest is the digest of `spec()`, the model math
-# (pinned in beta.paired_shadow.V2_SPEC_DIGEST); the coefficients are not in it, so a refit changes
-# `shadow_snapshot_id` only. The serving rules below decide whether a number is issued, never its value; they
-# are pinned by tests (tests/beta/test_rangecast_shadow_contract.py), and a change of them is registered as a
-# new spec by rule (docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md §5).
+# The evaluated procedure is W_L1 refitted nightly. Its identity covers every rule that can move a stored
+# probability: the model math (`spec`), the nightly fit and the serving rules. The coefficients are not
+# identity: a refit changes `shadow_snapshot_id` only. A change of anything below is a new spec_id.
 SHADOW_PROCEDURE_ID = "RANGECAST_V2"        # = beta.paired_shadow.V2_PROCEDURE_ID
 SHADOW_SPEC_ID = "W_L1"                     # = beta.paired_shadow.V2_SPEC_ID
-SHADOW_SYMBOL = "BTCUSDT"                   # = beta.paired_shadow.PRIMARY_SYMBOL
+SHADOW_SYMBOL, SHADOW_MARKET = "BTCUSDT", "binance_usdm"
 SNAPSHOT_MAX_AGE_H = 72                     # one missed nightly fit is tolerated, two are not
 STALE_AFTER_MIN = 10                        # = beta.decision.STALE_AFTER (test-pinned)
 EVENT_ZONE_POST_MIN = 60                    # = beta.decision.EVENT_ZONE_POST_MS (test-pinned)
 
 
+def shadow_procedure() -> dict:
+    """Every constant of the evaluated procedure beyond the coefficients."""
+    return {
+        "math": spec(),
+        "fit": {"schedule": "NIGHTLY", "function": "fit_range_model_v2",
+                "grid": "history_stats.load_history_grid: first stored 5m bar to the UTC midnight of the build",
+                "train_rows": "hourly anchors whose horizon window closed inside the grid, every feature present",
+                "feature_min_window_frac": 0.9, "weights": "0.5 ** (age_days / half_life_days)",
+                "min_train_anchors": rc.MIN_TRAIN_ANCHORS},
+        "serve": {"state": "state_at on the last complete 5m bar", "min_present": {str(k): v for k, v in MIN_PRESENT.items()},
+                  "stale_after_min": STALE_AFTER_MIN, "event_zone": {"kinds": list(rc.EVENT_KINDS), "post_min": EVENT_ZONE_POST_MIN},
+                  "snapshot": "newest built at or before the issue", "snapshot_max_age_h": SNAPSHOT_MAX_AGE_H,
+                  "prob_clip": [PROB_MIN, PROB_MAX]},
+    }
+
+
+def shadow_procedure_digest() -> str:
+    return _digest(shadow_procedure())
+
+
+def shadow_spec_identity() -> dict:
+    """The identity object of `beta.paired_shadow.V2_SPEC_IDENTITY`, computed from this code."""
+    if SELECTED_HALF_LIFE_DAYS != int(SELECTED_HALF_LIFE_DAYS):
+        raise RangeModelV2Error("half-life must be a whole number of days in the identity")
+    return {"procedure_id": SHADOW_PROCEDURE_ID, "spec_id": SHADOW_SPEC_ID, "level": SELECTED_LEVEL,
+            "half_life_days": int(SELECTED_HALF_LIFE_DAYS), "symbol": SHADOW_SYMBOL, "market": SHADOW_MARKET,
+            "procedure_digest": shadow_procedure_digest()}
+
+
 def shadow_spec_digest() -> str:
-    """`beta.paired_shadow.V2_SPEC_DIGEST`, the digest of `spec()`, after checking that this code still
-    computes it. A model constant changed without a new spec_id raises: no probability is issued under a
-    stale identity."""
-    from .paired_shadow import V2_SPEC_DIGEST
-    if spec_digest() != V2_SPEC_DIGEST:
-        raise RangeModelV2Error("SPEC_IDENTITY_MISMATCH: the model math changed; register a new spec_id")
+    """`beta.paired_shadow.V2_SPEC_DIGEST`, after checking that this code still computes it. A procedure
+    constant changed without a new spec_id raises: no probability is issued under a stale identity."""
+    from .paired_shadow import V2_SPEC_DIGEST, V2_SPEC_IDENTITY
+    from .state_tape import sha256_json
+    mine = shadow_spec_identity()
+    if mine != dict(V2_SPEC_IDENTITY) or sha256_json(mine) != V2_SPEC_DIGEST:
+        raise RangeModelV2Error("SPEC_IDENTITY_MISMATCH: the procedure changed; register a new spec_id")
     return V2_SPEC_DIGEST
 
 

@@ -60,13 +60,21 @@ def _issue_bar(b, back=320):
 
 
 # ---- identity ------------------------------------------------------------------------------------------
-def test_the_identity_is_the_stores_and_drift_refuses_to_issue(monkeypatch, art):
-    """W_L1: the store pins the digest of `spec()`, the model math. V1: the store's digest, behind the V1 math
-    guard. A changed constant refuses to issue instead of joining the running book."""
-    assert v2.shadow_spec_digest() == ps.V2_SPEC_DIGEST == v2.spec_digest() == art["spec_digest"]
-    assert sh.v1_spec_digest() == ps.V1_SPEC_DIGEST and sha256_json(sh.v1_math_spec()) == sh.V1_MATH_DIGEST
+def test_the_identity_is_the_stores_and_covers_the_procedure(monkeypatch, art):
+    """Amendment 1 of the store contract: each identity carries `procedure_digest`, the digest of every
+    constant beyond the coefficients (model math, nightly fit, serving rules). A changed constant refuses to
+    issue instead of joining the running book. The artifact keeps its own math digest."""
+    assert v2.shadow_spec_identity() == ps.V2_SPEC_IDENTITY and sh.v1_spec_identity() == ps.V1_SPEC_IDENTITY
+    assert v2.shadow_spec_digest() == ps.V2_SPEC_DIGEST == sha256_json(ps.V2_SPEC_IDENTITY)
+    assert sh.v1_spec_digest() == ps.V1_SPEC_DIGEST == sha256_json(ps.V1_SPEC_IDENTITY)
+    assert (v2.shadow_procedure_digest(), sh.v1_spec_identity()["procedure_digest"]) == \
+        (ps.V2_PROCEDURE_DIGEST, ps.V1_PROCEDURE_DIGEST)
+    assert set(v2.shadow_procedure()) == {"math", "fit", "serve"}
+    assert v2.spec_digest() == art["spec_digest"] == ps.V2_ARTIFACT_MATH_DIGEST != ps.V2_SPEC_DIGEST
     assert (rp.V1_PAIR, rp.V2_PAIR) == ((ps.V1_PROCEDURE_ID, ps.V1_SPEC_ID), (ps.V2_PROCEDURE_ID, ps.V2_SPEC_ID))
-    for name, value in (("RIDGE", 2.0), ("Q_GRID", [0.002] + v2.Q_GRID[1:]), ("LOOKBACK_BARS", 8000)):
+    for name, value in (("RIDGE", 2.0), ("Q_GRID", [0.002] + v2.Q_GRID[1:]),                 # math
+                        ("MIN_PRESENT", {**v2.MIN_PRESENT, 12: 0.9}), ("SNAPSHOT_MAX_AGE_H", 96),  # serving
+                        ("STALE_AFTER_MIN", 15)):
         with monkeypatch.context() as m:
             m.setattr(v2, name, value)
             with pytest.raises(v2.RangeModelV2Error, match="SPEC_IDENTITY_MISMATCH"):
@@ -74,16 +82,8 @@ def test_the_identity_is_the_stores_and_drift_refuses_to_issue(monkeypatch, art)
     for name, value in (("FLOOR_PCT", 0.03), ("PAST_WINDOWS", (12, 48, 288))):
         with monkeypatch.context() as m:
             m.setattr(rc, name, value)
-            with pytest.raises(sh.ShadowModelError, match="MATH_MISMATCH"):
+            with pytest.raises(sh.ShadowModelError, match="SPEC_IDENTITY_MISMATCH"):
                 sh.v1_spec_digest()
-
-
-def test_the_serving_rules_are_pinned():
-    """They decide whether a number is issued, never its value, and are outside the digest: a change here is
-    registered as a new spec by rule (contract V2 §5), so this test has to change with it."""
-    assert v2.MIN_PRESENT == {12: 1.0, 48: 1.0, 288: 0.99, 2016: 0.98, 8640: 0.95}
-    assert (v2.SNAPSHOT_MAX_AGE_H, v2.STALE_AFTER_MIN, v2.EVENT_ZONE_POST_MIN) == (72, 10, 60)
-    assert (v2.PROB_MIN, v2.PROB_MAX) == (0.001, 0.999)
 
 
 def test_the_snapshot_id_is_the_coefficients(bars, art):
@@ -186,6 +186,13 @@ def test_one_hourly_record_pairs_v1_and_w_l1_on_the_stores_anchors(bars, v1, art
             assert cell["log_loss_v2_minus_v1"] == pytest.approx(ll, abs=1e-12)
             assert cell["brier_v2_minus_v1"] == pytest.approx(br, abs=1e-12)
     assert all("level_up" not in ps.export_row(r) and "level_down" not in ps.export_row(r) for r in joined)
+
+
+def test_plan_paired_issues_is_the_stores_mapper_without_a_write(bars, v1, art):
+    snap = _snap(bars, _issue_bar(bars))
+    out = sh.plan_paired_issues(snap, v1_model=v1, v2_model=art)
+    direct = ps.plan_shadow_record(sh.paired_forecast(snap, v1_model=v1, v2_model=art), issue_slot=_slot(snap))
+    assert out["planned"]["rows"] == direct["rows"] and len(direct["rows"]) == N_ISSUE_ROWS
 
 
 def test_the_production_statistics_row_can_name_the_v1_snapshot(bars, v1, art):

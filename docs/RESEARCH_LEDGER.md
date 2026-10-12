@@ -8677,3 +8677,26 @@ WINDOWS_CONSUMED = none
 OBJECTS_2025_2026_USED = none; E1 / V3 untouched
 PRODUCT_CHANGE = none
 ```
+
+## 2026-10-12 — RANGECAST_V2 shadow: identity agreed with the paired shadow store (Amendment 1)
+
+**Unit.** `RANGECAST_V2` follow-up, engineering only. The two tracks' edits crossed. #459 (`337cf3f8`) adopted the forecast track's Amendment 1 in the same window in which this branch had moved to the store's earlier pin. This branch now follows #459 again, and the identity is agreed:
+
+| Procedure | `procedure_digest` | `spec_digest` |
+|---|---|---|
+| W_L1 | `e573ae5d…` | `9a6b61d0…` |
+| V1 | `4aef58b3…` | `30b8e81e…` |
+
+The two entries above are superseded on the identity, nothing else:
+- the intermediate stream pin `00539f2d…` (still the artifact's own math digest);
+- the V1 math proposal `eff8e649…`, which is contained in V1's `procedure_digest`.
+
+Nothing was stored under any of them.
+- **Also.** A CI portability fix for the store's settlement tests: they now use `BETA_TEST_DSN`'s server instead of a local socket and an `ubuntu` role. It is proposed on #459.
+- **Read.** Nothing: no market window, no 2025–2026 outcome, E1 untouched. The model math, the frozen artifact, the parity record and promotion rule V2 are unchanged.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched
+PRODUCT_CHANGE = none
+```

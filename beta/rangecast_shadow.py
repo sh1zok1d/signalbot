@@ -8,9 +8,10 @@ of that contract: docs/RANGECAST_V2_SHADOW_CONTRACT_V2.md.
 
 - `paired_forecast`: one hourly record. It checks the snapshot (fresh price and 5m bars, 30 days of history,
   the live data-quality gate, CPI / FOMC event zones), binds V1 (`paired_shadow.bind_rangecast_v1`, behind the
-  V1 math guard) and W_L1 (`rangecast_v2.bind_shadow_model`) on the same bar, and returns both models' numbers
+  V1 identity check) and W_L1 (`rangecast_v2.bind_shadow_model`) on the same bar, and returns both models' numbers
   on the journal grid (and any target prices) with their identities. A horizon one model cannot answer is
-  not `OK` for the pair, so the store keeps only paired anchors.
+  not `OK` for the pair, so the store keeps only paired anchors. `plan_paired_issues` returns the rows the
+  store's hour path would store for that record, without writing.
 - Nightly snapshots: `fit_nightly_snapshot` fits W_L1 on the grid of the V1 nightly build; `SnapshotStore`
   keeps every snapshot of coefficients, write-once and verified on read, and `select` returns the snapshot
   in force at an issue.
@@ -99,25 +100,32 @@ def validate_v2_model(model: Mapping[str, Any]) -> None:
 
 
 # ---- V1 identity (read from beta.rangecast; V1 is not changed) ---------------------------------------------
-def v1_math_spec() -> dict:
-    """The constants of `beta.rangecast` that move a touch or «ни один» chance: the V1 counterpart of
-    `rangecast_v2.spec()`. Coefficients are not in it."""
-    return {"spec_id": V1_SPEC_ID, "version": rc.RANGE_MODEL_VERSION, "horizons": dict(rc.HORIZONS),
-            "features": list(rc.FEATURES), "past_windows": list(rc.PAST_WINDOWS), "event_kinds": list(rc.EVENT_KINDS),
-            "floor_pct": rc.FLOOR_PCT, "p_grid": list(rc.P_GRID), "joint_levels": list(rc.JOINT_LEVELS),
-            "anchor_stride": rc.ANCHOR_STRIDE}
+def v1_shadow_procedure() -> dict:
+    """Every constant of the production V1 procedure that moves a touch or «ни один» chance. Its digest is
+    the `procedure_digest` of `paired_shadow.V1_SPEC_IDENTITY`."""
+    return {
+        "math": {"version": rc.RANGE_MODEL_VERSION, "horizons": dict(rc.HORIZONS), "features": list(rc.FEATURES),
+                 "past_windows": list(rc.PAST_WINDOWS), "event_kinds": list(rc.EVENT_KINDS), "floor_pct": rc.FLOOR_PCT,
+                 "p_grid": list(rc.P_GRID), "joint_levels": list(rc.JOINT_LEVELS), "anchor_stride": rc.ANCHOR_STRIDE,
+                 "min_train_anchors": rc.MIN_TRAIN_ANCHORS},
+        "fit": {"schedule": "NIGHTLY", "function": "rangecast.fit_range_model", "grid": "history_stats.run_history_build"},
+        "serve": {"state": "rangecast.scale_at on the last complete 5m bar", "stale_after_min": v2.STALE_AFTER_MIN,
+                  "event_zone": {"kinds": list(rc.EVENT_KINDS), "post_min": v2.EVENT_ZONE_POST_MIN}},
+    }
 
 
-# sha256 of v1_math_spec() for the production V1 this shadow compares against. A change of a V1 constant stops
-# V1 shadow issues instead of mixing two V1 procedures in one book (proposed to the store as V1's spec digest).
-V1_MATH_DIGEST = "eff8e649f17ebe2f4d1d92d8c2c065c5b75fca3c5d3cdc341aadac41dec7f58f"
+def v1_spec_identity() -> dict:
+    return {"procedure_id": V1_PROCEDURE_ID, "spec_id": V1_SPEC_ID,
+            "surface": "beta.rangecast.touch_probability+neither_probability", "symbol": v2.SHADOW_SYMBOL,
+            "procedure_digest": sha256_json(v1_shadow_procedure())}
 
 
 def v1_spec_digest() -> str:
-    """`paired_shadow.V1_SPEC_DIGEST`, after checking that the V1 math is still the registered one."""
-    from .paired_shadow import V1_SPEC_DIGEST
-    if sha256_json(v1_math_spec()) != V1_MATH_DIGEST:
-        raise ShadowModelError("V1 MATH_MISMATCH: a V1 constant changed; register a new V1 spec")
+    """`paired_shadow.V1_SPEC_DIGEST`, after checking that the V1 code still computes it."""
+    from .paired_shadow import V1_SPEC_DIGEST, V1_SPEC_IDENTITY
+    mine = v1_spec_identity()
+    if mine != dict(V1_SPEC_IDENTITY) or sha256_json(mine) != V1_SPEC_DIGEST:
+        raise ShadowModelError("V1 SPEC_IDENTITY_MISMATCH: the V1 procedure changed; register a new spec_id")
     return V1_SPEC_DIGEST
 
 
@@ -485,3 +493,13 @@ def paired_forecast(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2
     except Exception as exc:  # noqa: BLE001
         logger.warning("rangecast shadow forecast failed: %s", type(exc).__name__)
         return {**out, "status": NOT_COMPUTABLE, "reason": type(exc).__name__, "horizons": {}}
+
+
+def plan_paired_issues(snap: Snapshot, *, v1_model: Optional[Mapping[str, Any]], v2_model: Optional[Mapping[str, Any]],
+                       v1_ids: Optional[Mapping[str, Any]] = None) -> dict:
+    """{record, planned}: the hourly record and the store rows `paired_shadow.plan_shadow_record` builds from
+    it, the rows `execute_hour` would store. Writes nothing; the store's mapper is the only row builder."""
+    from .paired_shadow import plan_shadow_record
+    record = paired_forecast(snap, v1_model=v1_model, v2_model=v2_model, v1_ids=v1_ids)
+    slot = snap.now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    return {"record": record, "planned": plan_shadow_record(record, issue_slot=slot)}

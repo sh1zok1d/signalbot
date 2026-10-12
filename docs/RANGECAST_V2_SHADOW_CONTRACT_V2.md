@@ -20,16 +20,22 @@ Nothing here writes a table, a claim or a user text. V1 and the sharp-move detec
 
 `rangecast_shadow.paired_forecast` computes every W_L1 number through `bind_shadow_model`, and every V1 number through `paired_shadow.bind_rangecast_v1`.
 
-## 2. Identity
+## 2. Identity: Amendment 1, agreed
 
-| Procedure | `spec_digest` in the store | What it covers | Guard on this side |
+The store adopted Amendment 1 on #459 (`337cf3f8`), before any shadow issue.
+
+- **What it adds.** Each identity object carries `procedure_digest`: the sha256 of every constant of the procedure beyond its coefficients.
+- **Where it lives.** The values are pinned in `beta/paired_shadow.py`, so the store imports no model code.
+- **Fail closed.** The binders refuse to issue when the code computes another value. The store also refuses a record whose W_L1 digest is not the pin.
+
+| Procedure | `procedure_digest` covers | `procedure_digest` | `spec_digest` |
 |---|---|---|---|
-| `RANGECAST_V2` / `W_L1` | `00539f2d2a1660c861d4ee7cbd411a010b2f296f3af3826b8ab527cc98727246` | `rangecast_v2.spec()`: version, level, half-life, horizons, floor, quantile grid, ridge, clip quantiles, season minimum, lookback, every feature window, calendar terms, feature list, event kinds, joint levels, anchor stride. It is also the frozen artifact's own spec digest | `shadow_spec_digest()` and `validate_v2_model` refuse when `spec()` changes; the store refuses a record whose W_L1 digest is not the pin |
-| `RANGECAST_V1` / `RANGECAST_V1` | `76867603601d82f3dd450097c7a01dc359add1a737ea4aac7cf97f41e2b5e28e`, the store's name-level identity | the procedure name, surface and symbol | `v1_math_spec()` (version, horizons, features, past windows, event kinds, floor, `P_GRID`, joint levels, anchor stride) must hash to the pinned `V1_MATH_DIGEST` = `eff8e649f17ebe2f4d1d92d8c2c065c5b75fca3c5d3cdc341aadac41dec7f58f`; otherwise V1 is `MODEL_INVALID` and nothing is stored |
+| `RANGECAST_V2` / `W_L1` | `rangecast_v2.shadow_procedure()`: **math** (`spec()`: features and windows, quantile grid, ridge, clip quantiles, season minimum, lookback, joint levels, event kinds, anchor stride, floor, half-life); **fit** (nightly, the V1 nightly grid, hourly anchors with closed windows, 90 % feature windows, half-life weights, minimum anchors); **serve** (state on the last complete 5m bar, the live data-quality gate, 10-minute staleness, the event-zone rule, snapshot selection and its 72-hour age limit, probability clip) | `e573ae5d…b3b6` | `9a6b61d0…a20a` |
+| `RANGECAST_V1` / `RANGECAST_V1` | `rangecast_shadow.v1_shadow_procedure()`: the constants of `beta.rangecast` that move a touch or «ни один» chance (version, horizons, features, past windows, event kinds, floor, `P_GRID`, joint levels, anchor stride, minimum anchors), the nightly fit, `scale_at`, staleness and the event-zone rule. Read from `beta.rangecast`; V1 is not changed | `4aef58b3…73f7` | `30b8e81e…8273` |
 
-- **Proposed to the store** (#459): make `eff8e649…` the V1 spec digest. V1 would then be identified by its math exactly as W_L1 is. Until the journal track decides, the guard above protects the comparison.
+- **The artifact's own digest.** The frozen artifact keeps `00539f2d…`, the digest of `spec()`. It loads the artifact and is pinned in the store as `V2_ARTIFACT_MATH_DIGEST`. It is not the stream's spec digest.
 - **Coefficients** are not identity. A nightly refit changes `snapshot_id` only.
-- **Serving rules** decide whether a number is issued, never its value. They are not in the digest and are pinned by tests: the data-quality gate, 10-minute staleness, the event-zone rule, the 72-hour snapshot age and the probability clip. A change of them is registered as a new spec by rule (§5).
+- **History.** The intermediate value `00539f2d…` as the stream digest, and the V1 proposal `eff8e649…` (V1's math alone), were superseded by this agreement. Nothing was stored under either.
 
 ## 3. The evaluated procedure: W_L1 refitted nightly
 
@@ -62,6 +68,7 @@ ps.execute_hour(record, ledger, issue_slot=<hour of now>, allow_write=<owner's g
 - **Checks.** A fresh price and 5m bar (10 minutes), 30 days of bars, the live data-quality gate, and CPI / FOMC event zones under the product's rule (`decision.event_zones`).
 - **Binding.** V1 and W_L1 are bound on the same 5m bar.
 - **Paired only.** A horizon is `OK` only when both models answer it. The store keeps only `OK` horizons and records the status of the others.
+- **Dry run.** `plan_paired_issues` returns the record and the rows the store's mapper builds from it. It writes nothing; the mapper is the only row builder.
 - **Record per model and horizon:**
 
   | Field | Contents |
@@ -90,17 +97,16 @@ ps.execute_hour(record, ledger, issue_slot=<hour of now>, allow_write=<owner's g
 
 ## 5. Version rules
 
-- **W_L1.** A change of any constant in `spec()` makes the binders refuse to issue. Restarting needs a new `spec_id`, its digest pinned in the store, and a new registered rule. The old stream stays.
-- **V1.** A change of a constant in `v1_math_spec()` stops V1 shadow issues in the same way.
-- **Serving rules.** A change of a serving rule changes no stored number, but it changes which anchors exist. It is registered the same way: a new `spec_id` and a new rule. The pinning test has to change with it.
+- **New spec.** A change of any constant in §2, whether math, fit or serving rule, for either model, makes the binders refuse to issue. Restarting needs a new `spec_id`, a new identity object pinned in the store, and a new registered rule. The old stream stays.
 - **Refits.** A nightly refit changes `snapshot_id` on later issues only. The store keeps the first probability, and the book is not reset.
+- **V1.** The nightly V1 refit is identical in kind. Its `snapshot_id` is the production statistics row's `stats_digest` when `v1_ids` names it, and otherwise the digest of its fitted horizons.
 
 ## 6. Checked on this branch
 
-Against the store as merged from #459 (`5f47ede1`).
+Against the store as merged from #459 (`337cf3f8`).
 
 `tests/beta/test_rangecast_shadow_contract.py`:
-- **Identity.** It equals the store's. A change to the math (ridge, quantile grid, lookback) or to a V1 constant (floor, windows) refuses to issue. The serving rules are pinned.
+- **Identity.** It equals the store's Amendment 1 objects and digests. A change to the math (ridge, quantile grid), a serving rule (data gate, snapshot age, staleness) or a V1 constant (floor, windows) refuses to issue.
 - **Bound model.** It is the store's class on the research path.
 - **One hourly record through `plan_shadow_record` and `execute_hour`.**
   - 168 rows, every anchor carrying both procedures.
@@ -117,11 +123,19 @@ Against the store as merged from #459 (`5f47ede1`).
 
 Also run:
 - the store's PostgreSQL dry run of this record (`tests/beta/test_paired_shadow_claude_dry_run.py`), with a local PostgreSQL 16;
-- the audit's checks (`tests/beta/test_rangecast_shadow.py`).
+- the audit's checks (`tests/beta/test_rangecast_shadow.py`);
+- the store's settlement tests (`tests/beta/test_paired_shadow_settlement.py`).
+
+**Settlement tests in CI.** As committed on #459, these tests connect through the local socket and create their databases owned by a role named `ubuntu`. That cannot work against CI's PostgreSQL service. This branch carries a minimal portability fix in a separate commit:
+- the two databases sit beside `BETA_TEST_DSN`'s, on the same server and role;
+- they are created through that connection;
+- the tests skip only when `BETA_TEST_DSN` is unset, as every other beta PostgreSQL test does.
+
+The same patch was proposed on #459.
 
 ## 7. Before the first shadow issue
 
-1. **Journal track.** Answer the V1 digest proposal of §2. W_L1's `00539f2d…` is agreed.
+1. **Journal track.** Take the CI portability fix for `tests/beta/test_paired_shadow_settlement.py` (§6) into #459, or an equivalent. The identity is agreed.
 2. **Owner, store items 2 and 3.** Allow `storage/beta_paired_shadow_schema.sql`, and allow `PAIRED_SHADOW_HOUR_APPROVED=1`.
 3. **Owner, the nightly W_L1 fit.** One call of `fit_nightly_snapshot` on the grid the nightly build already loads, plus `SnapshotStore.put` into a directory on the host. This is a production change and is not on this branch.
 4. **The clock.** It starts at the first complete ISO week after recording is switched on (`RANGECAST_V2_SHADOW_PLAN_V2.md`).
