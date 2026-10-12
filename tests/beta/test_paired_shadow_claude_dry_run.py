@@ -22,8 +22,8 @@ from beta import rangecast as rc  # noqa: E402
 from beta import rangecast_shadow as sh  # noqa: E402
 from beta import rangecast_v2 as v2  # noqa: E402
 from beta.paired_shadow import (  # noqa: E402
-    V1_PROCEDURE_ID, V2_ARTIFACT_SHA256, V2_PARAMS_DIGEST, V2_PROCEDURE_ID, V2_SPEC_DIGEST,
-    V2_SPEC_ID, execute_hour,
+    V1_PROCEDURE_ID, V2_ARTIFACT_MATH_DIGEST, V2_ARTIFACT_SHA256, V2_PARAMS_DIGEST,
+    V2_PROCEDURE_DIGEST, V2_PROCEDURE_ID, V2_SPEC_DIGEST, V2_SPEC_ID, execute_hour,
 )
 from beta.paired_shadow_pg import PgShadowLedger  # noqa: E402
 from beta_fakes import TEST_DSN  # noqa: E402
@@ -68,14 +68,16 @@ def test_claude_forecast_is_stored_once_and_scored(snapshot):
         bars=prefix, price=float(prefix.close[-1]), price_ts=now - timedelta(minutes=1, seconds=30),
         now=now, calendar={"events": []},
     )
-    assert v2.spec_digest() == V2_SPEC_DIGEST
+    assert v2.shadow_spec_digest() == V2_SPEC_DIGEST
+    assert v2.shadow_procedure_digest() == V2_PROCEDURE_DIGEST
+    assert v2.spec_digest() == V2_ARTIFACT_MATH_DIGEST
+    assert v2.spec_digest() != V2_SPEC_DIGEST
     assert artifact["params_digest"] == V2_PARAMS_DIGEST
     assert artifact["artifact_id"] == "RANGECAST_V2_W_L1_MODEL_V1"
     raw = (ROOT / "docs/research/RANGECAST_V2_W_L1_MODEL_V1.json").read_bytes()
     import hashlib
     assert hashlib.sha256(raw).hexdigest() == V2_ARTIFACT_SHA256
-    record = sh.paired_forecast(snap, v1_model=fitted, v2_model=artifact,
-                                v1_ids={"stats_digest": "a" * 64, "stats_pk": 1})
+    record = sh.paired_forecast(snap, v1_model=fitted, v2_model=artifact)
     assert record["status"] == "OK"
     assert record["horizons"]["4h"]["paired"] is True
     issue_slot = datetime.fromisoformat(record["as_of"]).astimezone(UTC).replace(
@@ -113,6 +115,14 @@ def test_claude_forecast_is_stored_once_and_scored(snapshot):
     scored = [item for item in first["scoring"] if item["horizon"] == "4h" and item["family"] == "touch"]
     assert scored
     assert {item["status"] for item in scored} <= {"COMPLETE", "LOW_COVERAGE", "NO_DATA"}
+    assert first["settlement"]["launched"] is True
+    assert first["settlement"]["stored"] > 0
+    clock = datetime.fromisoformat(record["as_of"]).astimezone(UTC) + timedelta(hours=5)
+    assert all(row["outcome"] is None for row in stored if row["horizon"] == "24h")
+    day = [book for book in first["books"] if book["horizon"] == "24h"]
+    assert day and all(book["state"] != "INCOMPLETE_DATA" for book in day)
+    assert all(book["n_pending"] > 0 and book["n_unfinished"] == 0 for book in day)
+    assert clock > datetime.fromisoformat(record["as_of"]).astimezone(UTC)
     second = execute_hour(record, ledger, issue_slot=issue_slot, allow_write=True)
     assert second["inserted"] == 0
     assert second["kept"] == first["inserted"]
@@ -121,8 +131,7 @@ def test_claude_forecast_is_stored_once_and_scored(snapshot):
         bars=snap.bars, price=snap.price, price_ts=snap.now - timedelta(minutes=12),
         now=snap.now, calendar=snap.calendar,
     )
-    stale = sh.paired_forecast(stale_snap, v1_model=fitted, v2_model=artifact,
-                               v1_ids={"stats_digest": "a" * 64})
+    stale = sh.paired_forecast(stale_snap, v1_model=fitted, v2_model=artifact)
     assert stale["status"] == "STALE_DATA"
     gap = execute_hour(stale, ledger, issue_slot=issue_slot + timedelta(hours=1), allow_write=True)
     assert gap["inserted"] == 0

@@ -74,7 +74,7 @@ The 10% figure does not apply to the suspect bar. That union bound is 30%, on th
 | `CONFIRMED_DIVERGENCE` | At least 20 days, book e-value ≥ 60, and a channel past the same practical gate. |
 | `RECOVERED` | After a confirmation, a later 20 UTC days have every present channel inside 5 pp and a fresh e-process on that window below 2. The confirmation episode stays, including the e-value at the crossing. |
 | `TECHNICAL_FAULT` | Illegal probability, naive timestamp, missing rule, mixed rule digests, or a horizon window that is not the claimed horizon. |
-| `INCOMPLETE_DATA` | At least 10 rows and more than 20% unfinished. No calibration verdict is issued on top of a hole. |
+| `INCOMPLETE_DATA` | At least 10 due rows and more than 20% of those due rows unfinished. No calibration verdict is issued on top of a hole. |
 
 A channel is named on the episode only when its own evidence meets the gate. The 10% bound is on the book, not on which channel is named.
 
@@ -86,7 +86,9 @@ The monitor treats coverage below 0.9 as unfinished for both outcomes. Coverage 
 
 If the chance of coverage ≥ 0.9 does not depend on the price path, the claims that remain are still a calibrated subset of the full-window procedure, and the 10% bound applies to that subset.
 
-If that chance does depend on the path — minutes missing more often on a touch than on a quiet window, for example — the scored rows can have a residual whose mean is not 0 even when every issued probability was right for the full window. The 10% bound does not cover that subset. The 20% unfinished gate does not restore the bound. It only refuses a calibration verdict when the hole is large: at least 10 rows and more than 20% unfinished. A smaller price-dependent hole can still pass the gate and still bias the e-process.
+If that chance does depend on the path — minutes missing more often on a touch than on a quiet window, for example — the scored rows can have a residual whose mean is not 0 even when every issued probability was right for the full window. The 10% bound does not cover that subset. The 20% unfinished gate does not restore the bound. It only refuses a calibration verdict when the hole is large: at least 10 due rows and more than 20% of those due rows unfinished. A smaller price-dependent hole can still pass the gate and still bias the e-process.
+
+A forecast whose horizon has not elapsed is `PENDING`. It is not a due row, so it is not in the unfinished fraction and it is not scored. A 24h issue before that horizon ends does not move the book to `INCOMPLETE_DATA`. `NO_DATA`, a missing outcome after the horizon, and coverage below 0.9 stay unfinished for a hit and for a miss. The journal replay passes the process clock: `horizon_end` still in the future is pending; once that time has passed, a missing outcome is a hole. Pending rows are outside the scored set the 10% bound talks about.
 
 ## Journal adapter
 

@@ -169,6 +169,44 @@ def test_illegal_probability_and_mixed_rules_are_faults_not_divergences():
     assert _book(evaluate(mixed))["state"] == STATE_FAULT
 
 
+def test_pending_horizons_do_not_raise_the_incomplete_fraction():
+    """An open 24h forecast is not a hole. The same count of NO_DATA rows is."""
+    complete = _rows(2, horizon="24h", every_hours=24, probabilities=(0.40,), outcome=0.0)
+    pending = []
+    holes = []
+    for index in range(30):
+        moment = START + timedelta(days=20, hours=index)
+        base = {
+            "procedure_id": PROCEDURE_TOUCH_CHANCE, "family": "touch", "horizon": "24h",
+            "as_of": moment, "horizon_end": moment + timedelta(hours=24),
+            "probability": 0.40, "outcome": None, "eval_rule_id": "TOUCH_V1", "snapshot_id": "snap-a",
+        }
+        pending.append({**base, "status": "PENDING"})
+        holes.append({**base, "status": "NO_DATA"})
+    waiting = _book(evaluate(complete + pending), horizon="24h")
+    assert waiting["state"] != STATE_INCOMPLETE
+    assert waiting["n_pending"] == 30
+    assert waiting["n_rows"] == len(complete)
+    assert waiting["n_unfinished"] == 0
+    unfinished = _book(evaluate(complete + holes), horizon="24h")
+    assert unfinished["state"] == STATE_INCOMPLETE
+    assert unfinished["n_unfinished"] == 30
+    assert unfinished["n_pending"] == 0
+    future = START + timedelta(days=4000)
+    journal = [{
+        "claim_class": "L3_DISTANCE_TOUCH_24H",
+        "as_of": future.isoformat(),
+        "horizon_end": (future + timedelta(hours=24)).isoformat(),
+        "probability": 0.40,
+        "eval_rule_id": "TOUCH_V1",
+        "eval_rule_digest": "ab" * 32,
+    }]
+    early = observations_from_claim_rows(journal, now=future + timedelta(hours=1))
+    assert early[0]["status"] == "PENDING"
+    late = observations_from_claim_rows(journal, now=future + timedelta(hours=30))
+    assert late[0]["status"] == "MISSING"
+
+
 def test_too_many_unscored_outcomes_are_incomplete_rather_than_a_model_verdict():
     rows = _rows(15, probabilities=(0.40,), outcome=0.0)
     for row in rows[: len(rows) // 3]:

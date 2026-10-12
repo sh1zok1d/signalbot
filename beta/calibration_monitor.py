@@ -75,6 +75,9 @@ RECOVERY_E_MAX = 2.0
 PRACTICAL_ABS = 0.05
 INCOMPLETE_FRACTION = 0.20
 INCOMPLETE_MIN_ROWS = 10
+# A forecast whose horizon has not elapsed is PENDING. It is outside the unfinished
+# fraction and outside the scored set. A missing outcome after the horizon is a hole.
+PENDING_STATUS = "PENDING"
 VARIANTS_TRIED_FOR_THRESHOLDS = 0
 
 STATE_INSUFFICIENT = "INSUFFICIENT_DATA"
@@ -445,6 +448,8 @@ def _prepare(rows: Sequence[Mapping]) -> tuple:
     procedures never share a book. Mixed evaluation rules, an illegal probability, or a
     horizon window that is not the claimed horizon are technical faults.
     A partial price window is unfinished for a hit and for a miss alike.
+    A PENDING row is not yet due. It does not enter the row count or the unfinished
+    fraction, so an open 24h horizon cannot by itself make the book INCOMPLETE_DATA.
     """
     faults: dict = {}
     incomplete: dict = {}
@@ -453,7 +458,7 @@ def _prepare(rows: Sequence[Mapping]) -> tuple:
 
     def bucket(key):
         faults.setdefault(key, [])
-        counts.setdefault(key, {"rows": 0, "unfinished": 0, "low_coverage": 0})
+        counts.setdefault(key, {"rows": 0, "unfinished": 0, "low_coverage": 0, "pending": 0})
         grouped.setdefault(key, [])
 
     for raw in rows:
@@ -468,28 +473,36 @@ def _prepare(rows: Sequence[Mapping]) -> tuple:
             continue
         key = (procedure, spec, family, horizon)
         bucket(key)
-        counts[key]["rows"] += 1
         if raw.get("fault_reason"):
+            counts[key]["rows"] += 1
             faults[key].append(str(raw["fault_reason"]))
             continue
         moment = _as_utc(raw.get("as_of"))
         if moment is None:
+            counts[key]["rows"] += 1
             faults[key].append("AS_OF_NOT_UTC")
             continue
         rule = raw.get("eval_rule_id")
         if not rule:
+            counts[key]["rows"] += 1
             faults[key].append("EVAL_RULE_MISSING")
             continue
         end = None
         if raw.get("horizon_end") is not None:
             end = _as_utc(raw.get("horizon_end"))
             if end is None:
+                counts[key]["rows"] += 1
                 faults[key].append("HORIZON_END_NOT_UTC")
                 continue
             if abs((end - moment).total_seconds() - HORIZON_SECONDS[horizon]) > HORIZON_TOLERANCE_S:
+                counts[key]["rows"] += 1
                 faults[key].append("HORIZON_WINDOW")
                 continue
         status = str(raw.get("status") or ("COMPLETE" if raw.get("outcome") is not None else "MISSING"))
+        if status == PENDING_STATUS:
+            counts[key]["pending"] += 1
+            continue
+        counts[key]["rows"] += 1
         coverage = _coverage_value(raw)
         if raw.get("coverage") is not None and coverage is None:
             faults[key].append("COVERAGE_NOT_FINITE")
@@ -703,14 +716,32 @@ def observation_from_journal_row(row: Mapping) -> Optional[dict]:
     return observation
 
 
-def observations_from_claim_rows(rows: Sequence[Mapping]) -> list:
-    """Drop classes this monitor does not score. Malformed touch rows are kept so they fault."""
+def observations_from_claim_rows(rows: Sequence[Mapping], *, now: Optional[datetime] = None) -> list:
+    """Drop classes this monitor does not score. Malformed touch rows are kept so they fault.
+
+    When ``now`` is set, a row with no outcome whose horizon is still open is PENDING.
+    After the horizon, a missing outcome stays a hole. The replay uses the process clock.
+    """
+    clock = _as_utc(now) if now is not None else None
     out = []
     for row in rows:
         observation = observation_from_journal_row(row)
-        if observation is not None:
-            out.append(observation)
+        if observation is None:
+            continue
+        if clock is not None and _not_yet_due(observation, clock):
+            observation["status"] = PENDING_STATUS
+        out.append(observation)
     return out
+
+
+def _not_yet_due(observation: Mapping, now: datetime) -> bool:
+    status = str(observation.get("status") or "MISSING")
+    if status == PENDING_STATUS:
+        return True
+    if status != "MISSING" or observation.get("outcome") is not None:
+        return False
+    end = _as_utc(observation.get("horizon_end"))
+    return end is not None and end > now
 
 
 def _thresholds() -> dict:
@@ -771,6 +802,7 @@ def evaluate(observations: Sequence[Mapping]) -> dict:
             "e_value": scored["e_value"],
             "n_claims": len(items),
             "n_rows": counts.get(key, {}).get("rows", 0),
+            "n_pending": counts.get(key, {}).get("pending", 0),
             "n_unfinished": counts.get(key, {}).get("unfinished", 0),
             "n_low_coverage": counts.get(key, {}).get("low_coverage", 0),
             "n_slots": len({item["slot"] for item in items}),
