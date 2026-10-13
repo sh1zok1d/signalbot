@@ -21,7 +21,7 @@ ReadWritePaths=/var/lib/signalbot/paired-shadow
 Environment=PAIRED_SHADOW_SNAPSHOT_DIR=/var/lib/signalbot/paired-shadow/snapshots
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
-ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_paired_shadow.py --timeout 60
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/scripts/beta/fit_paired_shadow_snapshot.py
 TimeoutStartSec=3600
 StandardOutput=journal

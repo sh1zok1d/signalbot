@@ -72,12 +72,44 @@ def test_detector_and_outcomes_wait_for_postgres_first(name):
     assert timeout < int(_unit(f"signalbot-beta-{name}.service")["Service"]["TimeoutStartSec"])
 
 
+PAIRED_SHADOW_UNITS = (
+    "signalbot-paired-shadow-hour.service",
+    "signalbot-paired-shadow-snapshot.service",
+)
+
+
 def test_beta_units_reuse_the_single_readiness_script():
     for f in DEPLOY.glob("*.service"):
+        if f.name in PAIRED_SHADOW_UNITS:
+            continue
         for l in f.read_text().splitlines():
             if "wait_for" in l and not l.strip().startswith("#"):
                 assert "/opt/signalbot/deploy/wait_for_infra.py" in l, (f.name, l)
-    assert sorted(p.name for p in DEPLOY.glob("wait_for*")) == ["wait_for_infra.py"]
+    assert sorted(p.name for p in DEPLOY.glob("wait_for*")) == [
+        "wait_for_infra.py", "wait_for_paired_shadow.py",
+    ]
+
+
+def test_paired_shadow_units_wait_on_their_own_dsn():
+    gate = "ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_paired_shadow.py --timeout 60"
+    for name in PAIRED_SHADOW_UNITS:
+        lines = [line.strip() for line in (DEPLOY / name).read_text().splitlines()]
+        pre = [line for line in lines if line.startswith("ExecStartPre=")]
+        assert gate in pre
+        assert not any("wait_for_infra.py" in line for line in lines)
+        assert lines.index(gate) < lines.index(next(line for line in lines if line.startswith("ExecStart=")))
+        service = _unit(name)["Service"]
+        assert int(service["TimeoutStartSec"]) > 60
+        assert service["EnvironmentFile"] == "/opt/signalbot/.env.paired-shadow"
+        assert "-/opt/signalbot/.env" in service["InaccessiblePaths"]
+        assert service["ProtectSystem"] == "strict"
+        assert "POSTGRES_PASSWORD" not in (DEPLOY / name).read_text()
+        assert "POSTGRES_DSN" not in (DEPLOY / name).read_text()
+    install = (DEPLOY / "install_paired_shadow_units.sh").read_text()
+    code = "\n".join(line for line in install.splitlines() if not line.strip().startswith("#"))
+    for verb in ("systemctl enable", "systemctl start", "--now"):
+        assert verb not in code
+    assert "systemd-analyze verify" in code
 
 
 # ---- research evidence feed units (docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md §A/§C, PREREQ-3) ----------

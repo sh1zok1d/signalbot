@@ -20,7 +20,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 RuntimeDirectory=paired-shadow-hour
 BindReadOnlyPaths=-/var/lib/signalbot/paired-shadow
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
-ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_paired_shadow.py --timeout 60
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/scripts/beta/run_paired_shadow_hour.py --from-live --bars-from-db
 TimeoutStartSec=600
 StandardOutput=journal
