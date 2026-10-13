@@ -48,7 +48,7 @@ The fit exits 2 unless `PAIRED_SHADOW_SNAPSHOT_APPROVED=1`. The shipped unit doe
 
 `PAIRED_SHADOW_DSN` is the only URL the shadow scripts read. A `postgresql://` argument is refused and is not echoed. `psql` receives host, port, user, database and password through its environment, not through its argument list. Errors are redacted before they are printed.
 
-The file is `/opt/signalbot/.env.paired-shadow`, mode `0600`, owner `signalbot`. The shadow units load that file and cannot read `/opt/signalbot/.env`. Create it on the host, after a later go, with the URL already in the environment:
+The file is `/opt/signalbot/.env.paired-shadow`, mode `0600`, owner `signalbot`. The shadow units load that file and cannot read `/opt/signalbot/.env`. Their `ExecStartPre` is `deploy/wait_for_paired_shadow.py --timeout 60`: it connects with `PAIRED_SHADOW_DSN` and runs `SELECT 1`, with the same 5s connect timeout and 2s retry as `wait_for_infra.py`. It does not load the core config or `POSTGRES_PASSWORD`. The production units keep `wait_for_infra.py`. Create the connection file on the host, after a later go, with the URL already in the environment:
 
 ```bash
 sudo -u signalbot /opt/signalbot/.venv/bin/python /opt/signalbot/scripts/beta/write_paired_shadow_env.py
