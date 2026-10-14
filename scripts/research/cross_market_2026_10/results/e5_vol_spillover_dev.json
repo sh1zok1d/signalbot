@@ -1,0 +1,206 @@
+{
+ "vol": {
+  "ETH": {
+   "2022": {
+    "own HAR+clock": 0.6317,
+    "+BTC RV": 0.6306,
+    "+market RV": 0.6298,
+    "+both": 0.6286
+   },
+   "2023": {
+    "own HAR+clock": 0.7988,
+    "+BTC RV": 0.7982,
+    "+market RV": 0.7974,
+    "+both": 0.7964
+   },
+   "2024": {
+    "own HAR+clock": 0.5489,
+    "+BTC RV": 0.5497,
+    "+market RV": 0.549,
+    "+both": 0.5499
+   }
+  },
+  "SOL": {
+   "2022": {
+    "own HAR+clock": 0.7432,
+    "+BTC RV": 0.7423,
+    "+market RV": 0.743,
+    "+both": 0.7411
+   },
+   "2023": {
+    "own HAR+clock": 0.708,
+    "+BTC RV": 0.709,
+    "+market RV": 0.7082,
+    "+both": 0.709
+   },
+   "2024": {
+    "own HAR+clock": 0.6411,
+    "+BTC RV": 0.6419,
+    "+market RV": 0.6411,
+    "+both": 0.6422
+   }
+  },
+  "BNB": {
+   "2022": {
+    "own HAR+clock": 0.7159,
+    "+BTC RV": 0.7164,
+    "+market RV": 0.7151,
+    "+both": 0.7152
+   },
+   "2023": {
+    "own HAR+clock": 0.8132,
+    "+BTC RV": 0.8129,
+    "+market RV": 0.8131,
+    "+both": 0.8123
+   },
+   "2024": {
+    "own HAR+clock": 0.6012,
+    "+BTC RV": 0.603,
+    "+market RV": 0.6007,
+    "+both": 0.6024
+   }
+  },
+  "XRP": {
+   "2022": {
+    "own HAR+clock": 0.6396,
+    "+BTC RV": 0.6376,
+    "+market RV": 0.6391,
+    "+both": 0.6376
+   },
+   "2023": {
+    "own HAR+clock": 0.6797,
+    "+BTC RV": 0.6784,
+    "+market RV": 0.6775,
+    "+both": 0.6774
+   },
+   "2024": {
+    "own HAR+clock": 0.6869,
+    "+BTC RV": 0.6883,
+    "+market RV": 0.687,
+    "+both": 0.688
+   }
+  },
+  "DOGE": {
+   "2022": {
+    "own HAR+clock": 0.6203,
+    "+BTC RV": 0.6217,
+    "+market RV": 0.6191,
+    "+both": 0.621
+   },
+   "2023": {
+    "own HAR+clock": 0.7392,
+    "+BTC RV": 0.7386,
+    "+market RV": 0.7381,
+    "+both": 0.7377
+   },
+   "2024": {
+    "own HAR+clock": 0.6351,
+    "+BTC RV": 0.6368,
+    "+market RV": 0.6361,
+    "+both": 0.6374
+   }
+  }
+ },
+ "corr": {
+  "ETH": {
+   "2022": {
+    "persist_24h": 0.4679,
+    "ridge(c24,c7,vols)": 0.5375,
+    "mean_corr": 0.878,
+    "sd_corr": 0.04
+   },
+   "2023": {
+    "persist_24h": 0.2218,
+    "ridge(c24,c7,vols)": 0.2003,
+    "mean_corr": 0.861,
+    "sd_corr": 0.056
+   },
+   "2024": {
+    "persist_24h": 0.3264,
+    "ridge(c24,c7,vols)": 0.387,
+    "mean_corr": 0.82,
+    "sd_corr": 0.079
+   }
+  },
+  "SOL": {
+   "2022": {
+    "persist_24h": 0.6783,
+    "ridge(c24,c7,vols)": 0.7566,
+    "mean_corr": 0.75,
+    "sd_corr": 0.125
+   },
+   "2023": {
+    "persist_24h": 0.2935,
+    "ridge(c24,c7,vols)": 0.3171,
+    "mean_corr": 0.691,
+    "sd_corr": 0.127
+   },
+   "2024": {
+    "persist_24h": 0.4608,
+    "ridge(c24,c7,vols)": 0.5208,
+    "mean_corr": 0.731,
+    "sd_corr": 0.094
+   }
+  },
+  "BNB": {
+   "2022": {
+    "persist_24h": 0.5084,
+    "ridge(c24,c7,vols)": 0.5387,
+    "mean_corr": 0.784,
+    "sd_corr": 0.093
+   },
+   "2023": {
+    "persist_24h": 0.1059,
+    "ridge(c24,c7,vols)": 0.191,
+    "mean_corr": 0.708,
+    "sd_corr": 0.108
+   },
+   "2024": {
+    "persist_24h": 0.3216,
+    "ridge(c24,c7,vols)": 0.3589,
+    "mean_corr": 0.685,
+    "sd_corr": 0.137
+   }
+  },
+  "XRP": {
+   "2022": {
+    "persist_24h": 0.2873,
+    "ridge(c24,c7,vols)": 0.3573,
+    "mean_corr": 0.703,
+    "sd_corr": 0.136
+   },
+   "2023": {
+    "persist_24h": 0.2918,
+    "ridge(c24,c7,vols)": 0.3603,
+    "mean_corr": 0.598,
+    "sd_corr": 0.135
+   },
+   "2024": {
+    "persist_24h": 0.2971,
+    "ridge(c24,c7,vols)": 0.3034,
+    "mean_corr": 0.602,
+    "sd_corr": 0.162
+   }
+  },
+  "DOGE": {
+   "2022": {
+    "persist_24h": 0.444,
+    "ridge(c24,c7,vols)": 0.5033,
+    "mean_corr": 0.719,
+    "sd_corr": 0.131
+   },
+   "2023": {
+    "persist_24h": 0.0234,
+    "ridge(c24,c7,vols)": 0.0893,
+    "mean_corr": 0.664,
+    "sd_corr": 0.139
+   },
+   "2024": {
+    "persist_24h": 0.3321,
+    "ridge(c24,c7,vols)": 0.3744,
+    "mean_corr": 0.714,
+    "sd_corr": 0.118
+   }
+  }
+ }
+}

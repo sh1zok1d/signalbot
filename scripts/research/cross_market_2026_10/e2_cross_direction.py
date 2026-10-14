@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, log_loss
-D=pickle.load(open(os.path.join(DATA_DIR,'xm_panel.pkl'),'rb')); P=D['P']; F=D['F']; assets=D['assets']
+D=pickle.load(open(os.path.join(DATA_DIR,os.environ.get('XM_PANEL','xm_panel.pkl')),'rb')); P=D['P']; F=D['F']; assets=D['assets']
 test_years=[int(x) for x in sys.argv[1].split(',')] if len(sys.argv)>1 else [2022,2023,2024]
 tag=sys.argv[2] if len(sys.argv)>2 else 'dev'
 # equal-weight alt index (all assets except BTC) returns and RV, from 5m log returns where present

@@ -6,7 +6,7 @@ warnings.filterwarnings('ignore'); sys.path.insert(0, os.path.dirname(__file__))
 from panel import DATA_DIR
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
-D=pickle.load(open(os.path.join(DATA_DIR,'xm_panel.pkl'),'rb')); P=D['P']; F=D['F']; assets=D['assets']
+D=pickle.load(open(os.path.join(DATA_DIR,os.environ.get('XM_PANEL','xm_panel.pkl')),'rb')); P=D['P']; F=D['F']; assets=D['assets']
 test_years=[int(x) for x in sys.argv[1].split(',')] if len(sys.argv)>1 else [2022,2023,2024]; tag=sys.argv[2] if len(sys.argv)>2 else 'dev'
 alts=[a for a in assets if a!='BTC']; r5=pd.DataFrame({a:F[a]['r5'] for a in alts}); mkt=r5.mean(axis=1); rb=F['BTC']['r5']
 def lrv(x,w): return np.log(np.sqrt((x*x).rolling(w,min_periods=w).mean())+1e-9)
