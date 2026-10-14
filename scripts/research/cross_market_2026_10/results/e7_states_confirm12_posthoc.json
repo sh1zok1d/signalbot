@@ -1,0 +1,860 @@
+{
+ "ETH": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0,
+     -0.68
+    ],
+    "own": [
+     -0.0057,
+     -0.37
+    ],
+    "btc": [
+     0.0977,
+     2.45
+    ],
+    "btc_x_big": [
+     0.002,
+     0.07
+    ],
+    "btc_x_hicorr": [
+     -0.019,
+     -0.68
+    ],
+    "btc_x_hidisp": [
+     -0.0847,
+     -2.99
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 3.9,
+    "after_bigBTC_up_next_idio_bp": 4.0,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": -2.4,
+    "after_bigBTC_dn_next_idio_bp": -5.2,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.4
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0002,
+     -0.65
+    ],
+    "own": [
+     -0.006,
+     -0.2
+    ],
+    "btc": [
+     0.0581,
+     0.74
+    ],
+    "btc_x_big": [
+     0.0302,
+     0.53
+    ],
+    "btc_x_hicorr": [
+     -0.0331,
+     -0.6
+    ],
+    "btc_x_hidisp": [
+     0.0153,
+     0.26
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 14.4,
+    "after_bigBTC_up_next_idio_bp": 11.4,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -24.8,
+    "after_bigBTC_dn_next_idio_bp": -15.3,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -1.7
+   },
+   "n": 3461
+  }
+ },
+ "SOL": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.99
+    ],
+    "own": [
+     -0.0664,
+     -4.93
+    ],
+    "btc": [
+     0.1425,
+     3.26
+    ],
+    "btc_x_big": [
+     -0.0226,
+     -0.67
+    ],
+    "btc_x_hicorr": [
+     0.032,
+     0.99
+    ],
+    "btc_x_hidisp": [
+     -0.0772,
+     -2.34
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 2.0,
+    "after_bigBTC_up_next_idio_bp": 2.0,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 3.2,
+    "after_bigBTC_dn_next_idio_bp": 0.7,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.7
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0003,
+     -0.91
+    ],
+    "own": [
+     -0.0007,
+     -0.03
+    ],
+    "btc": [
+     -0.0493,
+     -0.58
+    ],
+    "btc_x_big": [
+     0.0345,
+     0.53
+    ],
+    "btc_x_hicorr": [
+     0.052,
+     0.84
+    ],
+    "btc_x_hidisp": [
+     0.0916,
+     1.38
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.6,
+    "after_bigBTC_up_next_idio_bp": 1.7,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -34.9,
+    "after_bigBTC_dn_next_idio_bp": -23.8,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -2.8
+   },
+   "n": 3461
+  }
+ },
+ "BNB": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0,
+     -0.3
+    ],
+    "own": [
+     0.0171,
+     1.39
+    ],
+    "btc": [
+     0.0424,
+     1.56
+    ],
+    "btc_x_big": [
+     -0.0208,
+     -0.93
+    ],
+    "btc_x_hicorr": [
+     -0.0149,
+     -0.67
+    ],
+    "btc_x_hidisp": [
+     -0.0565,
+     -2.7
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.3,
+    "after_bigBTC_up_next_idio_bp": 1.9,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 2.2,
+    "after_bigBTC_dn_next_idio_bp": 0.2,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.1
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.3
+    ],
+    "own": [
+     -0.0199,
+     -0.82
+    ],
+    "btc": [
+     0.0067,
+     0.13
+    ],
+    "btc_x_big": [
+     0.0004,
+     0.01
+    ],
+    "btc_x_hicorr": [
+     -0.0574,
+     -1.26
+    ],
+    "btc_x_hidisp": [
+     0.0684,
+     1.6
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 4.0,
+    "after_bigBTC_up_next_idio_bp": 2.1,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -0.8,
+    "after_bigBTC_dn_next_idio_bp": 8.5,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -0.5
+   },
+   "n": 3461
+  }
+ },
+ "XRP": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.73
+    ],
+    "own": [
+     -0.0116,
+     -0.91
+    ],
+    "btc": [
+     0.081,
+     2.01
+    ],
+    "btc_x_big": [
+     -0.0487,
+     -1.49
+    ],
+    "btc_x_hicorr": [
+     -0.0197,
+     -0.63
+    ],
+    "btc_x_hidisp": [
+     -0.0588,
+     -1.86
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 3.5,
+    "after_bigBTC_up_next_idio_bp": 2.3,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 8.9,
+    "after_bigBTC_dn_next_idio_bp": 6.8,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.5
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0002,
+     -0.71
+    ],
+    "own": [
+     0.045,
+     1.73
+    ],
+    "btc": [
+     -0.0503,
+     -0.66
+    ],
+    "btc_x_big": [
+     0.0244,
+     0.4
+    ],
+    "btc_x_hicorr": [
+     -0.0399,
+     -0.68
+    ],
+    "btc_x_hidisp": [
+     0.022,
+     0.35
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -0.9,
+    "after_bigBTC_up_next_idio_bp": -0.9,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -18.9,
+    "after_bigBTC_dn_next_idio_bp": -10.5,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -1.9
+   },
+   "n": 3461
+  }
+ },
+ "DOGE": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -1.46
+    ],
+    "own": [
+     -0.02,
+     -1.55
+    ],
+    "btc": [
+     0.038,
+     0.84
+    ],
+    "btc_x_big": [
+     -0.0565,
+     -1.56
+    ],
+    "btc_x_hicorr": [
+     0.099,
+     2.86
+    ],
+    "btc_x_hidisp": [
+     -0.0425,
+     -1.23
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.8,
+    "after_bigBTC_up_next_idio_bp": 1.8,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 2.2,
+    "after_bigBTC_dn_next_idio_bp": -0.4,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -1.1
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0004,
+     -1.42
+    ],
+    "own": [
+     0.0103,
+     0.39
+    ],
+    "btc": [
+     -0.0654,
+     -0.75
+    ],
+    "btc_x_big": [
+     -0.0019,
+     -0.03
+    ],
+    "btc_x_hicorr": [
+     0.0996,
+     1.5
+    ],
+    "btc_x_hidisp": [
+     0.0537,
+     0.77
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.3,
+    "after_bigBTC_up_next_idio_bp": 3.9,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -28.7,
+    "after_bigBTC_dn_next_idio_bp": -16.3,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -4.4
+   },
+   "n": 3461
+  }
+ },
+ "ADA": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -1.36
+    ],
+    "own": [
+     0.0484,
+     3.88
+    ],
+    "btc": [
+     -0.0504,
+     -1.04
+    ],
+    "btc_x_big": [
+     0.0095,
+     0.24
+    ],
+    "btc_x_hicorr": [
+     0.0408,
+     1.09
+    ],
+    "btc_x_hidisp": [
+     -0.0879,
+     -2.32
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -0.0,
+    "after_bigBTC_up_next_idio_bp": -1.2,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 2.0,
+    "after_bigBTC_dn_next_idio_bp": -0.2,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -1.2
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0004,
+     -1.32
+    ],
+    "own": [
+     0.0904,
+     3.55
+    ],
+    "btc": [
+     -0.1887,
+     -2.07
+    ],
+    "btc_x_big": [
+     -0.0316,
+     -0.42
+    ],
+    "btc_x_hicorr": [
+     0.1298,
+     1.81
+    ],
+    "btc_x_hidisp": [
+     0.0694,
+     0.92
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -2.8,
+    "after_bigBTC_up_next_idio_bp": 0.8,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -25.0,
+    "after_bigBTC_dn_next_idio_bp": -14.4,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -4.6
+   },
+   "n": 3461
+  }
+ },
+ "LINK": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.84
+    ],
+    "own": [
+     -0.0321,
+     -2.43
+    ],
+    "btc": [
+     0.0966,
+     2.04
+    ],
+    "btc_x_big": [
+     0.0066,
+     0.18
+    ],
+    "btc_x_hicorr": [
+     0.0045,
+     0.13
+    ],
+    "btc_x_hidisp": [
+     -0.052,
+     -1.46
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 5.0,
+    "after_bigBTC_up_next_idio_bp": 5.0,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": -1.0,
+    "after_bigBTC_dn_next_idio_bp": -3.5,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.6
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0003,
+     -0.85
+    ],
+    "own": [
+     -0.0287,
+     -1.05
+    ],
+    "btc": [
+     0.0089,
+     0.1
+    ],
+    "btc_x_big": [
+     -0.0069,
+     -0.1
+    ],
+    "btc_x_hicorr": [
+     0.0571,
+     0.84
+    ],
+    "btc_x_hidisp": [
+     0.0596,
+     0.84
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.2,
+    "after_bigBTC_up_next_idio_bp": 2.8,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -27.9,
+    "after_bigBTC_dn_next_idio_bp": -15.5,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -2.6
+   },
+   "n": 3461
+  }
+ },
+ "LTC": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.91
+    ],
+    "own": [
+     -0.0203,
+     -1.78
+    ],
+    "btc": [
+     0.1101,
+     2.81
+    ],
+    "btc_x_big": [
+     0.0378,
+     1.15
+    ],
+    "btc_x_hicorr": [
+     -0.0621,
+     -1.95
+    ],
+    "btc_x_hidisp": [
+     -0.109,
+     -3.49
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 0.3,
+    "after_bigBTC_up_next_idio_bp": 0.6,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": -0.9,
+    "after_bigBTC_dn_next_idio_bp": -3.1,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.6
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0003,
+     -0.93
+    ],
+    "own": [
+     -0.0163,
+     -0.71
+    ],
+    "btc": [
+     0.0591,
+     0.79
+    ],
+    "btc_x_big": [
+     0.0172,
+     0.28
+    ],
+    "btc_x_hicorr": [
+     -0.0918,
+     -1.51
+    ],
+    "btc_x_hidisp": [
+     0.0541,
+     0.87
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -4.5,
+    "after_bigBTC_up_next_idio_bp": -2.6,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -28.3,
+    "after_bigBTC_dn_next_idio_bp": -19.2,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -2.4
+   },
+   "n": 3461
+  }
+ },
+ "AVAX": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -1.61
+    ],
+    "own": [
+     -0.0006,
+     -0.05
+    ],
+    "btc": [
+     0.0564,
+     1.26
+    ],
+    "btc_x_big": [
+     0.0139,
+     0.38
+    ],
+    "btc_x_hicorr": [
+     -0.0146,
+     -0.4
+    ],
+    "btc_x_hidisp": [
+     -0.0729,
+     -2.1
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 1.6,
+    "after_bigBTC_up_next_idio_bp": 1.7,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": -0.3,
+    "after_bigBTC_dn_next_idio_bp": -3.0,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -1.2
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0005,
+     -1.62
+    ],
+    "own": [
+     -0.0136,
+     -0.53
+    ],
+    "btc": [
+     0.0464,
+     0.52
+    ],
+    "btc_x_big": [
+     -0.0095,
+     -0.13
+    ],
+    "btc_x_hicorr": [
+     -0.0594,
+     -0.83
+    ],
+    "btc_x_hidisp": [
+     0.0304,
+     0.42
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -11.2,
+    "after_bigBTC_up_next_idio_bp": -7.9,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -17.1,
+    "after_bigBTC_dn_next_idio_bp": -5.4,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -5.0
+   },
+   "n": 3461
+  }
+ },
+ "DOT": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0002,
+     -2.03
+    ],
+    "own": [
+     -0.0144,
+     -1.2
+    ],
+    "btc": [
+     0.0295,
+     0.68
+    ],
+    "btc_x_big": [
+     0.0098,
+     0.26
+    ],
+    "btc_x_hicorr": [
+     0.0175,
+     0.47
+    ],
+    "btc_x_hidisp": [
+     -0.0504,
+     -1.41
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -2.8,
+    "after_bigBTC_up_next_idio_bp": -2.1,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": -2.5,
+    "after_bigBTC_dn_next_idio_bp": -5.1,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -1.6
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0006,
+     -2.01
+    ],
+    "own": [
+     0.0341,
+     1.42
+    ],
+    "btc": [
+     -0.1278,
+     -1.57
+    ],
+    "btc_x_big": [
+     -0.0066,
+     -0.09
+    ],
+    "btc_x_hicorr": [
+     0.068,
+     0.96
+    ],
+    "btc_x_hidisp": [
+     0.0607,
+     0.85
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": -12.5,
+    "after_bigBTC_up_next_idio_bp": -10.5,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -24.1,
+    "after_bigBTC_dn_next_idio_bp": -12.1,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -6.3
+   },
+   "n": 3461
+  }
+ },
+ "BCH": {
+  "1h": {
+   "coef": {
+    "const": [
+     -0.0001,
+     -0.81
+    ],
+    "own": [
+     0.0015,
+     0.13
+    ],
+    "btc": [
+     0.0809,
+     2.32
+    ],
+    "btc_x_big": [
+     0.013,
+     0.42
+    ],
+    "btc_x_hicorr": [
+     -0.0526,
+     -1.76
+    ],
+    "btc_x_hidisp": [
+     -0.0731,
+     -2.46
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 9.7,
+    "after_bigBTC_up_next_idio_bp": 9.8,
+    "n_up": 693,
+    "after_bigBTC_dn_next_alt_bp": 3.3,
+    "after_bigBTC_dn_next_idio_bp": 1.0,
+    "n_dn": 693,
+    "uncond_next_alt_bp": -0.5
+   },
+   "n": 13847
+  },
+  "4h": {
+   "coef": {
+    "const": [
+     -0.0002,
+     -0.82
+    ],
+    "own": [
+     0.0013,
+     0.06
+    ],
+    "btc": [
+     0.0189,
+     0.28
+    ],
+    "btc_x_big": [
+     -0.0925,
+     -1.5
+    ],
+    "btc_x_hicorr": [
+     0.0373,
+     0.62
+    ],
+    "btc_x_hidisp": [
+     0.0961,
+     1.55
+    ]
+   },
+   "cond": {
+    "after_bigBTC_up_next_alt_bp": 4.4,
+    "after_bigBTC_up_next_idio_bp": 8.5,
+    "n_up": 174,
+    "after_bigBTC_dn_next_alt_bp": -13.3,
+    "after_bigBTC_dn_next_idio_bp": -6.8,
+    "n_dn": 174,
+    "uncond_next_alt_bp": -2.1
+   },
+   "n": 3461
+  }
+ }
+}
