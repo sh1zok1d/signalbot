@@ -1,0 +1,379 @@
+{
+ "pairs": {
+  "ETH_1h": {
+   "n": 26303,
+   "auc_model": 0.5174,
+   "ci": [
+    0.5108,
+    0.5244
+   ],
+   "auc_rule_reverse_idio": 0.5191,
+   "ci_rule": [
+    0.5123,
+    0.5268
+   ],
+   "pair_gross_bp": 0.17,
+   "pair_ci": [
+    -0.31,
+    0.67
+   ],
+   "pair_net_4bp_per_leg": -8.02,
+   "pair_rule_gross_bp": 0.1,
+   "pair_sd_bp": 36.8,
+   "beta_mean": 1.047,
+   "by_year_gross_bp": {
+    "2022": 0.67,
+    "2023": -0.57,
+    "2024": 0.4
+   }
+  },
+  "ETH_4h": {
+   "n": 6576,
+   "auc_model": 0.505,
+   "ci": [
+    0.4906,
+    0.521
+   ],
+   "auc_rule_reverse_idio": 0.5235,
+   "ci_rule": [
+    0.5099,
+    0.539
+   ],
+   "pair_gross_bp": 0.29,
+   "pair_ci": [
+    -1.36,
+    1.89
+   ],
+   "pair_net_4bp_per_leg": -7.9,
+   "pair_rule_gross_bp": -0.6,
+   "pair_sd_bp": 72.3,
+   "beta_mean": 1.047,
+   "by_year_gross_bp": {
+    "2022": -0.88,
+    "2023": 0.72,
+    "2024": 1.03
+   }
+  },
+  "SOL_1h": {
+   "n": 26183,
+   "auc_model": 0.5133,
+   "ci": [
+    0.5071,
+    0.5195
+   ],
+   "auc_rule_reverse_idio": 0.5255,
+   "ci_rule": [
+    0.5174,
+    0.5324
+   ],
+   "pair_gross_bp": 1.06,
+   "pair_ci": [
+    0.07,
+    1.84
+   ],
+   "pair_net_4bp_per_leg": -8.61,
+   "pair_rule_gross_bp": 0.21,
+   "pair_sd_bp": 80.1,
+   "beta_mean": 1.418,
+   "by_year_gross_bp": {
+    "2022": 2.0,
+    "2023": -0.7,
+    "2024": 1.89
+   }
+  },
+  "SOL_4h": {
+   "n": 6546,
+   "auc_model": 0.5174,
+   "ci": [
+    0.5052,
+    0.5314
+   ],
+   "auc_rule_reverse_idio": 0.5207,
+   "ci_rule": [
+    0.5081,
+    0.5325
+   ],
+   "pair_gross_bp": 3.4,
+   "pair_ci": [
+    -0.7,
+    7.1
+   ],
+   "pair_net_4bp_per_leg": -6.27,
+   "pair_rule_gross_bp": -0.72,
+   "pair_sd_bp": 153.6,
+   "beta_mean": 1.418,
+   "by_year_gross_bp": {
+    "2022": 3.14,
+    "2023": 0.34,
+    "2024": 6.71
+   }
+  },
+  "BNB_1h": {
+   "n": 26303,
+   "auc_model": 0.5305,
+   "ci": [
+    0.5227,
+    0.5375
+   ],
+   "auc_rule_reverse_idio": 0.52,
+   "ci_rule": [
+    0.511,
+    0.5277
+   ],
+   "pair_gross_bp": 0.54,
+   "pair_ci": [
+    0.02,
+    1.05
+   ],
+   "pair_net_4bp_per_leg": -6.87,
+   "pair_rule_gross_bp": 0.08,
+   "pair_sd_bp": 45.1,
+   "beta_mean": 0.853,
+   "by_year_gross_bp": {
+    "2022": 0.07,
+    "2023": 1.02,
+    "2024": 0.53
+   }
+  },
+  "BNB_4h": {
+   "n": 6576,
+   "auc_model": 0.5434,
+   "ci": [
+    0.5293,
+    0.5577
+   ],
+   "auc_rule_reverse_idio": 0.5264,
+   "ci_rule": [
+    0.5123,
+    0.5397
+   ],
+   "pair_gross_bp": 4.07,
+   "pair_ci": [
+    2.01,
+    5.83
+   ],
+   "pair_net_4bp_per_leg": -3.34,
+   "pair_rule_gross_bp": 1.37,
+   "pair_sd_bp": 90.0,
+   "beta_mean": 0.853,
+   "by_year_gross_bp": {
+    "2022": 1.44,
+    "2023": 6.9,
+    "2024": 3.86
+   }
+  },
+  "XRP_1h": {
+   "n": 26183,
+   "auc_model": 0.5379,
+   "ci": [
+    0.5315,
+    0.5446
+   ],
+   "auc_rule_reverse_idio": 0.5272,
+   "ci_rule": [
+    0.5195,
+    0.5339
+   ],
+   "pair_gross_bp": 0.97,
+   "pair_ci": [
+    0.07,
+    1.86
+   ],
+   "pair_net_4bp_per_leg": -6.77,
+   "pair_rule_gross_bp": 0.07,
+   "pair_sd_bp": 71.8,
+   "beta_mean": 0.936,
+   "by_year_gross_bp": {
+    "2022": 1.61,
+    "2023": 0.32,
+    "2024": 0.99
+   }
+  },
+  "XRP_4h": {
+   "n": 6546,
+   "auc_model": 0.5286,
+   "ci": [
+    0.5154,
+    0.541
+   ],
+   "auc_rule_reverse_idio": 0.5512,
+   "ci_rule": [
+    0.5384,
+    0.5638
+   ],
+   "pair_gross_bp": 0.64,
+   "pair_ci": [
+    -3.4,
+    4.07
+   ],
+   "pair_net_4bp_per_leg": -7.11,
+   "pair_rule_gross_bp": 2.36,
+   "pair_sd_bp": 138.6,
+   "beta_mean": 0.936,
+   "by_year_gross_bp": {
+    "2022": 0.46,
+    "2023": -0.49,
+    "2024": 1.93
+   }
+  },
+  "DOGE_1h": {
+   "n": 26303,
+   "auc_model": 0.552,
+   "ci": [
+    0.5453,
+    0.5584
+   ],
+   "auc_rule_reverse_idio": 0.5292,
+   "ci_rule": [
+    0.5216,
+    0.5358
+   ],
+   "pair_gross_bp": 2.19,
+   "pair_ci": [
+    1.4,
+    3.22
+   ],
+   "pair_net_4bp_per_leg": -6.71,
+   "pair_rule_gross_bp": 1.18,
+   "pair_sd_bp": 78.2,
+   "beta_mean": 1.224,
+   "by_year_gross_bp": {
+    "2022": 1.98,
+    "2023": 2.79,
+    "2024": 1.79
+   }
+  },
+  "DOGE_4h": {
+   "n": 6576,
+   "auc_model": 0.5631,
+   "ci": [
+    0.5501,
+    0.5765
+   ],
+   "auc_rule_reverse_idio": 0.5447,
+   "ci_rule": [
+    0.5309,
+    0.5565
+   ],
+   "pair_gross_bp": 4.12,
+   "pair_ci": [
+    0.45,
+    6.93
+   ],
+   "pair_net_4bp_per_leg": -4.77,
+   "pair_rule_gross_bp": 4.69,
+   "pair_sd_bp": 148.1,
+   "beta_mean": 1.224,
+   "by_year_gross_bp": {
+    "2022": 1.13,
+    "2023": 8.97,
+    "2024": 2.28
+   }
+  }
+ },
+ "xsec": {
+  "model": {
+   "n_anchors": 6576,
+   "mean_IC": -0.0046,
+   "IC_ci": [
+    -0.0162,
+    0.0078
+   ],
+   "IC_t": -0.78,
+   "ls_gross_bp": 3.69,
+   "ls_ci": [
+    0.6,
+    6.83
+   ],
+   "ls_sd_bp": 118.4
+  },
+  "rev_1h": {
+   "n_anchors": 6576,
+   "mean_IC": 0.0386,
+   "IC_ci": [
+    0.0268,
+    0.0497
+   ],
+   "IC_t": 6.51,
+   "ls_gross_bp": 3.63,
+   "ls_ci": [
+    1.05,
+    6.21
+   ],
+   "ls_sd_bp": 120.7
+  },
+  "rev_4h": {
+   "n_anchors": 6576,
+   "mean_IC": 0.054,
+   "IC_ci": [
+    0.0436,
+    0.0658
+   ],
+   "IC_t": 8.91,
+   "ls_gross_bp": 3.92,
+   "ls_ci": [
+    1.73,
+    6.4
+   ],
+   "ls_sd_bp": 120.0
+  },
+  "rev_24h": {
+   "n_anchors": 6576,
+   "mean_IC": 0.0257,
+   "IC_ci": [
+    0.016,
+    0.0374
+   ],
+   "IC_t": 4.24,
+   "ls_gross_bp": -4.53,
+   "ls_ci": [
+    -7.05,
+    -1.8
+   ],
+   "ls_sd_bp": 124.2
+  },
+  "mom_7d": {
+   "n_anchors": 6576,
+   "mean_IC": 0.0014,
+   "IC_ci": [
+    -0.0116,
+    0.0119
+   ],
+   "IC_t": 0.23,
+   "ls_gross_bp": 4.86,
+   "ls_ci": [
+    1.94,
+    7.3
+   ],
+   "ls_sd_bp": 123.5
+  },
+  "beta_x_btcdir": {
+   "n_anchors": 6576,
+   "mean_IC": 0.0102,
+   "IC_ci": [
+    -0.0034,
+    0.0243
+   ],
+   "IC_t": 1.6,
+   "ls_gross_bp": -0.32,
+   "ls_ci": [
+    -2.89,
+    2.98
+   ],
+   "ls_sd_bp": 125.0
+  }
+ },
+ "assets": [
+  "BTC",
+  "ETH",
+  "SOL",
+  "BNB",
+  "XRP",
+  "DOGE"
+ ],
+ "years": [
+  2022,
+  2023,
+  2024
+ ]
+}
