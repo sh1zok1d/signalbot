@@ -1,0 +1,146 @@
+{
+ "vol": {
+  "ETH": {
+   "2025": {
+    "own HAR+clock": 0.4788,
+    "+BTC RV": 0.4809,
+    "+market RV": 0.4792,
+    "+both": 0.4814
+   },
+   "2026": {
+    "own HAR+clock": 0.5771,
+    "+BTC RV": 0.5792,
+    "+market RV": 0.5768,
+    "+both": 0.5793
+   }
+  },
+  "SOL": {
+   "2025": {
+    "own HAR+clock": 0.6517,
+    "+BTC RV": 0.6545,
+    "+market RV": 0.6515,
+    "+both": 0.6543
+   },
+   "2026": {
+    "own HAR+clock": 0.7606,
+    "+BTC RV": 0.7618,
+    "+market RV": 0.7606,
+    "+both": 0.7617
+   }
+  },
+  "BNB": {
+   "2025": {
+    "own HAR+clock": 0.716,
+    "+BTC RV": 0.7173,
+    "+market RV": 0.7159,
+    "+both": 0.7166
+   },
+   "2026": {
+    "own HAR+clock": 0.7298,
+    "+BTC RV": 0.7319,
+    "+market RV": 0.7301,
+    "+both": 0.732
+   }
+  },
+  "XRP": {
+   "2025": {
+    "own HAR+clock": 0.5874,
+    "+BTC RV": 0.5894,
+    "+market RV": 0.5878,
+    "+both": 0.5894
+   },
+   "2026": {
+    "own HAR+clock": 0.7054,
+    "+BTC RV": 0.7071,
+    "+market RV": 0.7053,
+    "+both": 0.7072
+   }
+  },
+  "DOGE": {
+   "2025": {
+    "own HAR+clock": 0.4677,
+    "+BTC RV": 0.472,
+    "+market RV": 0.4708,
+    "+both": 0.4721
+   },
+   "2026": {
+    "own HAR+clock": 0.6304,
+    "+BTC RV": 0.6335,
+    "+market RV": 0.631,
+    "+both": 0.6329
+   }
+  }
+ },
+ "corr": {
+  "ETH": {
+   "2025": {
+    "persist_24h": 0.3725,
+    "ridge(c24,c7,vols)": 0.4489,
+    "mean_corr": 0.791,
+    "sd_corr": 0.079
+   },
+   "2026": {
+    "persist_24h": 0.3919,
+    "ridge(c24,c7,vols)": 0.4931,
+    "mean_corr": 0.878,
+    "sd_corr": 0.043
+   }
+  },
+  "SOL": {
+   "2025": {
+    "persist_24h": 0.4891,
+    "ridge(c24,c7,vols)": 0.5713,
+    "mean_corr": 0.753,
+    "sd_corr": 0.081
+   },
+   "2026": {
+    "persist_24h": 0.7337,
+    "ridge(c24,c7,vols)": 0.8128,
+    "mean_corr": 0.828,
+    "sd_corr": 0.066
+   }
+  },
+  "BNB": {
+   "2025": {
+    "persist_24h": 0.2836,
+    "ridge(c24,c7,vols)": 0.3641,
+    "mean_corr": 0.679,
+    "sd_corr": 0.13
+   },
+   "2026": {
+    "persist_24h": 0.408,
+    "ridge(c24,c7,vols)": 0.4999,
+    "mean_corr": 0.797,
+    "sd_corr": 0.107
+   }
+  },
+  "XRP": {
+   "2025": {
+    "persist_24h": 0.3389,
+    "ridge(c24,c7,vols)": 0.4031,
+    "mean_corr": 0.722,
+    "sd_corr": 0.116
+   },
+   "2026": {
+    "persist_24h": 0.557,
+    "ridge(c24,c7,vols)": 0.6485,
+    "mean_corr": 0.791,
+    "sd_corr": 0.085
+   }
+  },
+  "DOGE": {
+   "2025": {
+    "persist_24h": 0.5568,
+    "ridge(c24,c7,vols)": 0.6761,
+    "mean_corr": 0.773,
+    "sd_corr": 0.089
+   },
+   "2026": {
+    "persist_24h": 0.4569,
+    "ridge(c24,c7,vols)": 0.5424,
+    "mean_corr": 0.769,
+    "sd_corr": 0.103
+   }
+  }
+ }
+}
