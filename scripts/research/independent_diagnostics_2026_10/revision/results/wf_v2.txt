@@ -1,0 +1,17 @@
+1h 2022 logit AUC 0.5545 [0.5446,0.5643] gbm 0.5593 | lrv R2 ridge 0.618 persist 0.532 | n_tr 17348 n_te 8757
+1h 2023 logit AUC 0.5590 [0.5487,0.5686] gbm 0.5609 | lrv R2 ridge 0.734 persist 0.670 | n_tr 26105 n_te 8751
+1h 2024 logit AUC 0.5483 [0.5405,0.5565] gbm 0.5542 | lrv R2 ridge 0.555 persist 0.442 | n_tr 34856 n_te 8780
+1h 2025 logit AUC 0.5219 [0.5118,0.5324] gbm 0.5212 | lrv R2 ridge 0.670 persist 0.594 | n_tr 43636 n_te 8759
+1h 2026 logit AUC 0.5344 [0.5220,0.5485] gbm 0.5288 | lrv R2 ridge 0.597 persist 0.519 | n_tr 52395 n_te 5085
+1h POOLED logit AUC 0.5433 [0.5391,0.5486] gross 0.06 bp [-0.44,0.59] n=40132
+1h POOLED gbm AUC 0.5449 [0.5397,0.5501] gross 0.52 bp [0.09,0.96] n=40132
+4h 2022 logit AUC 0.5600 [0.5371,0.5831] gbm 0.5640 | lrv R2 ridge 0.641 persist 0.535 | n_tr 4337 n_te 2190
+4h 2023 logit AUC 0.5819 [0.5624,0.6016] gbm 0.5645 | lrv R2 ridge 0.731 persist 0.641 | n_tr 6527 n_te 2189
+4h 2024 logit AUC 0.5506 [0.5249,0.5736] gbm 0.5633 | lrv R2 ridge 0.561 persist 0.412 | n_tr 8716 n_te 2196
+4h 2025 logit AUC 0.5325 [0.5135,0.5528] gbm 0.5357 | lrv R2 ridge 0.682 persist 0.561 | n_tr 10912 n_te 2190
+4h 2026 logit AUC 0.5590 [0.5345,0.5830] gbm 0.5426 | lrv R2 ridge 0.614 persist 0.482 | n_tr 13102 n_te 1271
+4h POOLED logit AUC 0.5529 [0.5425,0.5628] gross 1.73 bp [-0.17,4.00] n=10036
+4h POOLED gbm AUC 0.5525 [0.5416,0.5625] gross 1.27 bp [-0.49,3.29] n=10036
+24h 2022 logit AUC 0.4713 [0.4087,0.5324] gbm 0.4609 | lrv R2 ridge 0.650 persist 0.529 | n_tr 722 n_te 365
+24h 2023 logit AUC 0.5410 [0.4726,0.6064] gbm 0.6082 | lrv R2 ridge 0.740 persist 0.598 | n_tr 1087 n_te 365
+24h 2024 logit AUC 0.5183 [0.4796,0.5640] gbm 0.5366 | lrv R2 ridge 0.547 persist 0.248 | n_tr 1452 n_te 366
