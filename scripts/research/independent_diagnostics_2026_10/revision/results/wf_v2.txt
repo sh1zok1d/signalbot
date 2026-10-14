@@ -15,3 +15,7 @@
 24h 2022 logit AUC 0.4713 [0.4087,0.5324] gbm 0.4609 | lrv R2 ridge 0.650 persist 0.529 | n_tr 722 n_te 365
 24h 2023 logit AUC 0.5410 [0.4726,0.6064] gbm 0.6082 | lrv R2 ridge 0.740 persist 0.598 | n_tr 1087 n_te 365
 24h 2024 logit AUC 0.5183 [0.4796,0.5640] gbm 0.5366 | lrv R2 ridge 0.547 persist 0.248 | n_tr 1452 n_te 366
+24h 2025 logit AUC 0.5267 [0.4727,0.5862] gbm 0.5165 | lrv R2 ridge 0.723 persist 0.464 | n_tr 1818 n_te 365
+24h 2026 logit AUC 0.4522 [0.3880,0.5166] gbm 0.5125 | lrv R2 ridge 0.719 persist 0.433 | n_tr 2183 n_te 211
+24h POOLED logit AUC 0.4930 [0.4673,0.5205] gross -9.75 bp [-23.39,1.23] n=1672
+24h POOLED gbm AUC 0.5164 [0.4908,0.5445] gross 1.78 bp [-10.25,16.78] n=1672
