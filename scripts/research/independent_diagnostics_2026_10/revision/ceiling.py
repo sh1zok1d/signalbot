@@ -20,8 +20,8 @@ for d in range(7): f[f'dow{d}']=(idx.dayofweek==d).astype(float)
 rows=[]
 for fz in sorted(glob.glob('data/metrics_early/*.zip')+glob.glob('data/metrics/*.zip')):
     raw=zipfile.ZipFile(fz).read(zipfile.ZipFile(fz).namelist()[0]); rows.append(pd.read_csv(io.BytesIO(raw)))
-m=pd.concat(rows,ignore_index=True); m['ts']=pd.to_datetime(m['create_time'],utc=True,format='mixed'); m=m.sort_values('ts').drop_duplicates('ts').set_index('ts'); m=m[m.index==m.index.floor('5min')]
-mm=m.reindex(idx).ffill(limit=3)   # snapshot labelled with bar open, used at bar close
+m=pd.concat(rows,ignore_index=True); m['ts']=pd.to_datetime(m['create_time'],utc=True,format='mixed'); m=m.sort_values('ts').drop_duplicates('ts').set_index('ts'); m.index=m.index.floor('5min'); m=m[~m.index.duplicated()]
+mm=m.reindex(idx).ffill(limit=12)   # snapshot labelled with bar open (floored to the 5m grid), used at bar close; gaps up to 1h carried
 oi=mm['sum_open_interest'].astype(float)
 for n,w in [('1h',12),('4h',48),('24h',288)]: f['doi_'+n]=np.log(oi/oi.shift(w))
 f['oi_z30d']=(oi-oi.rolling(8640,min_periods=4000).mean())/(oi.rolling(8640,min_periods=4000).std()+1e-9)
@@ -32,6 +32,9 @@ for n,w in [('1h',12),('4h',48),('24h',288)]: f['eth_r_'+n]=el-el.shift(w); f['e
 er=el.diff(); f['eth_lrv_24h']=np.log(np.sqrt((er*er).rolling(288).mean())+1e-9)
 EXTRA=['r_2h','r_8h','r_12h','r_2d','r_3d','r_30d','lrv_30d','volratio_24h_30d','skew_24h','kurt_24h','ltrades_rel']+[f'dow{d}' for d in range(7)]+['doi_1h','doi_4h','doi_24h','oi_z30d']+[c for c in f.columns if c.endswith('_z') and c.startswith(('ls_','taker_ls'))]+[c for c in f.columns if c.endswith('_d24h')]+['eth_r_1h','eth_r_4h','eth_r_24h','ethbtc_r_1h','ethbtc_r_4h','ethbtc_r_24h','eth_lrv_24h']
 RICH=FEATS+EXTRA
+METRIC_COLS=['doi_1h','doi_4h','doi_24h','oi_z30d']+[c for c in EXTRA if c.startswith(('ls_','taker_ls'))]
+f[RICH]=f[RICH].replace([np.inf,-np.inf],np.nan)
+for c in METRIC_COLS: f[c]=f[c].fillna(0.0)   # missing positioning/OI -> neutral value (coverage gaps in the metrics archive)
 # alternative 4h targets
 sig=pd.Series(r,index=idx).rolling(288,min_periods=288).std(ddof=1).values; X=0.5*1.2816*sig*np.sqrt(48)
 hi=k.high.values; lo=k.low.values; c=k.close.values; n=len(k)
@@ -75,6 +78,7 @@ for h,s,ycol in [('4h',48,'y_up_4h'),('1h',12,'y_up_1h'),('4h_upfirst',48,'y_upf
             preds={}
             for mn,mdl in models().items():
                 if fs_name=='base29' and mn not in ('logit','gbm_small','gbm_big'): continue
+                if h=='1h' and mn in ('knn500','mlp','et'): continue
                 mdl.fit(Ztr,ytr); preds[mn]=mdl.predict_proba(Zte)[:,1]
             preds['ensemble']=np.mean([preds[q] for q in preds],axis=0)
             for mn,p in preds.items():
