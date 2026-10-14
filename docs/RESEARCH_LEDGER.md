@@ -8700,3 +8700,12 @@ WINDOWS_CONSUMED = none
 OBJECTS_2025_2026_USED = none; E1 / V3 untouched
 PRODUCT_CHANGE = none
 ```
+
+## 2026-10-14 — Independent forecast investigation: diagnostic reads recorded (not a research unit)
+
+`RECORD = docs/PULSY_INDEPENDENT_FORECAST_INVESTIGATION_2026-10-14.md | scripts scripts/research/independent_diagnostics_2026_10/ | MODE = DIAGNOSTIC (no preregistration, no claim decision, no product change)`
+`SURFACE_READ = Binance USD-M BTCUSDT 5m klines + fundingRate monthly objects 2020-01 .. 2026-07; daily metrics objects 2021-12-01 .. 2026-07-31 | last forward window ends 2026-08-01`
+`E1_HOLDOUT = not requested at object level (no August 2026 object) | E1 / V3 sealed records untouched`
+`EXPOSURE = 2025-01 .. 2026-07 BTC surface read for walk-forward direction and volatility scores (29 price/range/taker/volume/funding/clock features; 1h/4h/24h) and for a time-disjoint DH3-P3 check (top-quintile count_long_short_ratio -> up-first within 4h: -2.18 pp [95% -6.15, +2.25], n 2134 / 8532). The P3 claim surface on 2025/2026 is therefore exposed.`
+`NUMBERS = direction AUC 1h 0.543 [0.539, 0.550], 4h 0.553 [0.543, 0.562], 24h ~0.50 (2022-2026H1 walk-forward); gross 2-5 bp per 4h trade vs 4-10 bp costs; log RV R2 0.52-0.74 (4h); no verdict words, see the record`
+`WINDOWS_CONSUMED = none under the evaluation contract (diagnostic reads only) | PRODUCT_CHANGE = none | NEXT_UNIT = none started`
