@@ -1,3 +1,16 @@
+## PROJECT CLOSED — owner decision — 2026-10-15
+
+`DECISION = docs/PROJECT_CLOSURE_DECISION_V1.md | MODE = CLOSED / ARCHIVE_ONLY / NO_RESEARCH / NO_PRODUCT / NO_RESTART`
+`NEXT_UNIT = NONE_FOREVER | no new hypotheses, units, programs, confirmations, prospective accruals or product directions`
+`E1-RUN-001 = CLOSED_WITHOUT_EXECUTION | holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) never opened | evaluator never run`
+`LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 = CLOSED_WITHOUT_OUTCOME_PROJECT_CLOSURE | accrual stopped | outcome never read`
+`LEVEL_RACE challenger C1 / calibrator = STOPPED | claim journal exported to the backup as is, never evaluated`
+`PAIRED_SHADOW V1 / W_L1 = STOPPED AFTER EXPORT | predictions preserved in the backup`
+`CATALOGUE = docs/closure/RESEARCH_CATALOG_FINAL_V1.md (207 atlas units; CONFIRMED 1 context object; validated trading edges 0)`
+`PRODUCT_CHANGE = none | DEPLOY = forbidden | PUBLIC_RELEASE = not permitted (proposal docs/closure/PUBLIC_RELEASE_PROPOSAL_V1.md)`
+
+Every entry below is the historical routing record and has no execution authority.
+
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08
 
 `DECISION = docs/FORECAST_LAYER_DECISION_V1.md | chain of command docs/ORCHESTRATION_V1.md`

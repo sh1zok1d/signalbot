@@ -8744,3 +8744,12 @@ PRODUCT_CHANGE = none
 `EXPOSURE = the 2025-01 .. 2026-07 BTC surface is now read a third time for structural-level objects (after the race held-out one-shot and the product history statistics): real-vs-pseudo resolution, RV transition, B0 calibration and the T15 END_POSITION_X model; it is not independent for any Level Engine claim. No new object families or data sources.`
 `NUMBERS = resolution real vs pseudo +5.1 pp paired [3.0, 7.1] (N 1602), +10.1 pp unpaired [7.9, 12.3]; RMUT -17.1 min; log RV transition +0.076 paired / +0.116 unpaired; END_POSITION_X slope real 16.5 vs pseudo 22.5 pp/SD; OVMM adds +0.002 AUC over B0+END_POSITION_X (corr with the own Binance move 0.996, residual AUC 0.50); gross economics of every T0/T15 expression -2.9 .. +1.5 bp with intervals through zero; matched-pair cohorts are path-selected (pseudo resolution 0.836 in pairs vs 0.695 outside).`
 `WINDOWS_CONSUMED = none under the evaluation contract | PRODUCT_CHANGE = none | NEXT_UNIT = none started (recommendation: prospective pseudo-twin logging beside the existing level claim classes, read once; see record §8)`
+
+## 2026-10-15 — Project closure: every research line ends; E1 closed without execution
+
+`DECISION = docs/PROJECT_CLOSURE_DECISION_V1.md (owner, 2026-10-15) | MODE = CLOSED / ARCHIVE_ONLY / NO_RESEARCH / NO_PRODUCT / NO_RESTART`
+`E1-RUN-001 = CLOSED_WITHOUT_EXECUTION | holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) never requested, never read by the evaluator | sealed artifacts unopened | records unchanged`
+`PROSPECTIVE = LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 stopped without an outcome read; level race challenger C1 and calibrator stopped; paired shadow stopped after export; FORWARD_MARKET_OBSERVABILITY_V1 never started`
+`WINDOWS_CONSUMED = none new | all previously consumed windows stay consumed forever | no window is released by closure`
+`CATALOGUE = docs/closure/RESEARCH_CATALOG_FINAL_V1.md | 207 atlas units | CONFIRMED: D7 (context object) | validated trading edges: 0 | diagnostic reports 2026-10-14/15 listed in §3 of the catalogue`
+`PRODUCT_CHANGE = none | NEXT_UNIT = NONE_FOREVER`

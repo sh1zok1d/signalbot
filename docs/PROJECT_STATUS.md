@@ -1,5 +1,7 @@
 # Signalbot — Current Project Status
 
+> **CLOSED — 2026-10-15.** Pulsy (Signalbot) is closed for good by owner decision: `docs/PROJECT_CLOSURE_DECISION_V1.md`. Mode `CLOSED / ARCHIVE_ONLY / NO_RESEARCH / NO_PRODUCT / NO_RESTART`. Operational closure follows `docs/closure/OPERATIONAL_CLOSURE_PLAN_V1.md` (backups and restore verification first; irreversible steps only on separate owner permission). The E1 holdout is never opened. Everything below this note is the historical record of the project's last operating state and carries no execution authority.
+
 **Status date:** 2026-09-22 (routing pointer updated 2026-09-29; product-first decision 2026-10-02; decision support 2026-10-03)
 **Operating mode:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS` (since 2026-10-03, `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). The earlier modes `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (2026-10-02) and `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN` are historical.
 **Active phase:** see `docs/CURRENT_RESEARCH_STATE.md`. As of 2026-09-29 its latest entry is the GV0R03 generator feasibility contract, with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. The earlier phase `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION` is historical.

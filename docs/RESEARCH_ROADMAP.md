@@ -1,3 +1,7 @@
+## Closed — 2026-10-15
+
+The project is closed (`docs/PROJECT_CLOSURE_DECISION_V1.md`). No order below is executed; the file is kept as the record of the research routing that was in force.
+
 > **Research transition — 2026-10-05:** the compiler V3 variance line is **closed** (`research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`) and new research follows `research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`. The compiler and generator-mapping `NEXT_UNIT` entries below are historical and route nothing.
 
 ## Order from 2026-10-05

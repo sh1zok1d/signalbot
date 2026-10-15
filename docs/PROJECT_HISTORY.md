@@ -526,3 +526,11 @@ At the project's sample sizes, near-absolute coverage safety and practical utili
 `docs/ORCHESTRATION_V1.md`: the owner directs a chief architect, who directs two mini-heads — ОПГ-1 for the pre-beta product, ОПГ-2 for the forecast layer — each with its own tracks.
 
 **What was learned.** The review behind the decision found that most of the T+15m information at a level is geometry: a 15-minute end position predicts the race about as a random walk would, on real and pseudo levels alike. A forecast is honest only if it shows that geometry as «обычно» and claims for the level only what it adds.
+
+## 26. Closure (2026-10-15)
+
+**Why.** Five independent diagnostic reports in two days (`docs/PULSY_*_2026-10-14.md`, `docs/PULSY_SIGNAL_ENGINE_AUDIT_2026-10-15.md`) gave the same answer as the project's own 207 units: direction on 1h–4h from candle data is a small reversal below costs; cross-market information adds nothing usable; the Level Engine's confirmed object is a volatility expansion without direction, and its cross-venue candidate repeats Binance's own move; only volatility is predictable. The owner, using the beta as its first user, found no reason to pay for it, and no users with a described pain existed to redesign it for.
+
+**What was decided.** `docs/PROJECT_CLOSURE_DECISION_V1.md`: Pulsy is closed for good, with no restart. The E1 holdout is closed without execution. The repository stays private; a cleaned public copy is proposed separately. Results are preserved first (backups with restore verification), then services stop, keys are revoked and paid resources end, each on a separate owner permission. A public summary in Russian and English states the results without exaggeration, promises or justification.
+
+**What was learned.** The project's own process worked as designed: it produced an exact, documented negative answer to an expensive question, and no sealed verdict was ever rescued. The remaining value is that record.
