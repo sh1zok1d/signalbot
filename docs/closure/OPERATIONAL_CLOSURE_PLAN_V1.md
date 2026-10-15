@@ -13,11 +13,11 @@
 | 2 | Резервное копирование на VPS: `closure_backup.sh` (dry-run, затем `--apply`); всё зашифровано до копирования; две копии вне VPS; `sha256sum -c` | `BACKUP_AND_RESTORE_PLAN_V1.md` §3–4 | **П2** | да |
 | 3 | Проверка восстановления **из зашифрованной копии** на чистой машине: `closure_restore_verify.sh`; `BACKUP_MANIFEST_<дата>.md` в репозиторий; mirror репозитория | `BACKUP_AND_RESTORE_PLAN_V1.md` §5–6 | входит в П2 | да |
 | 4 | Инвентаризация участников; пауза dead-man проверки; финальное сообщение, если есть внешние пользователи | чек-лист S0–S1 | входит в П3 | — |
-| 5 | Остановить таймеры приложения (резервные остаются) и долгоживущие сервисы; PostgreSQL работает | чек-лист S2–S3 | **П3** | да |
+| 5 | Остановить все таймеры (приложения и стоковые резервные: проверенная зашифрованная копия уже есть, незашифрованные процедуры не остаются активными) и долгоживущие сервисы; PostgreSQL работает | чек-лист S2–S3 | **П3** | да |
 | 6 | Финальный полный зашифрованный дамп после остановки записи; копии наружу; проверка восстановления | чек-лист S4 | входит в П3 | да |
-| 7 | Обезличивание в живой базе | чек-лист S5–S6; `PAID_RESOURCES_AND_PII_V1.md` §3.3 | **П4** (с решением по основанию и сроку хранения полного архива) | **нет** для базы на VPS |
-| 8 | Обезличенный зашифрованный дамп и CSV; копии; проверка; отключить резервные таймеры; уничтожить файл пароля на VPS | чек-лист S7 | входит в П4 | да |
-| 9 | Остановить контейнеры; консистентная зашифрованная копия volumes | чек-лист S8 | входит в П3 | да, пока volumes живы |
+| 7 | Обезличивание в живой базе одной проверенной процедурой `deidentify_closure.sql` (dry-run, apply, `VACUUM FULL`) | чек-лист S5–S6; `PAID_RESOURCES_AND_PII_V1.md` §3.3 | **П4** (с решением по основанию и сроку хранения полного архива) | **нет** для базы на VPS |
+| 8 | Обезличенный зашифрованный дамп и CSV; копии; проверка; уничтожить локальные стоковые дампы и очистить journald | чек-лист S7 | входит в П4 | да |
+| 9 | Остановить контейнеры; зашифрованная копия volumes (остаточные персональные данные в WAL — не архив); уничтожить файл пароля на VPS | чек-лист S8 | входит в П3 | да, пока volumes живы |
 | 10 | Отзыв токенов Telegram (обязателен: hotfix утечки 2026-09-28), ключей Anthropic/OpenAI, мониторинга; GitHub-интеграции; удалить пересылки из Telegram владельца | чек-лист S9 | **П5** | **нет** |
 | 11 | Снапшот VPS, выключение, непродление; закрытие платных ресурсов; уничтожение копий с персональными данными по основанию из П4; off-site хранилище — последним | чек-лист S10; `PAID_RESOURCES_AND_PII_V1.md` §2, §3.5 | **П6** | **нет** |
 | 12 | Финальный коммит (`BACKUP_MANIFEST`, `SHUTDOWN_LOG`), mirror, архивация репозитория (остаётся приватным) | чек-лист S11 | входит в П1/П6 | да |
@@ -58,7 +58,7 @@
 
 - `docs/PROJECT_CLOSURE_DECISION_V1.md`; закрывающие заголовки в `AGENTS.md`, `PROJECT_STATUS.md`, `CURRENT_RESEARCH_STATE.md`, `RESEARCH_ROADMAP.md`; записи в `RESEARCH_LEDGER.md`, `PROJECT_HISTORY.md` §26, `DOCUMENTATION_INDEX.md`;
 - `docs/closure/RESEARCH_CATALOG_FINAL_V1.md` (207 зарегистрированных единиц с разбивкой «исход прочитан / закрыт раньше»; генератор `scripts/closure/build_research_catalog.py`);
-- `docs/closure/BACKUP_AND_RESTORE_PLAN_V1.md` и исполнимые `scripts/closure/closure_backup.sh`, `closure_restore_verify.sh` (на VPS не запускались);
+- `docs/closure/BACKUP_AND_RESTORE_PLAN_V1.md` и исполнимые `scripts/closure/closure_backup.sh`, `closure_restore_verify.sh`; процедура обезличивания `scripts/closure/deidentify_closure.sql`; тесты `scripts/closure/test_deidentify_closure.sh`, `test_backup_restore.sh` (фикстура `test_fixture_closure.sql`, библиотека `testlib_pg.sh`) — оба PASS на синтетических данных, `docs/closure/TEST_REPORT_2026-10-15.md`; на VPS скрипты не запускались;
 - `docs/closure/SHUTDOWN_CHECKLIST_V1.md` (порядок S0–S12), `PAID_RESOURCES_AND_PII_V1.md` (включая §3.5 о старых копиях и основаниях хранения), `PUBLIC_RELEASE_PROPOSAL_V1.md` (первый паттерн-скан истории: `scripts/closure/scan_git_history.py`, `docs/closure/GIT_HISTORY_SCAN_2026-10-15.json`; не гарантия), `PUBLIC_SUMMARY_RU.md`, `PUBLIC_SUMMARY_EN.md` (с интервалами; DH3-P3 без ложной ссылки на 2017–2019);
 - ничего не остановлено, не удалено, не отозвано, не опубликовано; E1 не открыт; merge не сделан.
 

@@ -1,6 +1,6 @@
 # SHUTDOWN_CHECKLIST_V1 — технический чек-лист остановки Pulsy
 
-**Статус:** чек-лист, 2026-10-15, исправлен 2026-10-15 (порядок: финальный дамп → обезличивание в живой базе → повторный экспорт → остановка контейнеров; резервные таймеры остаются включёнными до завершения финального копирования). Подчинён `docs/PROJECT_CLOSURE_DECISION_V1.md`. Выполняется строго по порядку. Шаги **[НЕОБРАТИМО]** требуют отдельного разрешения каждый (П4–П6). Ни один шаг не начинается, пока `BACKUP_AND_RESTORE_PLAN_V1.md` §6 не выполнен и не записан `BACKUP_MANIFEST_<дата>.md`.
+**Статус:** чек-лист, 2026-10-15, исправлен 2026-10-15 дважды (порядок: финальный дамп → обезличивание в живой базе → повторный экспорт → остановка контейнеров; стоковые резервные таймеры отключаются вместе с таймерами приложения, потому что проверенная зашифрованная копия к этому моменту уже существует и ни одна процедура с незашифрованными копиями не должна оставаться активной; обезличивание — одна проверенная SQL-процедура; копия volumes и снапшот VPS — остаточные копии персональных данных, не архив). Подчинён `docs/PROJECT_CLOSURE_DECISION_V1.md`. Выполняется строго по порядку. Шаги **[НЕОБРАТИМО]** требуют отдельного разрешения каждый (П4–П6). Ни один шаг не начинается, пока `BACKUP_AND_RESTORE_PLAN_V1.md` §6 не выполнен и не записан `BACKUP_MANIFEST_<дата>.md`.
 
 Обозначения: `$CB_*` — каталоги подготовки на VPS (`/opt/signalbot/closure_backup_<метка>`), всё содержимое зашифровано скриптом `scripts/closure/closure_backup.sh`. Хосты и учётные данные не приводятся. Каждый выполненный шаг с датой и выводами команд (без секретов и идентификаторов) записывается в `docs/closure/SHUTDOWN_LOG_<дата>.md`.
 
@@ -20,17 +20,22 @@
 - [ ] Одно сообщение через бот беты: проект закрыт, бот прекращает работу, данные участников удаляются в соответствии с privacy notice, контакт владельца для запросов. Без оценок и обещаний.
 - [ ] Дождаться доставки (`beta_notification_deliveries`), затем S2.
 
-## S2. Остановка таймеров приложения (обратимо)
+## S2. Остановка всех таймеров, включая стоковые резервные (обратимо)
+
+Предпосылка: проверенная зашифрованная копия уже существует (этапы 2–3 операционного плана, `BACKUP_MANIFEST`), поэтому стоковая процедура резервного копирования больше ничего не защищает, а создаёт незашифрованные дампы и передаёт их в off-site. С этого шага ни одна процедура, создающая или передающая незашифрованные копии, не остаётся активной.
 
 ```
 systemctl disable --now signalbot-beta-notify.timer signalbot-beta-detector.timer signalbot-beta-outcomes.timer \
   signalbot-beta-d7.timer signalbot-beta-history.timer signalbot-beta-feeds.timer signalbot-beta-stress.timer
 systemctl disable --now signalbot-shadow.timer signalbot-telegram.timer
-systemctl list-timers --all --no-pager | grep signalbot
+systemctl disable --now signalbot-backup.timer signalbot-backup-verify.timer
+systemctl list-timers --all --no-pager | grep signalbot      # ожидается пусто
+systemctl list-units --state=activating,active --no-pager 'signalbot-*'   # ни один oneshot не выполняется
 ```
 
-- [ ] Ожидаемый вывод последней команды: **только** `signalbot-backup.timer` и `signalbot-backup-verify.timer`. Они остаются включёнными до завершения финального копирования (S7). Следствие: если `signalbot-backup.timer` сработает (03:15 UTC) между S4 и S7, он, как и каждый день до этого, положит **незашифрованный** дамп локально и в off-site-тиры; эти дампы входят в инвентарь S7/§3.5 и удаляются вместе со старыми.
-- [ ] `systemctl list-units --state=activating,active --no-pager 'signalbot-*'` — ни один oneshot не выполняется.
+- [ ] Если `signalbot-backup.service` выполняется в этот момент (03:15 UTC), дождаться его завершения, затем отключить таймеры.
+- [ ] `crontab -l; crontab -u signalbot -l; grep -rl signalbot /etc/cron*` — нет cron-запусков `backup.sh`/`sync_backup_offsite.sh`; найденные отключить.
+- [ ] Защита данных между S2 и S4 обеспечивается уже проверенной зашифрованной копией; окно без новой копии — минуты.
 
 ## S3. Остановка долгоживущих сервисов (обратимо; PostgreSQL и Redis продолжают работать)
 
@@ -64,13 +69,13 @@ CLOSURE_PASSPHRASE_FILE=/root/closure.pass CLOSURE_BACKUP_DIR=/opt/signalbot/clo
 
 ## S6. Обезличивание в живой базе **[НЕОБРАТИМО для базы на VPS; полный дамп S4 сохраняется по §3.5]** — П4
 
-PostgreSQL работает; приложение остановлено (S3). Порядок — `PAID_RESOURCES_AND_PII_V1.md` §3.3 п. 3:
+PostgreSQL работает; приложение остановлено (S3). Единственная процедура — `scripts/closure/deidentify_closure.sql` (одна транзакция: счётчик когорты по правилу `delete_participant` и OUT-8, удаление всех участников с каскадом, редакция остаточных текстов, деидентификация каждого персонального отпечатка в аудите через схемную `beta_audit_deidentify()`, встроенная проверка: таблицы участников пусты, в аудите нет отпечатков и деталей, счётчики таблиц результатов не изменились; любая ошибка откатывает всё). Проверена на изолированной базе (`scripts/closure/test_deidentify_closure.sh`, `docs/closure/TEST_REPORT_2026-10-15.md`); OUT-8 ею поглощён.
 
-- [ ] Dry-run редакции аудита: `psql … -f deploy/signalbot-beta-audit-deidentify-count.sql` — записать счётчики.
-- [ ] Для каждого участника — `delete_participant` (`storage/beta_v0_store.py:1207-1250`; через `python -m runtime.beta_cli` владельческой командой или прямым вызовом в `venv` с `BETA_FINGERPRINT_KEY` из `.env`): каскад по `user_pk`, `beta_deleted_cohort_counts`, деидентификация аудита.
-- [ ] Вручную, в одной транзакции: `DELETE FROM beta_waitlist; DELETE FROM beta_allowlist; UPDATE beta_invites SET label = NULL; UPDATE beta_notification_deliveries SET error_summary = NULL WHERE user_pk IS NULL; UPDATE telegram_notification_deliveries SET recipient_fingerprint = NULL; DELETE FROM beta_rejected_start_hashes;` затем `deploy/signalbot-beta-audit-deidentify.sql`.
-- [ ] Проверка: `SELECT count(*) FROM beta_users; … beta_allowlist; … beta_waitlist; … beta_feedback_messages; … beta_owner_forwards; … beta_user_activity;` — все 0; `SELECT count(*) FROM beta_admin_audit WHERE target_fingerprint IS NOT NULL;` — записать (строки о живых людях OUT-8 не трогает; после удаления всех участников их быть не должно).
-- [ ] Результаты и журнал заявок не изменились: `count(*)` по `beta_claims`, `beta_claim_outcomes`, `forecast_predictions`, `forecast_outcomes`, `beta_forecasts`, `beta_episode_outcomes` равны `COUNTS.txt` из `$CB_final`.
+- [ ] Отпечатки владельца (keyed и legacy) вычислить в `venv` с `BETA_FINGERPRINT_KEY` из `.env`: `python -c "from beta.admin import fingerprint; from beta.pseudonym import legacy_pseudonym; print(fingerprint(ID)+','+legacy_pseudonym(ID))"` (ID не записывать в лог); `test_open_at` из вывода dry-run — записать в `SHUTDOWN_LOG` (после обезличивания он из базы исчезает).
+- [ ] Dry-run: `psql -X -v ON_ERROR_STOP=1 -d $POSTGRES_DB -v owner_fps=<fp1,fp2> -v owner_id=<ID> -f scripts/closure/deidentify_closure.sql` — читать блоки `before`/`after`/`counter`; завершается `DRY RUN: rolled back`.
+- [ ] Apply: та же команда с `-v apply=1`; завершается `COMMITTED`.
+- [ ] Физические остатки: `VACUUM (FULL, ANALYZE) beta_users, beta_allowlist, beta_waitlist, beta_feedback, beta_feedback_messages, beta_message_votes, beta_reasons, beta_user_activity, beta_price_alerts, beta_owner_forwards, beta_notification_deliveries, beta_admin_audit, beta_invites, beta_rejected_start_hashes; CHECKPOINT;` — после этого удалённых строк нет в файлах таблиц, но они **остаются в сегментах WAL** (`pg_wal`) до их переиспользования; поэтому копия volumes (S8) и снапшот VPS (S10) считаются копиями с остаточными персональными данными (§3.5).
+- [ ] Контроль: счётчики `beta_claims`, `beta_claim_outcomes`, `forecast_predictions`, `forecast_outcomes`, `beta_forecasts`, `beta_episode_outcomes` равны `COUNTS.txt` из `$CB_final` (скрипт проверяет это сам; повторить вручную и записать).
 
 ## S7. Обезличенный дамп и повторный экспорт (зашифрованный)
 
@@ -81,8 +86,9 @@ CLOSURE_PASSPHRASE_FILE=/root/closure.pass CLOSURE_BACKUP_DIR=/opt/signalbot/clo
 
 - [ ] В `$CB_deid`: `csv_participants.tar.gz.gpg` отсутствует или содержит только заголовки CSV; `COUNTS.txt` показывает 0 по таблицам участников.
 - [ ] Копии в off-site и на диск владельца, `rclone check`, `sha256sum -c`; `closure_restore_verify.sh` из скачанной копии `$CB_deid`; запись в `BACKUP_MANIFEST`. Это — **долгосрочный архив**.
-- [ ] Только теперь: `systemctl disable --now signalbot-backup.timer signalbot-backup-verify.timer` (финальное копирование завершено).
-- [ ] `shred -u /root/closure.pass` после подтверждения, что пароль есть в менеджере паролей (проверить расшифровкой одного файла на машине владельца).
+- [ ] Локальные стоковые дампы с персональными данными: `shred -u /opt/signalbot/backups/*.sql.gz` (они уже входят в `artifacts.tar.gz.gpg` полного архива `$CB_final`).
+- [ ] Журналы уже экспортированы в `$CB_final`: `journalctl --rotate && journalctl --vacuum-time=1s` — чтобы снапшот VPS (S10) не содержал старого токена и строк о пользователях.
+- [ ] `shred -u /root/closure.pass` после подтверждения, что пароль есть в менеджере паролей (проверить расшифровкой одного файла на машине владельца), **но только после S8**, где пароль нужен ещё раз.
 
 ## S8. Остановка контейнеров и консистентная копия volumes (обратимо, пока volumes на месте)
 
@@ -92,7 +98,8 @@ docker ps -a; docker volume ls | grep -E 'timescale_data|redis_data'
 ```
 
 - [ ] Volumes **не удаляются** (`docker compose down -v` запрещён).
-- [ ] Консистентная физическая копия (база остановлена; уже обезличена): `CLOSURE_PASSPHRASE_FILE=… CLOSURE_BACKUP_DIR=/opt/signalbot/closure_backup_volumes_<метка> ./scripts/closure/closure_backup.sh` **не подходит** (preflight требует работающий контейнер) — выполнить вручную только шаг volumes: `docker run --rm -v timescale_data:/src:ro -v $CB_vol:/dst alpine:3.20 tar czf /dst/volume_timescale_data.tar.gz -C /src . && gzip -t … && gpg --batch --pinentry-mode loopback --passphrase-file /root/closure.pass --symmetric --cipher-algo AES256 -o …gpg … && shred -u …tar.gz`; то же для `redis_data`; манифест; копии наружу.
+- [ ] Консистентная физическая копия (база остановлена; таблицы обезличены и перезаписаны `VACUUM FULL`, но WAL может содержать удалённые строки): `closure_backup.sh` здесь не подходит (preflight требует работающий контейнер) — выполнить вручную только шаг volumes: `docker run --rm -v timescale_data:/src:ro -v $CB_vol:/dst alpine:3.20 tar czf /dst/volume_timescale_data.tar.gz -C /src . && gzip -t … && gpg --batch --pinentry-mode loopback --passphrase-file /root/closure.pass --symmetric --cipher-algo AES256 -o …gpg … && shred -u …tar.gz`; то же для `redis_data`; манифест; копии наружу. **Статус этой копии — «остаточные персональные данные»** (§3.5): она хранится до подтверждения `$CB_deid` на двух носителях и затем уничтожается; долгосрочный архив — только логический обезличенный дамп.
+- [ ] Теперь `shred -u /root/closure.pass`.
 
 ## S9. Отзыв ключей и закрытие доступов **[НЕОБРАТИМО]** — П5
 
@@ -107,9 +114,9 @@ docker ps -a; docker volume ls | grep -E 'timescale_data|redis_data'
 ## S10. Остановка VPS **[НЕОБРАТИМО]** — П6
 
 - [ ] `sha256sum -c MANIFEST.sha256` для `$CB_final`, `$CB_deid`, `$CB_vol` на двух копиях вне VPS — OK.
-- [ ] Снапшот VPS у провайдера (содержит открытые данные на диске — удалить по §3.5 после подтверждения архива; срок записать).
+- [ ] Снапшот VPS у провайдера — только после S7 (локальные дампы уничтожены, журнал очищен) и S8 (контейнеры остановлены). Даже тогда он содержит остаточные персональные данные (WAL, нераспределённые блоки диска, `.env` с отозванными секретами) и **не является архивом**: это кратковременная страховка на время уничтожения сервера, удаляемая по §3.5 сразу после подтверждения `$CB_deid` на двух носителях; дата удаления записывается в `SHUTDOWN_LOG`.
 - [ ] `shutdown -h now`; удалить сервер или не продлевать (решение владельца); отключить автопродление и карту.
-- [ ] Старые off-site дампы и локальные `backups/` — по `PAID_RESOURCES_AND_PII_V1.md` §3.5.
+- [ ] Старые off-site дампы (незашифрованные, с персональными данными) — уничтожить по `PAID_RESOURCES_AND_PII_V1.md` §3.5 в том же окне П6, с очисткой корзины облака; `rclone ls` после — только `closure_deid_*` (и `closure_final_*`, если владелец записал основание и срок).
 
 ## S11. Репозиторий
 

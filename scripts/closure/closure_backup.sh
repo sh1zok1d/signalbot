@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# closure_backup.sh — stage, ENCRYPT and verify the Pulsy closure backup on the VPS.
+# closure_backup.sh — stage, ENCRYPT and verify the Pulsy closure backup.
 #
 # Part of docs/closure/BACKUP_AND_RESTORE_PLAN_V1.md. Run as root on the VPS, in a tmux session:
-#   CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh            # dry run: prints the plan, touches nothing
+#   CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh            # dry run: preflight + plan, touches nothing
 #   CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh --apply    # performs the backup
+#
+# Modes (CLOSURE_PG_MODE): `docker` (default; PostgreSQL runs in the container $BTCBOT_PG_CONTAINER, as on the VPS) or
+# `local` (pg_dump/psql on this host against PGHOST/PGPORT; used by scripts/closure/test_backup_restore.sh).
 #
 # Rules this script enforces:
 #   - every produced file that can hold personal data (dumps, CSV, journals, volumes, secrets, unit snapshots) is encrypted with
 #     gpg AES-256 (symmetric, passphrase from a root-only file) BEFORE anything leaves the staging directory; the plaintext is
 #     verified against the ciphertext and then shredded; only *.gpg, MANIFEST.sha256, COUNTS.txt and README.txt remain;
 #   - `set -euo pipefail`, umask 077, a .partial suffix until each artifact is verified, explicit tool checks;
-#   - nothing is copied off the VPS here: the off-site copy is a separate step (`rclone copy --checksum` of *.gpg + manifest).
+#   - nothing is copied off the host here: the off-site copy is a separate step (`rclone copy --checksum` of the staging dir).
 # It stops nothing, deletes nothing outside its own staging directory and never prints secret values.
 set -euo pipefail
 umask 077
@@ -25,6 +28,7 @@ for a in "$@"; do
   esac
 done
 
+MODE="${CLOSURE_PG_MODE:-docker}"
 SIGNALBOT_DIR="${SIGNALBOT_DIR:-/opt/signalbot}"
 ENV_FILE="${SIGNALBOT_ENV_FILE:-$SIGNALBOT_DIR/.env}"
 CONTAINER="${BTCBOT_PG_CONTAINER:-btcbot_timescaledb}"
@@ -33,6 +37,7 @@ REDIS_VOLUME="${REDIS_VOLUME:-redis_data}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 CB="${CLOSURE_BACKUP_DIR:-$SIGNALBOT_DIR/closure_backup_$STAMP}"
 PASSFILE="${CLOSURE_PASSPHRASE_FILE:-}"
+MIN_DUMP_BYTES="${CLOSURE_MIN_DUMP_BYTES:-1048576}"
 
 # Result tables (no user identifiers) and participant tables (personal data). Both are exported; both are encrypted.
 RESULT_TABLES="forecast_predictions forecast_outcomes beta_claims beta_claim_outcomes beta_claim_displays beta_forecasts
@@ -45,61 +50,78 @@ PII_TABLES="beta_users beta_allowlist beta_waitlist beta_invites beta_user_activ
 
 log() { printf '[closure-backup %s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 fail() { echo "ERROR: $*" >&2; exit 1; }
-need() { command -v "$1" >/dev/null 2>&1 || fail "required tool missing: $1"; }
+have() { command -v "$1" >/dev/null 2>&1; }
+need() { have "$1" || fail "required tool missing: $1"; }
+pg()  { if [ "$MODE" = docker ]; then docker exec "$CONTAINER" "$@"; else "$@"; fi; }       # no stdin
+pgi() { if [ "$MODE" = docker ]; then docker exec -i "$CONTAINER" "$@"; else "$@"; fi; }    # with stdin
 
 # ---------- preflight (both modes) ----------
 [ "$(id -u)" = "0" ] || fail "run as root"
-for t in docker gpg sha256sum tar gzip cmp journalctl systemctl; do need "$t"; done
-command -v shred >/dev/null 2>&1 || log "shred not found: plaintext will be removed with rm (less secure on SSD anyway; the disk is destroyed with the VPS)"
+for t in gpg sha256sum tar gzip cmp; do need "$t"; done
+case "$MODE" in
+  docker) need docker ;;
+  local) need pg_dump; need psql; need pg_isready ;;
+  *) fail "CLOSURE_PG_MODE must be docker or local" ;;
+esac
+have shred || log "shred not found: plaintext will be removed with rm (the VPS disk is destroyed with the server anyway)"
+have journalctl || log "journalctl not found: journal export will be skipped"
+have systemctl || log "systemctl not found: unit snapshot will be partial"
 [ -r "$ENV_FILE" ] || fail "cannot read $ENV_FILE"
 [ -n "$PASSFILE" ] || fail "set CLOSURE_PASSPHRASE_FILE to a root-only file (mode 600) holding the archive passphrase"
 [ -r "$PASSFILE" ] || fail "cannot read passphrase file"
 [ "$(stat -c %a "$PASSFILE")" = "600" ] || fail "passphrase file must be mode 600"
 [ "$(stat -c %U "$PASSFILE")" = "root" ] || fail "passphrase file must be owned by root"
 [ "$(wc -c < "$PASSFILE")" -ge 20 ] || fail "passphrase shorter than 20 bytes"
-docker inspect "$CONTAINER" >/dev/null 2>&1 || fail "container $CONTAINER not found"
-[ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ] || fail "container $CONTAINER is not running (dumps need a live PostgreSQL)"
 set -a; . "$ENV_FILE"; set +a
 : "${POSTGRES_DB:?POSTGRES_DB missing in $ENV_FILE}" "${POSTGRES_USER:?POSTGRES_USER missing in $ENV_FILE}"
-docker exec "$CONTAINER" pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null || fail "pg_isready failed"
+if [ "$MODE" = docker ]; then
+  docker inspect "$CONTAINER" >/dev/null 2>&1 || fail "container $CONTAINER not found"
+  [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ] || fail "container $CONTAINER is not running (dumps need a live PostgreSQL)"
+else
+  VOLUMES=0
+  [ -n "${POSTGRES_PASSWORD:-}" ] && export PGPASSWORD="$POSTGRES_PASSWORD"
+fi
+pg pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null || fail "pg_isready failed"
+install -d -m 700 "$(dirname "$CB")"
 free_kb=$(df -Pk "$(dirname "$CB")" | awk 'NR==2{print $4}')
-vol_bytes=$(docker system df -v --format '{{json .}}' 2>/dev/null | tr -d '\n' | grep -o "\"Name\":\"$PG_VOLUME\"[^}]*" | grep -o '"Size":"[^"]*"' | head -1 || true)
-log "staging dir: $CB"; log "db: $POSTGRES_DB (user name withheld); container: $CONTAINER"; log "free space: $((free_kb/1024)) MB; pg volume size: ${vol_bytes:-unknown}"
-log "plan: state snapshot -> pg_dump plain+custom+globals -> CSV (results, participants) -> volumes($VOLUMES) -> secrets -> journals -> artifacts -> units -> encrypt each -> manifest"
+log "mode: $MODE; staging dir: $CB; db: $POSTGRES_DB (user name withheld); free space: $((free_kb/1024)) MB"
+log "plan: state snapshot -> pg_dump plain+custom+globals -> CSV (results, participants) -> volumes($VOLUMES) -> secrets -> journals -> artifacts -> encrypt each -> manifest"
 [ "$APPLY" = 1 ] || { log "dry run only; re-run with --apply"; exit 0; }
 
 # ---------- helpers ----------
 install -d -m 700 "$CB" "$CB/csv_results" "$CB/csv_participants" "$CB/units"
 GPG=(gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-file "$PASSFILE")
+destroy() { if have shred; then shred -u "$1"; else rm -f "$1"; fi; }
 enc() {  # enc <plaintext path>: writes <path>.gpg, verifies round-trip, destroys plaintext
   local p="$1"
-  [ -s "$p" ] || { log "skip empty: $p"; rm -f "$p"; return 0; }
+  [ -s "$p" ] || { log "skip empty: $(basename "$p")"; rm -f "$p"; return 0; }
   "${GPG[@]}" --symmetric --cipher-algo AES256 -o "$p.gpg.partial" "$p"
   "${GPG[@]}" --decrypt "$p.gpg.partial" | cmp -s - "$p" || fail "round-trip verification failed for $p"
   mv "$p.gpg.partial" "$p.gpg"
-  if command -v shred >/dev/null 2>&1; then shred -u "$p"; else rm -f "$p"; fi
+  destroy "$p"
   log "encrypted: $(basename "$p").gpg ($(stat -c %s "$p.gpg") bytes)"
 }
-pg() { docker exec "$CONTAINER" "$@"; }
 psqlq() { pg psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1 -c "$1"; }
 table_exists() { [ "$(psqlq "SELECT to_regclass('public.$1') IS NOT NULL")" = "t" ]; }
 
 # ---------- 0. state snapshot ----------
 log "0. state snapshot"
 {
-  echo "stamp=$STAMP"; echo "git_head=$(git -C "$SIGNALBOT_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+  echo "stamp=$STAMP"; echo "mode=$MODE"; echo "git_head=$(git -C "$SIGNALBOT_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
   echo "build_sha=$(cat "$SIGNALBOT_DIR/BUILD_SHA" 2>/dev/null || echo none)"
 } > "$CB/state.txt"
-systemctl list-timers --all --no-pager > "$CB/systemd_timers.txt" 2>&1 || true
-systemctl list-units --all --no-pager 'signalbot*' > "$CB/systemd_units.txt" 2>&1 || true
-for u in $(systemctl list-units --all --no-legend --plain 'signalbot*' 2>/dev/null | awk '{print $1}'); do
-  systemctl status "$u" --no-pager -l > "$CB/units/status_$u.txt" 2>&1 || true
-done
+if have systemctl; then
+  systemctl list-timers --all --no-pager > "$CB/systemd_timers.txt" 2>&1 || true
+  systemctl list-units --all --no-pager 'signalbot*' > "$CB/systemd_units.txt" 2>&1 || true
+  for u in $(systemctl list-units --all --no-legend --plain 'signalbot*' 2>/dev/null | awk '{print $1}'); do
+    systemctl status "$u" --no-pager -l > "$CB/units/status_$u.txt" 2>&1 || true
+  done
+fi
 cp /etc/systemd/system/signalbot*.service /etc/systemd/system/signalbot*.timer "$CB/units/" 2>/dev/null || true
-docker ps -a > "$CB/docker_ps.txt" 2>&1 || true
-docker system df -v > "$CB/docker_df.txt" 2>&1 || true
+if have docker; then docker ps -a > "$CB/docker_ps.txt" 2>&1 || true; docker system df -v > "$CB/docker_df.txt" 2>&1 || true; fi
 crontab -l > "$CB/crontab_root.txt" 2>&1 || true
-tar czf "$CB/state_snapshot.tar.gz" -C "$CB" state.txt systemd_timers.txt systemd_units.txt units docker_ps.txt docker_df.txt crontab_root.txt
+tar czf "$CB/state_snapshot.tar.gz" -C "$CB" --ignore-failed-read state.txt systemd_timers.txt systemd_units.txt units docker_ps.txt docker_df.txt crontab_root.txt 2>/dev/null \
+  || tar czf "$CB/state_snapshot.tar.gz" -C "$CB" state.txt units
 rm -rf "$CB/units" "$CB"/state.txt "$CB"/systemd_*.txt "$CB"/docker_*.txt "$CB"/crontab_root.txt
 enc "$CB/state_snapshot.tar.gz"   # status output can carry journal lines; encrypted like everything else
 
@@ -109,21 +131,26 @@ log "1. row counts"
 for t in $RESULT_TABLES $PII_TABLES klines_1m open_interest funding_rate beta_state_tape; do
   if table_exists "$t"; then echo "$t $(psqlq "SELECT count(*) FROM public.$t")" >> "$CB/COUNTS.txt"; else echo "$t ABSENT" >> "$CB/COUNTS.txt"; fi
 done
-echo "klines_1m_min_max $(psqlq "SELECT coalesce(min(open_time)::text,'') || ' ' || coalesce(max(open_time)::text,'') FROM klines_1m" 2>/dev/null || echo unknown)" >> "$CB/COUNTS.txt"
+if table_exists klines_1m; then
+  echo "klines_1m_min_max $(psqlq "SELECT coalesce(min(open_time)::text,'') || ' ' || coalesce(max(open_time)::text,'') FROM klines_1m")" >> "$CB/COUNTS.txt"
+fi
 
 # ---------- 2. logical dumps ----------
 log "2a. pg_dump plain"
 pg pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges | gzip -c > "$CB/db_plain.sql.gz.partial"
 gzip -t "$CB/db_plain.sql.gz.partial" || fail "plain dump gzip test failed"
-[ "$(stat -c %s "$CB/db_plain.sql.gz.partial")" -gt 1048576 ] || fail "plain dump suspiciously small"
+[ "$(stat -c %s "$CB/db_plain.sql.gz.partial")" -gt "$MIN_DUMP_BYTES" ] || fail "plain dump smaller than $MIN_DUMP_BYTES bytes"
 mv "$CB/db_plain.sql.gz.partial" "$CB/db_plain.sql.gz"; enc "$CB/db_plain.sql.gz"
 log "2b. pg_dump custom"
 pg pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges -Fc > "$CB/db_custom.dump.partial"
-docker exec -i "$CONTAINER" pg_restore --list < "$CB/db_custom.dump.partial" > /dev/null || fail "custom dump TOC unreadable"
+pgi pg_restore --list < "$CB/db_custom.dump.partial" > /dev/null || fail "custom dump TOC unreadable"
 mv "$CB/db_custom.dump.partial" "$CB/db_custom.dump"; enc "$CB/db_custom.dump"
 log "2c. globals"
-pg pg_dumpall -U "$POSTGRES_USER" --globals-only > "$CB/db_globals.sql" || log "globals dump failed (non-superuser?); continuing without it"
-[ -s "$CB/db_globals.sql" ] && enc "$CB/db_globals.sql" || rm -f "$CB/db_globals.sql"
+if pg pg_dumpall -U "$POSTGRES_USER" --globals-only > "$CB/db_globals.sql" 2>/dev/null && [ -s "$CB/db_globals.sql" ]; then
+  enc "$CB/db_globals.sql"
+else
+  log "globals dump unavailable (non-superuser?); continuing without it"; rm -f "$CB/db_globals.sql"
+fi
 
 # ---------- 3. CSV exports ----------
 log "3. CSV exports"
@@ -138,7 +165,7 @@ done
 tar czf "$CB/csv_results.tar.gz" -C "$CB" csv_results && rm -rf "$CB/csv_results"; enc "$CB/csv_results.tar.gz"
 tar czf "$CB/csv_participants.tar.gz" -C "$CB" csv_participants && rm -rf "$CB/csv_participants"; enc "$CB/csv_participants.tar.gz"
 
-# ---------- 4. volumes (physical copies; inconsistent while PostgreSQL runs — complements the dumps) ----------
+# ---------- 4. volumes (docker mode only; physical copies are inconsistent while PostgreSQL runs — they complement the dumps) ----------
 if [ "$VOLUMES" = 1 ]; then
   log "4. volumes"
   for v in "$PG_VOLUME" "$REDIS_VOLUME"; do
@@ -155,10 +182,12 @@ tar czf "$CB/secrets.tar.gz" --ignore-failed-read "$ENV_FILE" "$SIGNALBOT_DIR/.e
 enc "$CB/secrets.tar.gz"
 
 # ---------- 6. journals ----------
-log "6. journals"
-journalctl -u 'signalbot*' -o export 2>/dev/null | gzip -c > "$CB/journal_signalbot.export.gz" || true
-journalctl -u 'signalbot*' --no-pager 2>/dev/null | gzip -c > "$CB/journal_signalbot.txt.gz" || true
-enc "$CB/journal_signalbot.export.gz"; enc "$CB/journal_signalbot.txt.gz"
+if have journalctl; then
+  log "6. journals"
+  journalctl -u 'signalbot*' -o export 2>/dev/null | gzip -c > "$CB/journal_signalbot.export.gz" || true
+  journalctl -u 'signalbot*' --no-pager 2>/dev/null | gzip -c > "$CB/journal_signalbot.txt.gz" || true
+  enc "$CB/journal_signalbot.export.gz"; enc "$CB/journal_signalbot.txt.gz"
+fi
 
 # ---------- 7. artifacts outside git ----------
 log "7. artifacts"
@@ -168,17 +197,17 @@ enc "$CB/artifacts.tar.gz"
 # ---------- 8. manifest and closing checks ----------
 log "8. manifest"
 cat > "$CB/README.txt" <<EOF
-Pulsy closure backup, staged $STAMP on the VPS by scripts/closure/closure_backup.sh.
+Pulsy closure backup, staged $STAMP ($MODE mode) by scripts/closure/closure_backup.sh.
 Every *.gpg file is gpg symmetric AES-256; the passphrase is held by the owner only.
-Contents: state snapshot, pg_dump plain and custom, globals, CSV exports (results; participants), volumes (if present),
-secrets, journald export, artifacts. COUNTS.txt holds aggregate row counts for the restore verification.
+Contents: state snapshot, pg_dump plain and custom, globals (if available), CSV exports (results; participants),
+volumes (docker mode), secrets, journald export (if available), artifacts. COUNTS.txt holds aggregate row counts.
 Decrypt: gpg --batch --pinentry-mode loopback --passphrase-file <file> --decrypt <name>.gpg > <name>
 Verify: sha256sum -c MANIFEST.sha256
 EOF
 ( cd "$CB" && find . -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > MANIFEST.sha256 )
 leftover=$(find "$CB" -type f ! -name '*.gpg' ! -name MANIFEST.sha256 ! -name COUNTS.txt ! -name README.txt | wc -l)
 [ "$leftover" = 0 ] || fail "unencrypted files remain in $CB"
-find "$CB" -name '*.partial' | grep -q . && fail "partial files remain" || true
+if find "$CB" -name '*.partial' | grep -q .; then fail "partial files remain"; fi
 chmod 700 "$CB"; chmod 600 "$CB"/*
 log "done: $CB"; ls -la "$CB"
 log "next: sha256sum -c MANIFEST.sha256; rclone copy --checksum \"$CB\" <remote>:closure_$STAMP/ ; rclone check \"$CB\" <remote>:closure_$STAMP/ ; copy to owner's disk; then scripts/closure/closure_restore_verify.sh on a clean machine"
