@@ -25,6 +25,7 @@ pg_test_start() {   # pg_test_start <port>
 
 pg_test_stop() {    # pg_test_stop <port>
   local port="$1" data="/tmp/.pgdata_$1" sock="/tmp/.pgsock_$1"
+  [ -n "${PGTEST_TRACE:-}" ] && echo "pg_test_stop $port from pid $$ bashpid $BASHPID ppid $PPID at $(date -u +%T): $(tr "\0" " " < /proc/$$/cmdline 2>/dev/null | cut -c1-120)" >> "$PGTEST_TRACE" || true
   if [ -d "$data" ]; then
     if [ "$(id -u)" = 0 ]; then runuser -u "$PGTEST_USER" -- "$PGBIN/pg_ctl" -D "$data" -m fast -w stop >/dev/null 2>&1 || true
     else "$PGBIN/pg_ctl" -D "$data" -m fast -w stop >/dev/null 2>&1 || true; fi

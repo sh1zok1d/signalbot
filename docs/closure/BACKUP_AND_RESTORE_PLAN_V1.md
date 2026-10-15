@@ -8,10 +8,10 @@
 
 ## 1. Принципы
 
-1. **Всё, что может содержать персональные данные, шифруется до того, как покинет каталог подготовки на VPS**: дампы базы (все таблицы `beta_*` с участниками), CSV-выгрузки, журналы journald (могли содержать токен до 2026-09-28), физические копии volumes, секреты, снимки состояния systemd (в них бывают строки журнала). Шифрование — `gpg --symmetric AES256`, пароль только у владельца в файле root:root 0600 на время выполнения и в менеджере паролей. Открытого текста после шифрования не остаётся (`shred -u`, иначе `rm`); каждая шифровка проверяется обратной расшифровкой и побайтовым сравнением.
+1. **Ничего, что может содержать персональные данные, не записывается на диск в открытом виде.** Каждый артефакт — дамп базы (все таблицы `beta_*` с участниками), CSV, журналы journald (могли содержать токен до 2026-09-28), физические копии volumes, секреты — создаётся как поток (`pg_dump | gzip`, `tar czf -`, `\copy … TO STDOUT | gzip`, `journalctl | gzip`, `docker … tar czf -`) и направляется прямо в `gpg --symmetric AES256` (пароль только у владельца: файл root:root 0600 на время выполнения и запись в менеджере паролей). Единственный открытый текст, который создаёт запуск, — небольшой снимок состояния systemd/docker (в нём бывают строки журнала); он пишется в приватный каталог в RAM (`/dev/shm`, tmpfs; скрипт отказывается работать, если это не tmpfs), упаковывается потоком в gpg и удаляется, не касаясь диска. На `shred` ничего не опирается: на SSD, CoW-файловых системах и в снапшотах он ничего не гарантирует, поэтому плана «записать и стереть» больше нет.
 2. Во внешние хранилища (rclone-remote, диск владельца, второе облако) копируются **только** `*.gpg`, `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`. `COUNTS.txt` содержит только числа строк по таблицам.
 3. Проверка восстановления выполняется **из зашифрованной копии** на чистой машине: расшифровка во временный каталог 700 (лучше tmpfs или зашифрованный диск), восстановление, сверка счётчиков, уничтожение открытого текста и контейнера.
-4. Ошибки останавливают процесс (`set -euo pipefail`), каждый артефакт существует как `.partial`, пока не проверен (`gzip -t`, `pg_restore --list`, `cmp` после шифрования), каталоги создаются `install -d -m 700`, `umask 077`.
+4. Ошибки останавливают процесс (`set -euo pipefail`; статус каждой стадии конвейера проверяется через `PIPESTATUS`: `pg_dump`, `gzip`, `tar`, `gpg`); каждый шифротекст существует как `.partial`, пока не расшифрован обратно и не проверен структурно (`gzip -t`, `tar -t`, `pg_restore --list`, число строк CSV = число строк таблицы + 1; повреждение шифротекста ловит MDC gpg); `trap` на `EXIT`/`INT`/`TERM` удаляет RAM-каталог и все `.partial` этого запуска, ставит маркер `INCOMPLETE` при неудаче и никогда не трогает предыдущие каталоги; при старте удаляются RAM-каталоги и `.partial` прерванных ранее запусков; preflight сравнивает свободное место с размером базы; `SIGKILL` и отключение питания обработать нельзя — после них на диске остаются только шифротексты `.partial`, а RAM-каталог живёт до перезагрузки (SIGKILL) или исчезает (питание); следующий запуск убирает и то и другое.
 5. Mirror репозитория и закреплённые наборы данных персональных данных не содержат (скан истории: `PUBLIC_RELEASE_PROPOSAL_V1.md` §1), но содержат e-mail автора в коммитах; при хранении в стороннем облаке — тоже шифруются (`tar | gpg`).
 
 ## 2. Что сохраняется
@@ -19,7 +19,7 @@
 | № | Объект | Где живёт | Почему невосполнимо | Артефакт (всегда `*.gpg`) |
 |---|---|---|---|---|
 | A | База `POSTGRES_DB` целиком: свечи, OI, funding, ликвидации, Stage 2 (`forecast_predictions`/`forecast_outcomes` — предсказания V1 shadow), V2, все `beta_*` (лента, эпизоды, исходы, **журнал заявок**, коридоры, история, фиды, **участники и обратная связь**), `beta_shadow_*` если схема применялась | контейнер `btcbot_timescaledb`, volume `timescale_data` | нигде больше не существует; пропуски «нельзя забэкфиллить» (`DATA_DURABILITY_RUNBOOK.md` §A) | `db_plain.sql.gz.gpg`, `db_custom.dump.gpg`, `db_globals.sql.gpg` |
-| B | CSV-выгрузки: результаты (без идентификаторов) и участники (отдельный архив) | та же база | читаемость без TimescaleDB | `csv_results.tar.gz.gpg`, `csv_participants.tar.gz.gpg` |
+| B | CSV-выгрузки: результаты (без идентификаторов) и участники, по одному зашифрованному файлу на таблицу | та же база | читаемость без TimescaleDB | `csv_results/<таблица>.csv.gz.gpg`, `csv_participants/<таблица>.csv.gz.gpg` |
 | C | Физические копии volumes `timescale_data`, `redis_data` | Docker | страховка на случай неполного логического дампа; при работающей базе неконсистентна, консистентная снимается после остановки контейнеров (чек-лист S8). Даже после обезличивания содержит удалённые строки в WAL — это копия с остаточными персональными данными, уничтожается после подтверждения обезличенного архива (`PAID_RESOURCES_AND_PII_V1.md` §3.5, п. 6a) | `volume_*.tar.gz.gpg` |
 | D | Секреты и конфигурация: `/opt/signalbot/.env`, `.env.beta-feeds`, `/etc/signalbot/` (`backup.env`, `rclone.conf`); в `.env` — `BETA_FINGERPRINT_KEY`, `BETA_TELEMETRY_SALT` | VPS | по дизайну не в дампах; без ключей отпечатки аудита не сверить | `secrets.tar.gz.gpg` |
 | E | Снимок состояния: `git HEAD`, `BUILD_SHA`, таймеры, статусы юнитов, файлы юнитов, `docker ps`, crontab | VPS | что именно работало в момент закрытия | `state_snapshot.tar.gz.gpg` |
@@ -32,7 +32,7 @@
 
 ## 3. Порядок выполнения на VPS (`closure_backup.sh`)
 
-Предусловия: root, `tmux`, свободное место ≥ 3× размера `timescale_data` (`docker system df -v`), установлены `gpg`, `shred` (coreutils), `docker`. Пароль архива: `install -m 600 -o root /dev/null /root/closure.pass; (вставить ≥ 20 символов) > /root/closure.pass`; тот же пароль — в менеджер паролей владельца **до** запуска.
+Предусловия: root, `tmux`, tmpfs на `/dev/shm`, свободное место не меньше 0,6 × размера базы (`pg_database_size`; скрипт проверяет сам, порог `CLOSURE_MIN_FREE_RATIO`), установлены `gpg`, `docker`. Пароль архива: `install -m 600 -o root /dev/null /root/closure.pass; (вставить ≥ 20 символов) > /root/closure.pass`; тот же пароль — в менеджер паролей владельца **до** запуска.
 
 ```
 cd /opt/signalbot && git pull --ff-only   # после merge ветки закрытия; иначе скопировать scripts/closure/ вручную
@@ -42,16 +42,16 @@ CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh -
 
 Что делает скрипт, по шагам (все пути внутри `$CB = /opt/signalbot/closure_backup_<UTC-метка>/`, каталог 700):
 
-0. Preflight: root; инструменты; `.env` читается и даёт `POSTGRES_DB`/`POSTGRES_USER` (`set -a; . .env; set +a`); контейнер запущен, `pg_isready`; файл пароля root 0600 и ≥ 20 байт; свободное место. В dry-run на этом останавливается.
-1. Снимок состояния (`state_snapshot.tar.gz.gpg`).
+0. Preflight: root; инструменты; tmpfs на `/dev/shm`; `.env` читается и даёт `POSTGRES_DB`/`POSTGRES_USER` (`set -a; . .env; set +a`, значения не печатаются); контейнер запущен, `pg_isready`; файл пароля root 0600 и ≥ 20 байт; свободное место против `pg_database_size`. В dry-run на этом останавливается, ничего не создав.
+1. Удаление остатков прерванных запусков (`/dev/shm/closure_backup_*`, `*.partial` в каталоге подготовки); снимок состояния в RAM → поток `tar` → `state_snapshot.tar.gz.gpg`.
 2. `COUNTS.txt`: `count(*)` по таблицам результатов, участников и сырым данным, `min/max(open_time)` свечей — открытым текстом, только числа.
-3. Дампы: `pg_dump --no-owner --no-privileges | gzip` → `gzip -t`, размер > 1 МБ → `.gpg`; `pg_dump -Fc` через stdout → `pg_restore --list` → `.gpg`; `pg_dumpall --globals-only` (если роль позволяет) → `.gpg`.
-4. CSV: `\copy (SELECT * FROM t) TO STDOUT CSV HEADER` для каждой существующей таблицы (`to_regclass`), результаты и участники в разные архивы → `.gpg`.
-5. Volumes: `docker run --rm -v <vol>:/src:ro -v $CB:/dst alpine:3.20 tar czf …` → `gzip -t` → `.gpg` (`--no-volumes` отключает).
-6. Секреты: `tar` → `.gpg`. 7. Журналы → `.gpg`. 8. Артефакты → `.gpg`.
-9. `README.txt`, `MANIFEST.sha256` по всем файлам; проверка, что в `$CB` нет ни одного незашифрованного файла, кроме `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`, и ни одного `.partial`.
+3. Дампы потоком: `pg_dump --no-owner --no-privileges | gzip | gpg` → проверка `gzip -t` после обратной расшифровки, размер > 1 МБ, маркер «PostgreSQL database dump complete» в конце; `pg_dump -Fc | gpg` → `pg_restore --list`; `pg_dumpall --globals-only | gpg` (если роль позволяет).
+4. CSV потоком, по таблице: `\copy (SELECT * FROM t) TO STDOUT CSV HEADER | gzip | gpg` → число строк после расшифровки = `count(*)` + 1.
+5. Volumes (режим `docker`): `docker run --rm -v <vol>:/src:ro alpine:3.20 tar czf - … | gpg` → `tar -t` (`--no-volumes` отключает).
+6. Секреты: `tar czf - … | gpg`. 7. Журналы: `journalctl … | gzip | gpg`. 8. Артефакты вне git: `tar czf - … | gpg`.
+9. `README.txt`, `MANIFEST.sha256` по всем файлам; проверка, что в `$CB` нет ни одного файла, кроме `*.gpg`, `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`, и ни одного `.partial`; RAM-каталог удалён.
 
-Ограничения скрипта, о которых надо знать: копия volume при работающей базе неконсистентна (шаг 5 повторяется после остановки контейнеров, чек-лист S8); `pg_dumpall --globals-only` требует суперпользователя — в образе TimescaleDB `POSTGRES_USER` им является, иначе шаг пропускается с сообщением; `shred` на SSD не гарантирует физического уничтожения — диск VPS уничтожается вместе с сервером.
+Ограничения скрипта, о которых надо знать: копия volume при работающей базе неконсистентна (шаг 5 повторяется после остановки контейнеров, чек-лист S8); `pg_dumpall --globals-only` требует суперпользователя — в образе TimescaleDB `POSTGRES_USER` им является, иначе шаг пропускается с сообщением; физическое уничтожение остатков на диске VPS (включая WAL) гарантирует только уничтожение сервера.
 
 ## 4. Копии вне VPS
 
@@ -73,15 +73,15 @@ git clone --mirror git@github.com:sh1zok1d/signalbot.git signalbot.git && tar cz
 На чистой машине с Docker (не на VPS), из **скачанной** копии, а не из `$CB`:
 
 ```
-CLOSURE_PASSPHRASE_FILE=~/closure.pass SIGNALBOT_REPO=~/signalbot CLOSURE_VERIFY_WORK=/dev/shm/closure_verify \
+CLOSURE_PASSPHRASE_FILE=~/closure.pass SIGNALBOT_REPO=~/signalbot \
   ./scripts/closure/closure_restore_verify.sh ~/pulsy-archive/closure_<метка>
 ```
 
-Шаги скрипта: `sha256sum -c MANIFEST.sha256` → расшифровка `db_plain.sql.gz.gpg` в рабочий каталог 700 (`/dev/shm` или зашифрованный диск) → `gzip -t` → контейнер `timescale/timescaledb:2.17.2-pg16` (образ из `docker-compose.yml`) → `CREATE DATABASE verify; timescaledb_pre_restore()` → `psql < дамп` → `timescaledb_post_restore()` → сверка `count(*)` каждой таблицы из `COUNTS.txt` (любое расхождение — ошибка) → повторное применение `storage/beta_v0_schema.sql`, если указан checkout → `min/max(open_time)` → `trap`: контейнер удаляется, открытый текст `shred -u`, каталог удаляется.
+Шаги скрипта: отказ, если каталог помечен `INCOMPLETE` → `sha256sum -c MANIFEST.sha256` → расшифровка `db_plain.sql.gz.gpg` в рабочий каталог 700 в RAM (`/dev/shm`, если это tmpfs; иначе предупреждение и `$TMPDIR`) → `gzip -t` → отказ, если в конце нет маркера «PostgreSQL database dump complete» (усечённый дамп) → список таблиц, которые объявляет дамп → контейнер `timescale/timescaledb:2.17.2-pg16` (образ из `docker-compose.yml`) → `CREATE DATABASE`; `timescaledb_pre_restore()`, если расширение есть → **`psql -v ON_ERROR_STOP=1 --single-transaction`**: первая же ошибка SQL прерывает и откатывает всё; проверяются коды завершения `gunzip` и `psql`, а журнал восстановления — на строки `ERROR`/`FATAL` → `timescaledb_post_restore()` → каждая объявленная дампом таблица существует → `count(*)` каждой таблицы из `COUNTS.txt` и `min/max(open_time)` свечей (любое расхождение — ошибка) → повторное применение `storage/beta_v0_schema.sql`, если указан checkout → `trap`: контейнер (или одноразовая база) удаляется, открытый текст в RAM удаляется — и при успехе, и при любой ошибке; без строки `RESTORE VERIFIED` результат считается неудачей.
 
 Результат (только счётчики и даты, без идентификаторов) записывается в `docs/closure/BACKUP_MANIFEST_<дата>.md` вместе с `MANIFEST.sha256` и `COUNTS.txt`. Без этой записи чек-лист остановки не начинается.
 
-Дополнительно на той же машине: расшифровать и `tar -tzf` для `csv_results.tar.gz.gpg`, `secrets.tar.gz.gpg` (только список файлов, не содержимое), `artifacts.tar.gz.gpg`; результат — в тот же манифест.
+Дополнительно на той же машине: расшифровать и `tar -tzf` для `secrets.tar.gz.gpg` (только список файлов, не содержимое) и `artifacts.tar.gz.gpg`, `gunzip -c | wc -l` для нескольких `csv_results/*.csv.gz.gpg`; результат — в тот же манифест.
 
 ## 6. Что считается успехом
 

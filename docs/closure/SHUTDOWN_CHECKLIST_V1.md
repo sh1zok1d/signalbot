@@ -57,7 +57,7 @@ CLOSURE_PASSPHRASE_FILE=/root/closure.pass CLOSURE_BACKUP_DIR=/opt/signalbot/clo
   ./scripts/closure/closure_backup.sh --apply --no-volumes
 ```
 
-- [ ] Скрипт завершился без ошибки; в `$CB_final` только `*.gpg`, `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`.
+- [ ] Скрипт завершился без ошибки; в `$CB_final` только `*.gpg` (в т.ч. каталоги `csv_results/`, `csv_participants/`), `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`; маркера `INCOMPLETE` нет. При прерывании (ошибка, `Ctrl-C`, `SIGTERM`) скрипт сам удаляет RAM-каталог и `.partial`, ставит `INCOMPLETE`; открытого текста на диске не было; повторный запуск в новый каталог.
 - [ ] `rclone copy --checksum $CB_final <remote>/closure_final_<метка>/ && rclone check …`; копия на диск владельца; `sha256sum -c` на обеих.
 - [ ] `closure_restore_verify.sh` на чистой машине из скачанной копии `$CB_final` (счётчики должны совпасть с `COUNTS.txt` этого каталога); запись в `BACKUP_MANIFEST`.
 - [ ] Стоковый `signalbot-backup.service` вручную **не запускается**: он копирует незашифрованный дамп в off-site.
@@ -84,11 +84,11 @@ CLOSURE_PASSPHRASE_FILE=/root/closure.pass CLOSURE_BACKUP_DIR=/opt/signalbot/clo
   ./scripts/closure/closure_backup.sh --apply --no-volumes
 ```
 
-- [ ] В `$CB_deid`: `csv_participants.tar.gz.gpg` отсутствует или содержит только заголовки CSV; `COUNTS.txt` показывает 0 по таблицам участников.
+- [ ] В `$CB_deid`: `COUNTS.txt` показывает 0 по таблицам участников (`csv_participants/*.csv.gz.gpg` содержат только заголовки); без маркера `INCOMPLETE`.
 - [ ] Копии в off-site и на диск владельца, `rclone check`, `sha256sum -c`; `closure_restore_verify.sh` из скачанной копии `$CB_deid`; запись в `BACKUP_MANIFEST`. Это — **долгосрочный архив**.
-- [ ] Локальные стоковые дампы с персональными данными: `shred -u /opt/signalbot/backups/*.sql.gz` (они уже входят в `artifacts.tar.gz.gpg` полного архива `$CB_final`).
+- [ ] Локальные стоковые дампы с персональными данными: `shred -u /opt/signalbot/backups/*.sql.gz` (они уже входят в `artifacts.tar.gz.gpg` полного архива `$CB_final`). Это удаление «по возможности»: на SSD, CoW-файловых системах и в снапшотах провайдера `shred` ничего не гарантирует; окончательно остатки исчезают только с уничтожением диска VPS (S10), поэтому снапшот и диск считаются копиями с остаточными персональными данными (§3.5).
 - [ ] Журналы уже экспортированы в `$CB_final`: `journalctl --rotate && journalctl --vacuum-time=1s` — чтобы снапшот VPS (S10) не содержал старого токена и строк о пользователях.
-- [ ] `shred -u /root/closure.pass` после подтверждения, что пароль есть в менеджере паролей (проверить расшифровкой одного файла на машине владельца), **но только после S8**, где пароль нужен ещё раз.
+- [ ] Файл пароля `/root/closure.pass` удаляется (`shred -u`, с той же оговоркой) только после S8, где он нужен ещё раз; до этого — убедиться, что пароль есть в менеджере паролей (проверить расшифровкой одного файла на машине владельца).
 
 ## S8. Остановка контейнеров и консистентная копия volumes (обратимо, пока volumes на месте)
 
@@ -98,8 +98,19 @@ docker ps -a; docker volume ls | grep -E 'timescale_data|redis_data'
 ```
 
 - [ ] Volumes **не удаляются** (`docker compose down -v` запрещён).
-- [ ] Консистентная физическая копия (база остановлена; таблицы обезличены и перезаписаны `VACUUM FULL`, но WAL может содержать удалённые строки): `closure_backup.sh` здесь не подходит (preflight требует работающий контейнер) — выполнить вручную только шаг volumes: `docker run --rm -v timescale_data:/src:ro -v $CB_vol:/dst alpine:3.20 tar czf /dst/volume_timescale_data.tar.gz -C /src . && gzip -t … && gpg --batch --pinentry-mode loopback --passphrase-file /root/closure.pass --symmetric --cipher-algo AES256 -o …gpg … && shred -u …tar.gz`; то же для `redis_data`; манифест; копии наружу. **Статус этой копии — «остаточные персональные данные»** (§3.5): она хранится до подтверждения `$CB_deid` на двух носителях и затем уничтожается; долгосрочный архив — только логический обезличенный дамп.
-- [ ] Теперь `shred -u /root/closure.pass`.
+- [ ] Консистентная физическая копия (база остановлена; таблицы обезличены и перезаписаны `VACUUM FULL`, но WAL может содержать удалённые строки). `closure_backup.sh` здесь не подходит (preflight требует работающий контейнер), поэтому — тот же потоковый приём вручную, без открытого текста на диске (команда на VPS не проверялась тестами, режим `docker` вне тестовой среды — NOT_TESTED):
+
+```
+install -d -m 700 $CB_vol; G="gpg --batch --pinentry-mode loopback --passphrase-file /root/closure.pass"
+for v in timescale_data redis_data; do
+  docker run --rm -v $v:/src:ro alpine:3.20 tar czf - -C /src . | $G --symmetric --cipher-algo AES256 -o $CB_vol/volume_$v.tar.gz.gpg.partial \
+   && $G --decrypt $CB_vol/volume_$v.tar.gz.gpg.partial | tar -tzf - > /dev/null && mv $CB_vol/volume_$v.tar.gz.gpg.partial $CB_vol/volume_$v.tar.gz.gpg \
+   || { rm -f $CB_vol/volume_$v.tar.gz.gpg.partial; echo "FAILED $v"; }
+done; ( cd $CB_vol && find . -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > MANIFEST.sha256 )
+```
+
+  Копии наружу, `sha256sum -c`. **Статус этой копии — «остаточные персональные данные»** (§3.5): она хранится до подтверждения `$CB_deid` на двух носителях и затем уничтожается; долгосрочный архив — только логический обезличенный дамп.
+- [ ] Теперь удалить `/root/closure.pass` (`shred -u`; см. оговорку в S7).
 
 ## S9. Отзыв ключей и закрытие доступов **[НЕОБРАТИМО]** — П5
 
