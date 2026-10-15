@@ -1,0 +1,56 @@
+{
+ "T15_break_vs_reject_2025_26": {
+  "B0": {
+   "auc": 0.7341,
+   "logloss": 0.5704,
+   "coef_z": {
+    "lb0": 0.885
+   }
+  },
+  "B0+end_x": {
+   "auc": 0.739,
+   "logloss": 0.5685,
+   "coef_z": {
+    "lb0": -0.202,
+    "end_x": 1.069
+   }
+  },
+  "B0+end_x+bin_mv": {
+   "auc": 0.7313,
+   "logloss": 0.5738,
+   "coef_z": {
+    "lb0": -0.186,
+    "end_x": 0.884,
+    "bin_mv": 0.258
+   }
+  },
+  "end_x only": {
+   "auc": 0.7381,
+   "logloss": 0.5687,
+   "coef_z": {
+    "end_x": 0.873
+   }
+  },
+  "delta_auc_end_x_over_B0": {
+   "delta": 0.0049,
+   "ci": [
+    0.0009,
+    0.0094
+   ]
+  }
+ },
+ "B0_calibration_2025_26": {
+  "n": 516,
+  "b0_break": 0.256,
+  "real_break": 0.308,
+  "b0_neither": 0.277,
+  "real_neither": 0.196
+ },
+ "B0_calibration_2020_24": {
+  "n": 1332,
+  "b0_break": 0.284,
+  "real_break": 0.351,
+  "b0_neither": 0.234,
+  "real_neither": 0.137
+ }
+}

@@ -8736,3 +8736,11 @@ PRODUCT_CHANGE = none
 `CORRECTION = the rank IC of cross-sectional reversal is positive every year 2020-2026 (0.016-0.084); the dollar value fell with cross-sectional dispersion (106-167 bp in 2020-2021 to 58-80 bp in 2025-2026); "decays to zero" in the first report referred to money, not to the statistic`
 `SURFACES_READ = same as the cross-market study (no new objects; funding archives of 9 more assets downloaded) | E1 holdout not requested | no new exposure class`
 `WINDOWS_CONSUMED = none under the evaluation contract | PRODUCT_CHANGE = none | NEXT_UNIT = none started`
+
+## 2026-10-15 — Signal engine audit: Level Engine reproduced with the product constructor and a pseudo control (not a research unit)
+
+`RECORD = docs/PULSY_SIGNAL_ENGINE_AUDIT_2026-10-15.md | scripts scripts/research/signal_engine_audit_2026_10/ | MODE = DIAGNOSTIC AUDIT (no new hypothesis selected; existing Level Engine objects re-measured)`
+`SURFACES_READ = Binance USD-M BTCUSDT 5m 2020-01 .. 2026-07 (same cache as the 2026-10-14 reports; structural first touches, half-rotation pseudo twins); docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0 (OKX/Bybit 5m closes to 2024-12) | E1 holdout not requested | sealed records, production, VPS, paired shadow untouched`
+`EXPOSURE = the 2025-01 .. 2026-07 BTC surface is now read a third time for structural-level objects (after the race held-out one-shot and the product history statistics): real-vs-pseudo resolution, RV transition, B0 calibration and the T15 END_POSITION_X model; it is not independent for any Level Engine claim. No new object families or data sources.`
+`NUMBERS = resolution real vs pseudo +5.1 pp paired [3.0, 7.1] (N 1602), +10.1 pp unpaired [7.9, 12.3]; RMUT -17.1 min; log RV transition +0.076 paired / +0.116 unpaired; END_POSITION_X slope real 16.5 vs pseudo 22.5 pp/SD; OVMM adds +0.002 AUC over B0+END_POSITION_X (corr with the own Binance move 0.996, residual AUC 0.50); gross economics of every T0/T15 expression -2.9 .. +1.5 bp with intervals through zero; matched-pair cohorts are path-selected (pseudo resolution 0.836 in pairs vs 0.695 outside).`
+`WINDOWS_CONSUMED = none under the evaluation contract | PRODUCT_CHANGE = none | NEXT_UNIT = none started (recommendation: prospective pseudo-twin logging beside the existing level claim classes, read once; see record §8)`
