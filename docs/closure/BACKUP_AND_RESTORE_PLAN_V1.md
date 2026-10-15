@@ -1,134 +1,99 @@
 # BACKUP_AND_RESTORE_PLAN_V1 — сохранение результатов Pulsy перед остановкой
 
-**Статус:** план, 2026-10-15; подчинён `docs/PROJECT_CLOSURE_DECISION_V1.md`. Выполняется владельцем (или по его поручению) на VPS; ни один шаг этого плана не является необратимым, но все шаги требуют доступа к VPS и потому — отдельного разрешения владельца (§6 решения, п. 2). Остановка чего-либо в этом плане не предусмотрена: пока копии не проверены, всё продолжает работать.
+**Статус:** план, 2026-10-15, исправлен 2026-10-15 по замечаниям владельца (шифрование до передачи, проверка команд, восстановление из зашифрованной копии). Подчинён `docs/PROJECT_CLOSURE_DECISION_V1.md`. Выполняется владельцем на VPS; ничего не останавливает и не удаляет; требует разрешения П2 (доступ к VPS). Пока копии не проверены, всё продолжает работать.
 
-Источник фактов: `deploy/*.service`, `deploy/backup.sh`, `deploy/restore.sh`, `deploy/sync_backup_offsite.sh`, `docs/DATA_DURABILITY_RUNBOOK.md`, `storage/*.sql`, `docker-compose.yml` (строки указаны в инвентаре закрытия). Хосты, учётные данные и идентификаторы в этом документе не приводятся намеренно.
+Исполнимые скрипты: `scripts/closure/closure_backup.sh` (VPS; dry-run по умолчанию, `--apply` для выполнения) и `scripts/closure/closure_restore_verify.sh` (чистая машина). Оба проверены на синтаксис в репозитории; **на VPS не запускались**. Перед `--apply` владелец читает скрипт целиком. Хосты, учётные данные и идентификаторы в документе не приводятся.
 
 ---
 
-## 1. Что именно сохраняется
+## 1. Принципы
 
-| № | Объект | Где живёт | Почему невосполнимо | Способ |
+1. **Всё, что может содержать персональные данные, шифруется до того, как покинет каталог подготовки на VPS**: дампы базы (все таблицы `beta_*` с участниками), CSV-выгрузки, журналы journald (могли содержать токен до 2026-09-28), физические копии volumes, секреты, снимки состояния systemd (в них бывают строки журнала). Шифрование — `gpg --symmetric AES256`, пароль только у владельца в файле root:root 0600 на время выполнения и в менеджере паролей. Открытого текста после шифрования не остаётся (`shred -u`, иначе `rm`); каждая шифровка проверяется обратной расшифровкой и побайтовым сравнением.
+2. Во внешние хранилища (rclone-remote, диск владельца, второе облако) копируются **только** `*.gpg`, `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`. `COUNTS.txt` содержит только числа строк по таблицам.
+3. Проверка восстановления выполняется **из зашифрованной копии** на чистой машине: расшифровка во временный каталог 700 (лучше tmpfs или зашифрованный диск), восстановление, сверка счётчиков, уничтожение открытого текста и контейнера.
+4. Ошибки останавливают процесс (`set -euo pipefail`), каждый артефакт существует как `.partial`, пока не проверен (`gzip -t`, `pg_restore --list`, `cmp` после шифрования), каталоги создаются `install -d -m 700`, `umask 077`.
+5. Mirror репозитория и закреплённые наборы данных персональных данных не содержат (скан истории: `PUBLIC_RELEASE_PROPOSAL_V1.md` §1), но содержат e-mail автора в коммитах; при хранении в стороннем облаке — тоже шифруются (`tar | gpg`).
+
+## 2. Что сохраняется
+
+| № | Объект | Где живёт | Почему невосполнимо | Артефакт (всегда `*.gpg`) |
 |---|---|---|---|---|
-| A | База PostgreSQL/TimescaleDB `POSTGRES_DB` (по умолчанию `btcbot`) целиком: `klines_1m` и агрегаты, OI, funding, mark price, ликвидации, Stage 2 (`forecast_predictions`, `forecast_outcomes` — предсказания V1 shadow), V2 эпизоды, все `beta_*` (лента состояний, эпизоды, исходы, **журнал заявок** `beta_claims`/`beta_claim_outcomes`/`beta_claim_displays`, коридоры `beta_forecasts`, история `beta_hist_*`, фиды, **участники и обратная связь**), `beta_shadow_*` (paired shadow, если схема применялась) | контейнер `btcbot_timescaledb`, volume `timescale_data` | ликвидации, heartbeat, лента состояний, журнал заявок и живые предсказания нигде больше не существуют; пропуски «нельзя забэкфиллить с биржи позже» (runbook §A) | `pg_dump` плюс физическая копия volume |
-| B | Секреты и конфигурация VPS: `/opt/signalbot/.env`, `/opt/signalbot/.env.beta-feeds`, `/etc/signalbot/backup.env`, `/etc/signalbot/rclone.conf`, значение `BETA_TELEMETRY_SALT` (внутри `.env`) | VPS, файлы root/signalbot 0600 | по дизайну не входят в дампы; без `BETA_TELEMETRY_SALT` HMAC-отпечатки `beta_rejected_start_hashes` после восстановления не совпадут (runbook §J.1) | зашифрованный архив, отдельно от дампа |
-| C | Юниты systemd и состояние: `/etc/systemd/system/signalbot*.{service,timer}`, вывод `systemctl list-timers --all`, `systemctl status` каждого юнита, `/opt/signalbot/BUILD_SHA`, `git rev-parse HEAD` в `/opt/signalbot` | VPS | фиксирует, что именно работало в момент закрытия | текстовый снимок |
-| D | Журналы: `journalctl -u 'signalbot*'` за весь доступный период, `/var/log/signalbot-backup.log` (если есть) | journald | единственный след рассылок, ошибок и dead-man ping | `journalctl -o export` + текст |
-| E | Артефакты вне git на VPS: `/opt/signalbot/artifacts/` (в т.ч. `artifacts/e1/` — рабочие выходы E1, **кроме holdout, который никогда не читался**), `/opt/signalbot/exports/`, `/opt/signalbot/data/`, `/opt/signalbot/logs/`, `/opt/signalbot/backups/` (локальные дампы) | VPS, gitignored | исследовательские выходы одноразовых прогонов | tar |
-| F | Redis (`btcbot_redis`, volume `redis_data`) | VPS | только горячее состояние Stage 1 (`exchange_status`, heartbeat); ценности не имеет, но копируется ради полноты | `redis-cli --rdb` или копия volume |
-| G | Репозиторий: все ветки и теги `origin` (включая 150+ веток `cursor/*`, `claude/*`, `research/*`) | GitHub, приватный | история решений и записей | `git clone --mirror` |
-| H | Закреплённые наборы данных и sealed-результаты в git: `docs/research_data/` (245 МБ), `docs/research/` (199 МБ, в т.ч. V3 WORLD_RECORDS 96,6 МБ, цепочки памяти генератора, `run.sqlite` прогонов LLM) | внутри G | LLM-выходы и sealed-прогоны невоспроизводимы | входят в mirror; дополнительно отдельный tar с манифестом |
-| I | Кэши диагностик 2026-10-14/15 (`btc5m.pkl`, панели альткоинов, выгрузки Binance Vision) | там, где запускались отчёты (`DIAG_DATA_DIR`, `XM_DATA_DIR`, `artifacts/`) | воспроизводимы из публичных архивов; копируются, если доступны, иначе отмечаются как «пересобираемые» | tar |
-| J | Внешние копии, уже существующие: rclone-remote (`SIGNALBOT_BACKUP_REMOTE`, tiers `daily/`, `weekly/`, `monthly/`) | облачное хранилище | текущая off-site история дампов | инвентаризировать, не удалять |
+| A | База `POSTGRES_DB` целиком: свечи, OI, funding, ликвидации, Stage 2 (`forecast_predictions`/`forecast_outcomes` — предсказания V1 shadow), V2, все `beta_*` (лента, эпизоды, исходы, **журнал заявок**, коридоры, история, фиды, **участники и обратная связь**), `beta_shadow_*` если схема применялась | контейнер `btcbot_timescaledb`, volume `timescale_data` | нигде больше не существует; пропуски «нельзя забэкфиллить» (`DATA_DURABILITY_RUNBOOK.md` §A) | `db_plain.sql.gz.gpg`, `db_custom.dump.gpg`, `db_globals.sql.gpg` |
+| B | CSV-выгрузки: результаты (без идентификаторов) и участники (отдельный архив) | та же база | читаемость без TimescaleDB | `csv_results.tar.gz.gpg`, `csv_participants.tar.gz.gpg` |
+| C | Физические копии volumes `timescale_data`, `redis_data` | Docker | страховка на случай неполного логического дампа; при работающей базе неконсистентна, консистентная снимается после остановки контейнеров (чек-лист S8) | `volume_*.tar.gz.gpg` |
+| D | Секреты и конфигурация: `/opt/signalbot/.env`, `.env.beta-feeds`, `/etc/signalbot/` (`backup.env`, `rclone.conf`); в `.env` — `BETA_FINGERPRINT_KEY`, `BETA_TELEMETRY_SALT` | VPS | по дизайну не в дампах; без ключей отпечатки аудита не сверить | `secrets.tar.gz.gpg` |
+| E | Снимок состояния: `git HEAD`, `BUILD_SHA`, таймеры, статусы юнитов, файлы юнитов, `docker ps`, crontab | VPS | что именно работало в момент закрытия | `state_snapshot.tar.gz.gpg` |
+| F | Журналы `journalctl -u 'signalbot*'` (export и текст) | journald | единственный след рассылок и ошибок; мог содержать токен | `journal_signalbot.*.gz.gpg` |
+| G | Артефакты вне git: `artifacts/` (в т.ч. `artifacts/e1/` — **holdout не читается, копируется как есть**), `exports/`, `data/`, `logs/`, `backups/` (локальные дампы) | VPS, gitignored | одноразовые прогоны | `artifacts.tar.gz.gpg` |
+| H | Репозиторий: все ветки и теги | GitHub | история решений | `git clone --mirror` → `tar \| gpg` на машине владельца |
+| I | Закреплённые наборы данных и sealed-результаты (`docs/research_data/` 245 МБ, `docs/research/` 199 МБ, `docs/e1/`) | внутри H | LLM-выходы и sealed-прогоны невоспроизводимы | входят в mirror; отдельный `tar | gpg` для чтения без git |
+| J | Кэши диагностик 2026-10-14/15 (`btc5m.pkl`, панели) | машины, где запускались отчёты | пересобираемы из публичных архивов | копируются, если доступны; иначе отметка «пересобираемые» |
+| K | Существующие off-site дампы (`daily/weekly/monthly`) | rclone-remote | текущая история; **содержат персональные данные в открытом виде** (дампы не шифровались) | инвентаризировать (`rclone lsl`), не удалять до §5; судьба — `PAID_RESOURCES_AND_PII_V1.md` §3.5 |
 
-Не сохраняется (нечего): файловые записи рантайма — все юниты работают с `ProtectSystem=strict` и пишут только в базу.
+## 3. Порядок выполнения на VPS (`closure_backup.sh`)
 
-## 2. Порядок выполнения
-
-Все команды — на VPS от root, в `/opt/signalbot`; каталог назначения `/opt/signalbot/closure_backup_<UTC-дата>/` (далее `$CB`). Перед началом: `df -h` — нужно свободное место ≈ 3× размера `timescale_data` (узнать: `docker system df -v | grep timescale_data`).
-
-### Шаг 0. Снимок состояния (до всего)
+Предусловия: root, `tmux`, свободное место ≥ 3× размера `timescale_data` (`docker system df -v`), установлены `gpg`, `shred` (coreutils), `docker`. Пароль архива: `install -m 600 -o root /dev/null /root/closure.pass; (вставить ≥ 20 символов) > /root/closure.pass`; тот же пароль — в менеджер паролей владельца **до** запуска.
 
 ```
-mkdir -p $CB && cd $CB
-git -C /opt/signalbot rev-parse HEAD > GIT_HEAD.txt; cat /opt/signalbot/BUILD_SHA > BUILD_SHA.txt 2>/dev/null
-systemctl list-timers --all > systemd_timers.txt
-for u in $(systemctl list-units --all 'signalbot*' --no-legend | awk '{print $1}'); do systemctl status "$u" --no-pager -l > "status_$u.txt" 2>&1; done
-cp /etc/systemd/system/signalbot*.service /etc/systemd/system/signalbot*.timer units/ 2>/dev/null || true
-docker ps -a > docker_ps.txt; docker system df -v > docker_df.txt
+cd /opt/signalbot && git pull --ff-only   # после merge ветки закрытия; иначе скопировать scripts/closure/ вручную
+CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh            # dry run: preflight и план
+CLOSURE_PASSPHRASE_FILE=/root/closure.pass ./scripts/closure/closure_backup.sh --apply    # выполнение
 ```
 
-### Шаг 1. Логический дамп базы (как делает `backup.sh`, но с кастодиальным форматом)
+Что делает скрипт, по шагам (все пути внутри `$CB = /opt/signalbot/closure_backup_<UTC-метка>/`, каталог 700):
+
+0. Preflight: root; инструменты; `.env` читается и даёт `POSTGRES_DB`/`POSTGRES_USER` (`set -a; . .env; set +a`); контейнер запущен, `pg_isready`; файл пароля root 0600 и ≥ 20 байт; свободное место. В dry-run на этом останавливается.
+1. Снимок состояния (`state_snapshot.tar.gz.gpg`).
+2. `COUNTS.txt`: `count(*)` по таблицам результатов, участников и сырым данным, `min/max(open_time)` свечей — открытым текстом, только числа.
+3. Дампы: `pg_dump --no-owner --no-privileges | gzip` → `gzip -t`, размер > 1 МБ → `.gpg`; `pg_dump -Fc` через stdout → `pg_restore --list` → `.gpg`; `pg_dumpall --globals-only` (если роль позволяет) → `.gpg`.
+4. CSV: `\copy (SELECT * FROM t) TO STDOUT CSV HEADER` для каждой существующей таблицы (`to_regclass`), результаты и участники в разные архивы → `.gpg`.
+5. Volumes: `docker run --rm -v <vol>:/src:ro -v $CB:/dst alpine:3.20 tar czf …` → `gzip -t` → `.gpg` (`--no-volumes` отключает).
+6. Секреты: `tar` → `.gpg`. 7. Журналы → `.gpg`. 8. Артефакты → `.gpg`.
+9. `README.txt`, `MANIFEST.sha256` по всем файлам; проверка, что в `$CB` нет ни одного незашифрованного файла, кроме `MANIFEST.sha256`, `COUNTS.txt`, `README.txt`, и ни одного `.partial`.
+
+Ограничения скрипта, о которых надо знать: копия volume при работающей базе неконсистентна (шаг 5 повторяется после остановки контейнеров, чек-лист S8); `pg_dumpall --globals-only` требует суперпользователя — в образе TimescaleDB `POSTGRES_USER` им является, иначе шаг пропускается с сообщением; `shred` на SSD не гарантирует физического уничтожения — диск VPS уничтожается вместе с сервером.
+
+## 4. Копии вне VPS
 
 ```
-docker exec btcbot_timescaledb pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges | gzip -c > $CB/db_plain.sql.gz
-docker exec btcbot_timescaledb pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/db_custom.dump && docker cp btcbot_timescaledb:/tmp/db_custom.dump $CB/db_custom.dump
-docker exec btcbot_timescaledb pg_dumpall -U "$POSTGRES_USER" --globals-only > $CB/db_globals.sql
+cd /opt/signalbot/closure_backup_<метка> && sha256sum -c MANIFEST.sha256
+rclone copy --checksum --transfers 2 . <SIGNALBOT_BACKUP_REMOTE>/closure_<метка>/ && rclone check . <remote>/closure_<метка>/
 ```
 
-Плюс отдельный **CSV-экспорт человекочитаемых таблиц результатов**, чтобы данные были доступны без TimescaleDB: `forecast_predictions`, `forecast_outcomes`, `beta_claims`, `beta_claim_outcomes`, `beta_claim_displays`, `beta_forecasts`, `beta_episode_outcomes`, `beta_market_alerts`, `beta_hist_stats`, `beta_shadow_*` (если есть), `beta_feedback*`, `beta_message_votes` — через `\copy ... TO ... CSV HEADER` в `$CB/csv/`. Таблицы участников (`beta_users`, `beta_allowlist`, `beta_invites`, `beta_waitlist`, `beta_user_activity`, `beta_notification_deliveries`, `beta_admin_audit`) экспортируются **в отдельный каталог `$CB/pii/`** с отдельным шифрованием (см. `PAID_RESOURCES_AND_PII_V1.md` §3).
-
-### Шаг 2. Физическая копия volumes (на случай, если логический дамп окажется неполным)
+На машине владельца: `rclone copy <remote>/closure_<метка>/ ~/pulsy-archive/closure_<метка>/` (или `scp -r` напрямую с VPS), затем `sha256sum -c MANIFEST.sha256`; вторая копия — отключаемый носитель или второе облако, с той же проверкой. Mirror репозитория:
 
 ```
-docker run --rm -v timescale_data:/src:ro -v $CB:/dst alpine tar czf /dst/timescale_data.tar.gz -C /src .
-docker run --rm -v redis_data:/src:ro -v $CB:/dst alpine tar czf /dst/redis_data.tar.gz -C /src .
+git clone --mirror git@github.com:sh1zok1d/signalbot.git signalbot.git && tar czf - signalbot.git | gpg --symmetric --cipher-algo AES256 -o signalbot_git_mirror.tar.gz.gpg
 ```
 
-Копия volume при работающей базе может быть неконсистентной; поэтому она **дополняет** дамп, а не заменяет его. Консистентную физическую копию можно снять после остановки сервисов (чек-лист остановки, шаг S5), повторив команду.
+Правило: пока нет двух копий вне VPS с совпадающим `MANIFEST.sha256`, чек-лист остановки не начинается.
 
-### Шаг 3. Секреты и конфигурация
+## 5. Проверка восстановления из зашифрованной копии (`closure_restore_verify.sh`)
 
-```
-tar czf - /opt/signalbot/.env /opt/signalbot/.env.beta-feeds /etc/signalbot/ 2>/dev/null | gpg --symmetric --cipher-algo AES256 -o $CB/secrets.tar.gz.gpg
-```
-
-Пароль — только у владельца, хранится отдельно от архива (менеджер паролей). Незашифрованная копия секретов в `$CB` не создаётся.
-
-### Шаг 4. Журналы и артефакты
+На чистой машине с Docker (не на VPS), из **скачанной** копии, а не из `$CB`:
 
 ```
-journalctl -u 'signalbot*' -o export | gzip > $CB/journal_signalbot.export.gz
-journalctl -u 'signalbot*' --no-pager > $CB/journal_signalbot.txt
-tar czf $CB/artifacts.tar.gz -C /opt/signalbot artifacts exports data logs backups 2>/dev/null || true
+CLOSURE_PASSPHRASE_FILE=~/closure.pass SIGNALBOT_REPO=~/signalbot CLOSURE_VERIFY_WORK=/dev/shm/closure_verify \
+  ./scripts/closure/closure_restore_verify.sh ~/pulsy-archive/closure_<метка>
 ```
 
-Если `artifacts/e1/` содержит holdout-объекты (не должен: holdout никогда не читался), они копируются как есть, без чтения.
+Шаги скрипта: `sha256sum -c MANIFEST.sha256` → расшифровка `db_plain.sql.gz.gpg` в рабочий каталог 700 (`/dev/shm` или зашифрованный диск) → `gzip -t` → контейнер `timescale/timescaledb:2.17.2-pg16` (образ из `docker-compose.yml`) → `CREATE DATABASE verify; timescaledb_pre_restore()` → `psql < дамп` → `timescaledb_post_restore()` → сверка `count(*)` каждой таблицы из `COUNTS.txt` (любое расхождение — ошибка) → повторное применение `storage/beta_v0_schema.sql`, если указан checkout → `min/max(open_time)` → `trap`: контейнер удаляется, открытый текст `shred -u`, каталог удаляется.
 
-### Шаг 5. Репозиторий и наборы данных
+Результат (только счётчики и даты, без идентификаторов) записывается в `docs/closure/BACKUP_MANIFEST_<дата>.md` вместе с `MANIFEST.sha256` и `COUNTS.txt`. Без этой записи чек-лист остановки не начинается.
 
-На машине владельца (не обязательно VPS):
+Дополнительно на той же машине: расшифровать и `tar -tzf` для `csv_results.tar.gz.gpg`, `secrets.tar.gz.gpg` (только список файлов, не содержимое), `artifacts.tar.gz.gpg`; результат — в тот же манифест.
 
-```
-git clone --mirror git@github.com:sh1zok1d/signalbot.git signalbot.git   # все ветки и теги
-tar czf signalbot_research_data.tar.gz -C <checkout> docs/research_data docs/research/atlas docs/research/generator_v0_memory docs/e1
-```
+## 6. Что считается успехом
 
-Mirror содержит `docs/research_data` и sealed-JSON в объектах; отдельный tar нужен для чтения без git.
+- `closure_backup.sh --apply` завершился без ошибки, в `$CB` только `*.gpg` + манифест + счётчики + README;
+- две копии вне VPS, манифесты совпадают;
+- `closure_restore_verify.sh` прошёл на чистой машине из скачанной копии, счётчики совпали;
+- пароль архива в менеджере паролей владельца; файл `/root/closure.pass` удалён после завершения всех шагов, использующих его (включая финальный дамп после остановки, чек-лист S5, и обезличенный дамп, S7);
+- mirror репозитория снят после финального коммита ветки закрытия и зашифрован;
+- `BACKUP_MANIFEST_<дата>.md` записан.
 
-### Шаг 6. Манифест целостности
+## 7. Хранение после закрытия
 
-```
-cd $CB && find . -type f ! -name MANIFEST.sha256 -print0 | sort -z | xargs -0 sha256sum > MANIFEST.sha256
-```
-
-Манифест кладётся **в каждую копию** и дополнительно вставляется (как текст) в `docs/closure/BACKUP_MANIFEST_<дата>.md` в репозитории — это единственное, что из бэкапа возвращается в git.
-
-### Шаг 7. Три копии в двух местах
-
-1. VPS (`$CB`) — временная, до остановки.
-2. Существующий rclone-remote: `rclone copy $CB <SIGNALBOT_BACKUP_REMOTE>/closure_<дата>/ --checksum`; затем `rclone check $CB <remote>/closure_<дата>/`.
-3. Локальный диск владельца (`rclone copy`/`scp`), затем ещё одна копия на отключаемый носитель или второй облачный аккаунт.
-
-Правило: пока нет двух копий вне VPS с совпадающим `MANIFEST.sha256`, остановка VPS запрещена.
-
-## 3. Проверка восстановления (обязательна)
-
-На отдельной машине (ноутбук владельца, Docker):
-
-1. `docker run -d --name restore_test -e POSTGRES_PASSWORD=x timescale/timescaledb:2.17.2-pg16` (тот же образ, что в `docker-compose.yml`).
-2. `gunzip -c db_plain.sql.gz | docker exec -i restore_test psql -U postgres -d postgres -c 'CREATE DATABASE t;' && ... psql -d t` с обёрткой `SELECT timescaledb_pre_restore(); ... SELECT timescaledb_post_restore();` (как в `deploy/restore.sh`).
-3. Проверки (те же, что `restore.sh --self-test`, плюс результаты):
-   - `SELECT count(*) FROM klines_1m;` > 0 и `min(open_time)`, `max(open_time)` совпадают с VPS;
-   - каждая таблица из `storage/beta_v0_schema.sql` существует;
-   - `SELECT count(*) FROM beta_claims; ... beta_claim_outcomes; ... forecast_predictions; ... forecast_outcomes; ... beta_forecasts;` — числа записываются в манифест и сравниваются с VPS;
-   - `python -m storage.db` / `Database.init_beta_v0_schema()` применяется без ошибок;
-   - CSV-экспорт открывается pandas без ошибок, число строк равно count(*).
-4. Результат проверки (команды, числа, дата) записывается в `docs/closure/BACKUP_MANIFEST_<дата>.md`. Без этой записи шаг «остановка» в чек-листе не начинается.
-5. Тестовая база удаляется.
-
-Дополнительно: `sha256sum -c MANIFEST.sha256` на каждой из трёх копий.
-
-## 4. Что считается успехом
-
-- три копии, два носителя вне VPS, манифесты совпадают;
-- восстановление на чистой машине прошло, счётчики совпали с VPS;
-- секреты зашифрованы, пароль у владельца;
-- mirror репозитория снят после последнего коммита ветки закрытия;
-- записан `BACKUP_MANIFEST_<дата>.md`.
-
-## 5. Хранение после закрытия
-
-- Срок: бессрочно для научных артефактов, кода и обезличенных результатов; для персональных данных — по `PAID_RESOURCES_AND_PII_V1.md` §3 (удаление из рабочих копий, один зашифрованный архив на срок, установленный владельцем).
-- Место: минимум одно облачное и один носитель владельца. Проверка `sha256sum -c` раз в год, если архив ещё нужен.
-- Существующие off-site дампы (`daily/weekly/monthly`) не удаляются до подтверждения закрывающей копии; затем можно оставить только `monthly/` и `closure_<дата>/`.
+- Научные артефакты, код, обезличенный дамп (`db_plain_deidentified.sql.gz.gpg`, создаётся в чек-листе S7) — бессрочно, в двух местах, проверка `sha256sum -c` раз в год.
+- Полный дамп и CSV участников, журналы, старые off-site дампы — по `PAID_RESOURCES_AND_PII_V1.md` §3.5: основание и срок хранения определяет владелец явно, с записью в `SHUTDOWN_LOG`; по умолчанию основания для хранения после закрытия нет.
+- Пароль архива — в менеджере паролей, с указанием, какие файлы им закрыты; утрата пароля равна утрате архива.

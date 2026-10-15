@@ -6,7 +6,7 @@
 `LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 = CLOSED_WITHOUT_OUTCOME_PROJECT_CLOSURE | accrual stopped | outcome never read`
 `LEVEL_RACE challenger C1 / calibrator = STOPPED | claim journal exported to the backup as is, never evaluated`
 `PAIRED_SHADOW V1 / W_L1 = STOPPED AFTER EXPORT | predictions preserved in the backup`
-`CATALOGUE = docs/closure/RESEARCH_CATALOG_FINAL_V1.md (207 atlas units; CONFIRMED 1 context object; validated trading edges 0)`
+`CATALOGUE = docs/closure/RESEARCH_CATALOG_FINAL_V1.md (207 registered atlas units, about 80 with an outcome read; CONFIRMED 1 context object; validated trading edges 0)`
 `PRODUCT_CHANGE = none | DEPLOY = forbidden | PUBLIC_RELEASE = not permitted (proposal docs/closure/PUBLIC_RELEASE_PROPOSAL_V1.md)`
 
 Every entry below is the historical routing record and has no execution authority.

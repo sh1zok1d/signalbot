@@ -4,7 +4,8 @@ Generated 2026-10-15 by `scripts/closure/build_research_catalog.py` from `docs/r
 
 ## 1. Totals
 
-- Research units in the atlas: **207**; cells in the mechanism × surface × state map: 436 (open frontier 352 — never to be explored under the closure decision).
+- Research units registered in the atlas: **207**; cells in the mechanism × surface × state map: 436 (open frontier 352 — never to be explored under the closure decision).
+- **207 registered units are not 207 executed experiments.** By atlas state: units whose outcome was read (`NO_STRUCTURE`, `CLOSED_ON_SURFACE`, `EXPOSED_ONLY`, `LIVE_SIGNAL`, `CONFIRMED`): **81**; units closed before an outcome (`BLOCKED_METHOD`, `BLOCKED_DATA`, `INFORMATIONALLY_WEAK`, `CANDIDATE_UNTESTED`, `CLOSED_BEFORE_START`, `BLOCKED_GOVERNANCE`): **122**; accruing or deferred (`FUTURE_NATURAL_ACCUMULATION`): 4. `INFORMATIONALLY_WEAK` includes some units that were run but whose information was judged insufficient; the per-unit verdict column below is authoritative.
 - Units by state:
   - `BLOCKED_METHOD`: 61
   - `NO_STRUCTURE`: 32

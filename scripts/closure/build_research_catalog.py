@@ -36,7 +36,13 @@ def main() -> None:
     lines.append("")
     lines.append("## 1. Totals")
     lines.append("")
-    lines.append(f"- Research units in the atlas: **{counts['units']}**; cells in the mechanism × surface × state map: {counts['cells']} (open frontier {counts['cells_by_state'].get('OPEN_FRONTIER', 0)} — never to be explored under the closure decision).")
+    OUTCOME_READ = {"NO_STRUCTURE", "CLOSED_ON_SURFACE", "EXPOSED_ONLY", "LIVE_SIGNAL", "CONFIRMED"}
+    CLOSED_BEFORE = {"BLOCKED_METHOD", "BLOCKED_DATA", "INFORMATIONALLY_WEAK", "CANDIDATE_UNTESTED", "CLOSED_BEFORE_START", "BLOCKED_GOVERNANCE"}
+    n_read = sum(1 for u in units if u.get("state") in OUTCOME_READ)
+    n_before = sum(1 for u in units if u.get("state") in CLOSED_BEFORE)
+    n_other = len(units) - n_read - n_before
+    lines.append(f"- Research units registered in the atlas: **{counts['units']}**; cells in the mechanism × surface × state map: {counts['cells']} (open frontier {counts['cells_by_state'].get('OPEN_FRONTIER', 0)} — never to be explored under the closure decision).")
+    lines.append(f"- **207 registered units are not 207 executed experiments.** By atlas state: units whose outcome was read (`NO_STRUCTURE`, `CLOSED_ON_SURFACE`, `EXPOSED_ONLY`, `LIVE_SIGNAL`, `CONFIRMED`): **{n_read}**; units closed before an outcome (`BLOCKED_METHOD`, `BLOCKED_DATA`, `INFORMATIONALLY_WEAK`, `CANDIDATE_UNTESTED`, `CLOSED_BEFORE_START`, `BLOCKED_GOVERNANCE`): **{n_before}**; accruing or deferred (`FUTURE_NATURAL_ACCUMULATION`): {n_other}. `INFORMATIONALLY_WEAK` includes some units that were run but whose information was judged insufficient; the per-unit verdict column below is authoritative.")
     lines.append("- Units by state:")
     for st, n in sorted(counts["units_by_state"].items(), key=lambda kv: -kv[1]):
         lines.append(f"  - `{st}`: {n}")
