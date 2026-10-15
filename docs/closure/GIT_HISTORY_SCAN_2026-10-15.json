@@ -1,0 +1,382 @@
+{
+ "blobs_scanned": 11372,
+ "refs": 151,
+ "by_category": {
+  "telegram_bot_token": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "openai_key": {
+   "files": 5,
+   "matches": 36,
+   "top_paths": [
+    [
+     "tests/research/test_generator_v0_multi_provider.py",
+     12
+    ],
+    [
+     "tests/research/test_generator_v0_resmoke_guard.py",
+     8
+    ],
+    [
+     "tests/research/test_generator_v0_anthropic_output_cap.py",
+     6
+    ],
+    [
+     "tests/research/test_generator_v0_background_novelty.py",
+     6
+    ],
+    [
+     "tests/research/test_generator_v0_background_red_team.py",
+     4
+    ]
+   ]
+  },
+  "anthropic_key": {
+   "files": 5,
+   "matches": 18,
+   "top_paths": [
+    [
+     "tests/research/test_generator_v0_multi_provider.py",
+     6
+    ],
+    [
+     "tests/research/test_generator_v0_resmoke_guard.py",
+     4
+    ],
+    [
+     "tests/research/test_generator_v0_anthropic_output_cap.py",
+     3
+    ],
+    [
+     "tests/research/test_generator_v0_background_novelty.py",
+     3
+    ],
+    [
+     "tests/research/test_generator_v0_background_red_team.py",
+     2
+    ]
+   ]
+  },
+  "aws_key": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "github_token": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "private_key_block": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "generic_assignment": {
+   "files": 9,
+   "matches": 24,
+   "top_paths": [
+    [
+     "tests/research/test_batch02_durable_evidence_retention.py",
+     8
+    ],
+    [
+     "tests/notifications/test_telegram_client.py",
+     5
+    ],
+    [
+     "tests/audit/test_live_archive_replay_preflight.py",
+     3
+    ],
+    [
+     "tests/beta/test_calibration_journal_export.py",
+     2
+    ],
+    [
+     "tests/beta/test_paired_shadow_preflight.py",
+     2
+    ],
+    [
+     "tests/beta/test_beta_sender.py",
+     1
+    ],
+    [
+     "tests/beta_user_sim/test_sim_openai_client.py",
+     1
+    ],
+    [
+     "tests/notifications/test_telegram_pinned_dependency.py",
+     1
+    ],
+    [
+     "tests/deploy/test_wait_for_paired_shadow.py",
+     1
+    ]
+   ]
+  },
+  "postgres_url_with_password": {
+   "files": 15,
+   "matches": 118,
+   "top_paths": [
+    [
+     ".github/workflows/ci.yml",
+     56
+    ],
+    [
+     ".github/workflows/full-regression.yml",
+     19
+    ],
+    [
+     ".env.example",
+     7
+    ],
+    [
+     "tests/storage/test_v2_correction_publication.py",
+     5
+    ],
+    [
+     "tests/storage/test_v2_episode_event_id_constraint_upgrade.py",
+     5
+    ],
+    [
+     "tests/storage/test_v2_instrument_history_readers.py",
+     5
+    ],
+    [
+     "tests/audit/test_live_archive_replay_preflight.py",
+     4
+    ],
+    [
+     "tests/storage/test_klines_no_downgrade.py",
+     3
+    ],
+    [
+     "tests/storage/test_v2_version_switch_readers.py",
+     3
+    ],
+    [
+     "tests/audit/test_price_oi_incremental_information_pilot_v0.py",
+     2
+    ],
+    [
+     "tests/research/test_pr_gate_paths.py",
+     2
+    ],
+    [
+     "tests/storage/test_v2_episode_event_transactions.py",
+     2
+    ],
+    [
+     "tests/beta/test_paired_shadow_preflight.py",
+     2
+    ],
+    [
+     "tests/deploy/test_wait_for_paired_shadow.py",
+     2
+    ],
+    [
+     "tests/storage/test_stage2_raw_bundle_snapshot.py",
+     1
+    ]
+   ]
+  },
+  "redis_url_with_password": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "public_ipv4": {
+   "files": 1,
+   "matches": 1,
+   "top_paths": [
+    [
+     "tests/research/test_generator_v0_textnorm.py",
+     1
+    ]
+   ]
+  },
+  "email": {
+   "files": 30,
+   "matches": 216,
+   "top_paths": [
+    [
+     "docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/fee_authority/binance_info_en_BH_fee.html",
+     32
+    ],
+    [
+     "scripts/research/lib/batch02_evidence_retention.py",
+     31
+    ],
+    [
+     "tests/research/test_batch02_durable_evidence_retention.py",
+     24
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v1_production.py",
+     20
+    ],
+    [
+     "tests/research/test_research_harness.py",
+     15
+    ],
+    [
+     "tests/research/test_batch02_large_artifact_retention.py",
+     10
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_production.py",
+     9
+    ],
+    [
+     "tests/research/test_market05_arm_lifecycle.py",
+     9
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_production_lifecycle.py",
+     8
+    ],
+    [
+     "tests/research/test_b2_06_oi_funding_data_expansion.py",
+     6
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_arm_wiring.py",
+     6
+    ],
+    [
+     "tests/common/test_versioning.py",
+     5
+    ],
+    [
+     "tests/research/test_b2_06_oi_funding_materialization.py",
+     5
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_inherited_ladder.py",
+     4
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v3_implementation_freeze.py",
+     4
+    ],
+    [
+     "tests/research/test_market_06_execution_lifecycle.py",
+     4
+    ],
+    [
+     "tests/beta/test_beta_build_sha.py",
+     3
+    ],
+    [
+     "docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0/raw/wayback/e9d31d2c4bbeedaff83d00af90cda6a566154715976452050aac639365c6851f.bin",
+     2
+    ],
+    [
+     "docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0/raw/wayback/f3af2298a203d4cca19583adc04cfe0d76c0bd0bb042a941169e47dae3d5b559.bin",
+     2
+    ],
+    [
+     "docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0/raw/wayback/f81387552d8a3e8adbf6d26c077c16eebcce4c60121199d35e539a1ab5950546.bin",
+     2
+    ],
+    [
+     "tests/research/test_forward_market_observability_v1_collection_arm.py",
+     2
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v1_authorization.py",
+     2
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_authority_self_reference.py",
+     2
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_execution_freeze.py",
+     2
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v3_arm.py",
+     2
+    ],
+    [
+     "docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0/raw/wayback/7aef7ff5c596b75f46723391f5f5cfd149e0f18cfced26ad639d70ab05eabfad.bin",
+     1
+    ],
+    [
+     "docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0/raw/wayback/9a46162d7a0bfd229f18db2d2b152486f8e46c67c01eeb70048aee8dfa3dcb7f.bin",
+     1
+    ],
+    [
+     "scripts/research/independent_diagnostics_2026_10/revision/rc_bench.py",
+     1
+    ],
+    [
+     "tests/research/test_harness_synthetic_edge_calibration_v2_control_calibration_execution_freeze.py",
+     1
+    ],
+    [
+     "tests/research/test_market_06_claim_lifecycle.py",
+     1
+    ]
+   ]
+  },
+  "telegram_chat_or_user_id_assignment": {
+   "files": 2,
+   "matches": 6,
+   "top_paths": [
+    [
+     "tests/beta/test_beta_audit_deidentify_pg.py",
+     5
+    ],
+    [
+     "tests/notifications/test_telegram_client.py",
+     1
+    ]
+   ]
+  },
+  "ssh_target": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  },
+  "hostname_assignment": {
+   "files": 6,
+   "matches": 380,
+   "top_paths": [
+    [
+     "docs/RESEARCH_LEDGER.md",
+     367
+    ],
+    [
+     "scripts/research/generator_v0/anthropic_provider.py",
+     6
+    ],
+    [
+     "common/config.py",
+     2
+    ],
+    [
+     "deploy/install_beta_feeds_role.sh",
+     2
+    ],
+    [
+     "scripts/research/lib/batch02_evidence_retention.py",
+     2
+    ],
+    [
+     "docs/research/MARKET_06_CROSS_VENUE_FEASIBILITY.json",
+     1
+    ]
+   ]
+  },
+  "dotenv_file": {
+   "files": 0,
+   "matches": 0,
+   "top_paths": []
+  }
+ },
+ "dotenv_files": []
+}
